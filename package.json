@@ -4,7 +4,9 @@
   "description": "A modern web application for managing student administrative document requests at university level. This system digitizes the entire process of requesting, processing, and delivering official academic documents.",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server/server.js",
+    "seed": "node server/seed.js"
   },
   "keywords": [],
   "author": "",

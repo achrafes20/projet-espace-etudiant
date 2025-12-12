@@ -13,26 +13,31 @@
    (Or use your preferred SQL client like phpMyAdmin or Workbench to run the SQL file).
 
 ## Backend Setup
-1. Navigate to the server directory:
-   ```bash
-   cd server
-   ```
-2. Install dependencies (if not already done):
+1. Navigate to the project root directory.
+
+2. Install dependencies:
    ```bash
    npm install
    ```
-3. Update `.env` file with your database credentials:
+3. Configure environment variables:
+   Copy the example environment file to create your local configuration:
+   ```bash
+   cp server/.env.example server/.env
    ```
-   DB_USER=root
-   DB_PASSWORD=your_password
-   ```
+   *Note: On Windows, use `copy server\.env.example server\.env`*
+
+4. Open `server/.env` and update the following with your local credentials:
+   - `DB_USER` (usually 'root')
+   - `DB_PASSWORD`
+   - `JWT_SECRET` (generate a secure random string)
+   - Email settings if you want to test notifications
 4. Seed the default admin user:
    ```bash
-   node seed.js
+   npm run seed
    ```
 5. Start the server:
    ```bash
-   node server.js
+   npm start
    ```
    Server will run on http://localhost:5000
 
