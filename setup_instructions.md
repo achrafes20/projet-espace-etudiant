@@ -7,10 +7,7 @@
 ## Database Setup
 1. Create a MySQL database named `student_services_db` (or update `.env` later).
 2. Import the schema:
-   ```bash
-   mysql -u root -p student_services_db < projet_db.sql
-   ```
-   (Or use your preferred SQL client like phpMyAdmin or Workbench to run the SQL file).
+    Use phpMyAdmin to run the SQL file.
 
 ## Backend Setup
 1. Navigate to the project root directory.
