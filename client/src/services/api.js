@@ -21,8 +21,10 @@ api.interceptors.request.use(
 );
 
 export const validateStudent = (data) => api.post('/student/validate', data);
+export const checkField = (data) => api.post('/student/check-field', data);
 export const createRequest = (data) => api.post('/student/request', data);
 export const createComplaint = (data) => api.post('/student/complaint', data);
+export const checkStatus = (data) => api.post('/student/status', data);
 
 export const adminLogin = (data) => api.post('/admin/login', data);
 export const getDashboardStats = () => api.get('/admin/dashboard-stats');
@@ -31,5 +33,6 @@ export const updateRequestStatus = (id, data) => api.put(`/admin/requests/${id}`
     headers: { 'Content-Type': 'multipart/form-data' }
 });
 export const getComplaints = () => api.get('/admin/complaints');
+export const respondToComplaint = (id, data) => api.put(`/admin/complaints/${id}/respond`, data);
 
 export default api;

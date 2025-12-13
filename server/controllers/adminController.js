@@ -1,6 +1,9 @@
 const db = require('../config/db');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const emailService = require('../services/emailService');
+
+// ... (keep login, getDashboardStats, getRequests as is, they are fine)
 
 exports.login = async (req, res) => {
     const { email, password } = req.body;
@@ -112,7 +115,18 @@ exports.updateRequestStatus = async (req, res) => {
             [admin_id, status === 'Accepté' ? 'APPROVE_REQUEST' : 'REJECT_REQUEST', 'REQUEST', id, JSON.stringify({ status, reason: refusal_reason })]
         );
 
-        // TODO: Trigger email notification
+        // Fetch student email and reference
+        const [rows] = await db.query(`
+            SELECT s.email, s.first_name, r.reference, r.document_type 
+            FROM requests r 
+            JOIN students s ON r.student_id = s.id 
+            WHERE r.id = ?
+        `, [id]);
+
+        if (rows.length > 0) {
+            const { email, first_name, reference, document_type } = rows[0];
+            await emailService.sendRequestUpdate(email, first_name, reference, document_type, status, refusal_reason, document_path);
+        }
 
         res.json({ success: true, message: 'Request updated' });
     } catch (error) {
@@ -123,13 +137,42 @@ exports.updateRequestStatus = async (req, res) => {
 exports.getComplaints = async (req, res) => {
     try {
         const [complaints] = await db.query(`
-      SELECT c.*, r.reference as request_reference, s.first_name, s.last_name 
+      SELECT c.*, r.reference as request_reference, s.first_name, s.last_name, s.email 
       FROM complaints c
       JOIN requests r ON c.request_id = r.id
       JOIN students s ON c.student_id = s.id
       ORDER BY c.submission_date DESC
     `);
         res.json(complaints);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+exports.respondToComplaint = async (req, res) => {
+    const { id } = req.params;
+    const { response, admin_id } = req.body;
+
+    try {
+        await db.query(
+            'UPDATE complaints SET response = ?, status = "Traitée", processing_date = CURRENT_TIMESTAMP, processed_by_admin_id = ? WHERE id = ?',
+            [response, admin_id, id]
+        );
+
+        // Fetch complaint details for email
+        const [rows] = await db.query(`
+            SELECT s.email, s.first_name, c.complaint_number 
+            FROM complaints c 
+            JOIN students s ON c.student_id = s.id 
+            WHERE c.id = ?
+        `, [id]);
+
+        if (rows.length > 0) {
+            const { email, first_name, complaint_number } = rows[0];
+            await emailService.sendComplaintResponse(email, first_name, complaint_number, response);
+        }
+
+        res.json({ success: true, message: 'Complaint responded successfully' });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }

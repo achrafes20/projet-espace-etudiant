@@ -7,7 +7,7 @@ const path = require('path');
 // Configure Multer for PDF uploads
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-        cb(null, 'uploads/');
+        cb(null, path.join(__dirname, '../uploads'));
     },
     filename: (req, file, cb) => {
         cb(null, `doc-${Date.now()}${path.extname(file.originalname)}`);
@@ -30,5 +30,6 @@ router.get('/dashboard-stats', adminController.getDashboardStats);
 router.get('/requests', adminController.getRequests);
 router.put('/requests/:id', upload.single('document'), adminController.updateRequestStatus);
 router.get('/complaints', adminController.getComplaints);
+router.put('/complaints/:id/respond', adminController.respondToComplaint);
 
 module.exports = router;

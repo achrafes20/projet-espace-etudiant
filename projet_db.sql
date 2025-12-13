@@ -1,3 +1,11 @@
+-- Drop tables if they exist (in reverse dependency order)
+DROP TABLE IF EXISTS email_notifications;
+DROP TABLE IF EXISTS action_history;
+DROP TABLE IF EXISTS complaints;
+DROP TABLE IF EXISTS requests;
+DROP TABLE IF EXISTS administrators;
+DROP TABLE IF EXISTS students;
+
 -- Students table
 CREATE TABLE students (
     id INT PRIMARY KEY AUTO_INCREMENT,
@@ -8,6 +16,19 @@ CREATE TABLE students (
     first_name VARCHAR(50),
     major VARCHAR(100),
     level VARCHAR(50),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Administrators table
+CREATE TABLE administrators (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    login VARCHAR(50) UNIQUE,
+    password VARCHAR(255),
+    last_name VARCHAR(50),
+    first_name VARCHAR(50),
+    email VARCHAR(100),
+    active BOOLEAN DEFAULT TRUE,
+    last_login TIMESTAMP NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -44,19 +65,6 @@ CREATE TABLE complaints (
     FOREIGN KEY (request_id) REFERENCES requests(id),
     FOREIGN KEY (student_id) REFERENCES students(id),
     FOREIGN KEY (processed_by_admin_id) REFERENCES administrators(id)
-);
-
--- Administrators table
-CREATE TABLE administrators (
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    login VARCHAR(50) UNIQUE,
-    password VARCHAR(255),
-    last_name VARCHAR(50),
-    first_name VARCHAR(50),
-    email VARCHAR(100),
-    active BOOLEAN DEFAULT TRUE,
-    last_login TIMESTAMP NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Action history table

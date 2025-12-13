@@ -20,9 +20,9 @@ const seedDatabase = async () => {
 
         // 2. Seed Students
         const studentsData = [
-            { email: 'ahmed.hassan@university.edu', apogee: '10001', cin: 'A1000', fName: 'Ahmed', lName: 'Hassan', major: 'Computer Science' },
-            { email: 'fatima.zahra@university.edu', apogee: '10002', cin: 'B2000', fName: 'Fatima', lName: 'Zahra', major: 'Economics' },
-            { email: 'youssef.benali@university.edu', apogee: '10003', cin: 'C3000', fName: 'Youssef', lName: 'Benali', major: 'Physics' },
+            { email: 'tahaessamit@gmail.com', apogee: '10001', cin: 'A1000', fName: 'Ahmed', lName: 'Hassan', major: 'Computer Science' },
+            { email: 'tahaessamit22@gmail.com', apogee: '10002', cin: 'B2000', fName: 'Fatima', lName: 'Zahra', major: 'Economics' },
+            { email: 'tahaessamitovic@gmail.com', apogee: '10003', cin: 'C3000', fName: 'Youssef', lName: 'Benali', major: 'Physics' },
             { email: 'leila.amrani@university.edu', apogee: '10004', cin: 'D4000', fName: 'Leila', lName: 'Amrani', major: 'Biology' },
             { email: 'karim.idrissi@university.edu', apogee: '10005', cin: 'E5000', fName: 'Karim', lName: 'Idrissi', major: 'Mathematics' }
         ];

@@ -14,8 +14,8 @@ const Header = () => {
                             <AcademicCapIcon className="h-8 w-8 text-white" />
                         </div>
                         <div>
-                            <h1 className="text-2xl font-bold text-gray-900 tracking-tight">University Portal</h1>
-                            <p className="text-sm text-gray-500 font-medium">Student Services</p>
+                            <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Portail Universitaire</h1>
+                            <p className="text-sm text-gray-500 font-medium">Services Étudiants</p>
                         </div>
                     </div>
                     <button
@@ -23,7 +23,7 @@ const Header = () => {
                         className="flex items-center text-primary-600 hover:text-primary-700 font-medium transition-colors px-4 py-2 rounded-md hover:bg-primary-50"
                     >
                         <UserIcon className="h-5 w-5 mr-2" />
-                        Admin Login
+                        Accès Admin
                     </button>
                 </div>
             </div>

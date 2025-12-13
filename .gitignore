@@ -21,4 +21,7 @@ dist
 # Logs
 npm-debug.log*
 yarn-debug.log*
-yarn-error.log*
+
+# Server Uploads
+server/uploads/*
+!server/uploads/.gitkeep

@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import StudentPortal from './pages/StudentPortal';
 import RequestForm from './pages/RequestForm';
 import ComplaintForm from './pages/ComplaintForm';
+import StatusCheck from './pages/StatusCheck';
 import AdminLogin from './pages/AdminLogin';
 import AdminLayout from './layouts/AdminLayout';
 import DashboardHome from './pages/admin/DashboardHome';
@@ -18,6 +19,7 @@ function App() {
                 <Route path="/" element={<StudentPortal />} />
                 <Route path="/request" element={<RequestForm />} />
                 <Route path="/complaint" element={<ComplaintForm />} />
+                <Route path="/status" element={<StatusCheck />} />
 
                 {/* Admin Routes */}
                 <Route path="/admin/login" element={<AdminLogin />} />
