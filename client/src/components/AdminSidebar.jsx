@@ -15,8 +15,9 @@ const AdminSidebar = () => {
 
     const menuItems = [
         { id: 'dashboard', label: 'Dashboard', icon: Squares2X2Icon, path: '/admin/dashboard' },
-        { id: 'requests', label: 'Requests', icon: DocumentTextIcon, path: '/admin/requests' },
-        { id: 'complaints', label: 'Complaints', icon: ExclamationCircleIcon, path: '/admin/complaints' },
+        { id: 'requests', label: 'Demandes', icon: DocumentTextIcon, path: '/admin/requests' },
+        { id: 'history', label: 'Historique', icon: ClockIcon, path: '/admin/history' },
+        { id: 'complaints', label: 'Réclamations', icon: ExclamationCircleIcon, path: '/admin/complaints' },
     ];
 
     const handleLogout = () => {

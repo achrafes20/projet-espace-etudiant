@@ -49,12 +49,52 @@ exports.getDashboardStats = async (req, res) => {
         const [accepted] = await db.query('SELECT COUNT(*) as count FROM requests WHERE status = "Accepté"');
         const [rejected] = await db.query('SELECT COUNT(*) as count FROM requests WHERE status = "Refusé"');
         const [total] = await db.query('SELECT COUNT(*) as count FROM requests');
+        
+        // Statistiques par type de document
+        const [byType] = await db.query(`
+            SELECT document_type, COUNT(*) as count 
+            FROM requests 
+            GROUP BY document_type
+        `);
+        
+        // Statistiques par statut et type
+        const [byStatusType] = await db.query(`
+            SELECT document_type, status, COUNT(*) as count 
+            FROM requests 
+            GROUP BY document_type, status
+        `);
+        
+        // Demandes récentes (7 derniers jours)
+        const [recent] = await db.query(`
+            SELECT COUNT(*) as count 
+            FROM requests 
+            WHERE submission_date >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+        `);
+        
+        // Réclamations en attente
+        const [pendingComplaints] = await db.query(`
+            SELECT COUNT(*) as count 
+            FROM complaints 
+            WHERE status = "En attente"
+        `);
+        
+        // Taux de traitement
+        const totalProcessed = accepted[0].count + rejected[0].count;
+        const processingRate = total[0].count > 0 ? ((totalProcessed / total[0].count) * 100).toFixed(1) : 0;
 
         res.json({
             pending: pending[0].count,
             accepted: accepted[0].count,
             rejected: rejected[0].count,
-            total: total[0].count
+            total: total[0].count,
+            byType: byType.reduce((acc, item) => {
+                acc[item.document_type] = item.count;
+                return acc;
+            }, {}),
+            byStatusType: byStatusType,
+            recent: recent[0].count,
+            pendingComplaints: pendingComplaints[0].count,
+            processingRate: parseFloat(processingRate)
         });
     } catch (error) {
         res.status(500).json({ error: error.message });

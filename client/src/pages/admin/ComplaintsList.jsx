@@ -39,8 +39,8 @@ const ComplaintsList = () => {
     return (
         <div>
             <div className="mb-8">
-                <h1 className="text-3xl font-bold text-gray-900 mb-2">Gestion des réclamations</h1>
-                <p className="text-gray-600">Consultez et répondez aux réclamations étudiantes</p>
+                <h1 className="page-title">Gestion des réclamations</h1>
+                <p className="page-subtitle">Consultez et répondez aux réclamations des étudiants</p>
             </div>
 
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">

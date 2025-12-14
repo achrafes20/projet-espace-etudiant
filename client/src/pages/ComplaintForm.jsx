@@ -39,10 +39,10 @@ const ComplaintForm = () => {
                         <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
                             <ExclamationTriangleIcon className="h-10 w-10 text-green-600" />
                         </div>
-                        <h2 className="text-2xl font-bold text-gray-900 mb-4">Complaint Submitted</h2>
-                        <p className="text-gray-600 mb-8">We have received your complaint and will review it shortly.</p>
-                        <button onClick={() => navigate('/')} className="bg-primary-600 hover:bg-primary-700 text-white font-medium py-3 px-8 rounded-lg transition-colors">
-                            Return Home
+                        <h2 className="text-2xl font-bold text-gray-900 mb-4">Réclamation envoyée</h2>
+                        <p className="text-gray-600 mb-8">Votre réclamation a été reçue et sera examinée dans les plus brefs délais.</p>
+                        <button onClick={() => navigate('/')} className="btn-primary">
+                            Retour au portail
                         </button>
                     </div>
                 </main>
@@ -59,63 +59,63 @@ const ComplaintForm = () => {
                 </button>
 
                 <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-10">
-                    <div className="flex items-center space-x-4 mb-8">
-                        <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
+                        <div className="flex items-center space-x-4 mb-8">
+                        <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center border-2 border-red-200">
                             <ExclamationTriangleIcon className="h-6 w-6 text-red-600" />
                         </div>
                         <div>
-                            <h1 className="text-2xl font-bold text-gray-900">Submit Complaint</h1>
-                            <p className="text-gray-500">Report an issue with your request</p>
+                            <h1 className="text-2xl font-bold text-gray-900">Déposer une réclamation</h1>
+                            <p className="text-gray-500">Signaler un problème concernant votre demande</p>
                         </div>
                     </div>
 
                     <form onSubmit={handleSubmit} className="space-y-6">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Request Reference Number</label>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Référence de la demande *</label>
                             <input
                                 required
                                 type="text"
-                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none transition-all"
-                                placeholder="REQ-2024-..."
+                                className="input-field"
+                                placeholder="ex: AS-2025-001"
                                 value={formData.request_reference}
                                 onChange={e => setFormData({ ...formData, request_reference: e.target.value })}
                             />
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Adresse Email *</label>
                             <input
                                 required
                                 type="email"
-                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none transition-all"
-                                placeholder="student@university.edu"
+                                className="input-field"
+                                placeholder="etudiant@university.edu"
                                 value={formData.email}
                                 onChange={e => setFormData({ ...formData, email: e.target.value })}
                             />
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Reason</label>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Motif *</label>
                             <select
                                 required
-                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none bg-white transition-all"
+                                className="input-field"
                                 value={formData.reason}
                                 onChange={e => setFormData({ ...formData, reason: e.target.value })}
                             >
-                                <option value="">Select a reason</option>
-                                <option value="Delay">Processing Delay</option>
-                                <option value="Error">Incorrect Information</option>
-                                <option value="Other">Other</option>
+                                <option value="">Sélectionnez un motif</option>
+                                <option value="Retard">Retard de traitement</option>
+                                <option value="Erreur">Informations incorrectes</option>
+                                <option value="Autre">Autre</option>
                             </select>
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Description *</label>
                             <textarea
                                 required
                                 rows="5"
-                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none transition-all resize-none"
-                                placeholder="Describe your issue..."
+                                className="input-field resize-none"
+                                placeholder="Décrivez votre problème en détail..."
                                 value={formData.description}
                                 onChange={e => setFormData({ ...formData, description: e.target.value })}
                             ></textarea>
@@ -124,8 +124,8 @@ const ComplaintForm = () => {
                         {error && <div className="text-red-500 text-sm bg-red-50 p-4 rounded-lg">{error}</div>}
 
                         <div className="flex justify-end pt-4">
-                            <button type="submit" disabled={loading} className="bg-red-600 hover:bg-red-700 text-white font-medium py-3 px-8 rounded-lg transition-colors shadow-lg shadow-red-500/30 disabled:opacity-50">
-                                {loading ? 'Submitting...' : 'Submit Complaint'}
+                            <button type="submit" disabled={loading} className="bg-red-600 hover:bg-red-700 text-white font-medium py-3 px-8 rounded-lg transition-colors shadow-lg shadow-red-500/30 disabled:opacity-50 disabled:cursor-not-allowed">
+                                {loading ? 'Envoi en cours...' : 'Envoyer la réclamation'}
                             </button>
                         </div>
                     </form>

@@ -9,12 +9,25 @@ import Header from '../components/Header';
 const baseDetails = {
     academic_year: '2024/2025',
     session: 'Session 1',
+    // Informations entreprise
     company_name: '',
+    company_legal_name: '',
     company_address: '',
+    company_city: '',
     company_email: '',
     company_phone: '',
+    company_sector: '',
+    // Représentant entreprise
+    company_representative_name: '',
+    company_representative_function: '',
+    // Encadrant entreprise
     supervisor_name: '',
     supervisor_role: '',
+    supervisor_phone: '',
+    supervisor_email: '',
+    // Encadrant ENSA
+    ensa_supervisor_name: '',
+    // Stage
     internship_subject: '',
     start_date: '',
     end_date: ''
@@ -49,6 +62,7 @@ const RequestForm = () => {
     const [loading, setLoading] = useState(false);
     const [successData, setSuccessData] = useState(null);
     const [identityError, setIdentityError] = useState('');
+    
     const handleBlur = async (field) => {
         const value = formData[field];
         if (!value) {
@@ -105,6 +119,13 @@ const RequestForm = () => {
         verifyIdentity();
     }, [fieldStatus, formData.email, formData.apogee_number, formData.cin]);
 
+    const getIcon = (status) => {
+        if (status === 'loading') return <div className="animate-spin h-5 w-5 border-2 border-primary-600 border-t-transparent rounded-full" />;
+        if (status === 'valid') return <CheckCircleIcon className="h-6 w-6 text-green-500" />;
+        if (status === 'invalid') return <XCircleIcon className="h-6 w-6 text-red-500" />;
+        return null;
+    };
+
     const updateDetails = (key, value) => {
         setFormData(prev => ({
             ...prev,
@@ -151,12 +172,6 @@ const RequestForm = () => {
         }
     }, [formData.specific_details.academic_year, student, transcriptData]);
 
-    const getIcon = (status) => {
-        if (status === 'loading') return <div className="animate-spin h-5 w-5 border-2 border-primary-600 border-t-transparent rounded-full" />;
-        if (status === 'valid') return <CheckCircleIcon className="h-6 w-6 text-green-500" />;
-        if (status === 'invalid') return <XCircleIcon className="h-6 w-6 text-red-500" />;
-        return null;
-    };
     const renderSpecificFields = () => {
         switch (selection) {
             case 'school-certificate':
@@ -226,48 +241,108 @@ const RequestForm = () => {
                 return (
                     <div className="space-y-4">
                         <div className="bg-purple-50 border border-purple-100 p-4 rounded-lg text-sm text-purple-800">
-                            Convention de stage : renseignez l'entreprise, l'encadrant et la période.
+                            Convention de stage : renseignez toutes les informations demandées.
                         </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Nom de l'entreprise</label>
-                            <input type="text" value={formData.specific_details.company_name} onChange={e => updateDetails('company_name', e.target.value)} className="w-full px-4 py-3 border rounded-lg outline-none focus:ring-2 focus:ring-primary-500" />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Adresse</label>
-                            <input type="text" value={formData.specific_details.company_address} onChange={e => updateDetails('company_address', e.target.value)} className="w-full px-4 py-3 border rounded-lg outline-none focus:ring-2 focus:ring-primary-500" />
-                        </div>
-                        <div className="grid md:grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
-                                <input type="email" value={formData.specific_details.company_email} onChange={e => updateDetails('company_email', e.target.value)} className="w-full px-4 py-3 border rounded-lg outline-none focus:ring-2 focus:ring-primary-500" />
+                        
+                        <div className="border-t border-gray-200 pt-4">
+                            <h3 className="text-lg font-semibold text-gray-900 mb-4">Informations de l'entreprise</h3>
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">Raison sociale de l'entreprise *</label>
+                                    <input type="text" value={formData.specific_details.company_legal_name} onChange={e => updateDetails('company_legal_name', e.target.value)} className="w-full px-4 py-3 border rounded-lg outline-none focus:ring-2 focus:ring-primary-500" required />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">Adresse de l'entreprise *</label>
+                                    <input type="text" value={formData.specific_details.company_address} onChange={e => updateDetails('company_address', e.target.value)} className="w-full px-4 py-3 border rounded-lg outline-none focus:ring-2 focus:ring-primary-500" required />
+                                </div>
+                                <div className="grid md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">Ville de l'entreprise *</label>
+                                        <input type="text" value={formData.specific_details.company_city} onChange={e => updateDetails('company_city', e.target.value)} className="w-full px-4 py-3 border rounded-lg outline-none focus:ring-2 focus:ring-primary-500" required />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">Téléphone de l'entreprise *</label>
+                                        <input type="text" value={formData.specific_details.company_phone} onChange={e => updateDetails('company_phone', e.target.value)} className="w-full px-4 py-3 border rounded-lg outline-none focus:ring-2 focus:ring-primary-500" required />
+                                    </div>
+                                </div>
+                                <div className="grid md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">Email de l'entreprise *</label>
+                                        <input type="email" value={formData.specific_details.company_email} onChange={e => updateDetails('company_email', e.target.value)} className="w-full px-4 py-3 border rounded-lg outline-none focus:ring-2 focus:ring-primary-500" required />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">Secteur de l'entreprise *</label>
+                                        <input type="text" value={formData.specific_details.company_sector} onChange={e => updateDetails('company_sector', e.target.value)} className="w-full px-4 py-3 border rounded-lg outline-none focus:ring-2 focus:ring-primary-500" required />
+                                    </div>
+                                </div>
                             </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Téléphone</label>
-                                <input type="text" value={formData.specific_details.company_phone} onChange={e => updateDetails('company_phone', e.target.value)} className="w-full px-4 py-3 border rounded-lg outline-none focus:ring-2 focus:ring-primary-500" />
+                        </div>
+
+                        <div className="border-t border-gray-200 pt-4">
+                            <h3 className="text-lg font-semibold text-gray-900 mb-4">Représentant de l'entreprise</h3>
+                            <div className="grid md:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">Nom du représentant *</label>
+                                    <input type="text" value={formData.specific_details.company_representative_name} onChange={e => updateDetails('company_representative_name', e.target.value)} className="w-full px-4 py-3 border rounded-lg outline-none focus:ring-2 focus:ring-primary-500" required />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">Fonction du représentant *</label>
+                                    <input type="text" value={formData.specific_details.company_representative_function} onChange={e => updateDetails('company_representative_function', e.target.value)} className="w-full px-4 py-3 border rounded-lg outline-none focus:ring-2 focus:ring-primary-500" required />
+                                </div>
                             </div>
                         </div>
-                        <div className="grid md:grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Encadrant</label>
-                                <input type="text" value={formData.specific_details.supervisor_name} onChange={e => updateDetails('supervisor_name', e.target.value)} className="w-full px-4 py-3 border rounded-lg outline-none focus:ring-2 focus:ring-primary-500" />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Fonction</label>
-                                <input type="text" value={formData.specific_details.supervisor_role} onChange={e => updateDetails('supervisor_role', e.target.value)} className="w-full px-4 py-3 border rounded-lg outline-none focus:ring-2 focus:ring-primary-500" />
+
+                        <div className="border-t border-gray-200 pt-4">
+                            <h3 className="text-lg font-semibold text-gray-900 mb-4">Encadrant de l'entreprise</h3>
+                            <div className="space-y-4">
+                                <div className="grid md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">Nom de l'encadrant *</label>
+                                        <input type="text" value={formData.specific_details.supervisor_name} onChange={e => updateDetails('supervisor_name', e.target.value)} className="w-full px-4 py-3 border rounded-lg outline-none focus:ring-2 focus:ring-primary-500" required />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">Fonction de l'encadrant *</label>
+                                        <input type="text" value={formData.specific_details.supervisor_role} onChange={e => updateDetails('supervisor_role', e.target.value)} className="w-full px-4 py-3 border rounded-lg outline-none focus:ring-2 focus:ring-primary-500" required />
+                                    </div>
+                                </div>
+                                <div className="grid md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">Téléphone de l'encadrant *</label>
+                                        <input type="text" value={formData.specific_details.supervisor_phone} onChange={e => updateDetails('supervisor_phone', e.target.value)} className="w-full px-4 py-3 border rounded-lg outline-none focus:ring-2 focus:ring-primary-500" required />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">Email de l'encadrant *</label>
+                                        <input type="email" value={formData.specific_details.supervisor_email} onChange={e => updateDetails('supervisor_email', e.target.value)} className="w-full px-4 py-3 border rounded-lg outline-none focus:ring-2 focus:ring-primary-500" required />
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Sujet du stage</label>
-                            <input type="text" value={formData.specific_details.internship_subject} onChange={e => updateDetails('internship_subject', e.target.value)} className="w-full px-4 py-3 border rounded-lg outline-none focus:ring-2 focus:ring-primary-500" />
-                        </div>
-                        <div className="grid md:grid-cols-2 gap-4">
+
+                        <div className="border-t border-gray-200 pt-4">
+                            <h3 className="text-lg font-semibold text-gray-900 mb-4">Encadrant ENSA</h3>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Date de début</label>
-                                <input type="date" value={formData.specific_details.start_date} onChange={e => updateDetails('start_date', e.target.value)} className="w-full px-4 py-3 border rounded-lg outline-none focus:ring-2 focus:ring-primary-500" />
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Nom de l'encadrant ENSA *</label>
+                                <input type="text" value={formData.specific_details.ensa_supervisor_name} onChange={e => updateDetails('ensa_supervisor_name', e.target.value)} className="w-full px-4 py-3 border rounded-lg outline-none focus:ring-2 focus:ring-primary-500" required />
                             </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Date de fin</label>
-                                <input type="date" value={formData.specific_details.end_date} onChange={e => updateDetails('end_date', e.target.value)} className="w-full px-4 py-3 border rounded-lg outline-none focus:ring-2 focus:ring-primary-500" />
+                        </div>
+
+                        <div className="border-t border-gray-200 pt-4">
+                            <h3 className="text-lg font-semibold text-gray-900 mb-4">Informations du stage</h3>
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">Sujet du stage *</label>
+                                    <input type="text" value={formData.specific_details.internship_subject} onChange={e => updateDetails('internship_subject', e.target.value)} className="w-full px-4 py-3 border rounded-lg outline-none focus:ring-2 focus:ring-primary-500" required />
+                                </div>
+                                <div className="grid md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">Stage du *</label>
+                                        <input type="date" value={formData.specific_details.start_date} onChange={e => updateDetails('start_date', e.target.value)} className="w-full px-4 py-3 border rounded-lg outline-none focus:ring-2 focus:ring-primary-500" required />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">Stage au *</label>
+                                        <input type="date" value={formData.specific_details.end_date} onChange={e => updateDetails('end_date', e.target.value)} className="w-full px-4 py-3 border rounded-lg outline-none focus:ring-2 focus:ring-primary-500" required />
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>

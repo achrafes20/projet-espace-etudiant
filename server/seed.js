@@ -27,11 +27,11 @@ const seedDatabase = async () => {
                 cne: 'EE9B6532',
                 fName: 'ACHRAF',
                 lName: 'ES-SERRAR',
-                major: 'GÈnie Informatique',
-                level: '1Ëre annÈe',
-                filiere: 'GÈnie Informatique',
+                major: 'G√©nie Informatique',
+                level: '1√©re ann√©e',
+                filiere: 'G√©nie Informatique',
                 birth_date: '2001-01-01',
-                birth_place: 'TÈtouan',
+                birth_place: 'T√©touan',
                 transcript_data: {
                     parcours: [
                         {
@@ -41,9 +41,9 @@ const seedDatabase = async () => {
                                     name: 'Session 1',
                                     modules: [
                                         { code: 'GI101', name: 'Algorithmique', grade: 15, coefficient: 1, validated: true },
-                                        { code: 'GI102', name: 'Bases de donnÈes', grade: 14, coefficient: 1, validated: true }
+                                        { code: 'GI102', name: 'Bases de donn√©es', grade: 14, coefficient: 1, validated: true }
                                     ],
-                                    result: { average: 14.5, decision: 'ValidÈ', mention: 'Bien' }
+                                    result: { average: 14.5, decision: 'Valid√©', mention: 'Bien' }
                                 }
                             ]
                         }
@@ -57,9 +57,9 @@ const seedDatabase = async () => {
                 cne: 'G131541390',
                 fName: 'NAIMA',
                 lName: 'ZIATTI',
-                major: '…conomie et Gestion',
-                level: '2Ëme annÈe',
-                filiere: '…conomie et Gestion',
+                major: '√©conomie et Gestion',
+                level: '2√©me ann√©e',
+                filiere: '√©conomie et Gestion',
                 birth_date: '2000-03-12',
                 birth_place: 'Marrakech',
                 transcript_data: {
@@ -70,8 +70,8 @@ const seedDatabase = async () => {
                                 {
                                     name: 'Session 1',
                                     modules: [
-                                        { code: 'ECO1', name: 'MicroÈconomie', grade: 12, coefficient: 1, validated: true },
-                                        { code: 'ECO2', name: 'MacroÈconomie', grade: 13, coefficient: 1, validated: true },
+                                        { code: 'ECO1', name: 'Micro√©conomie', grade: 12, coefficient: 1, validated: true },
+                                        { code: 'ECO2', name: 'Macro√©conomie', grade: 13, coefficient: 1, validated: true },
                                         { code: 'ECO3', name: 'Statistiques', grade: 11, coefficient: 1, validated: true }
                                     ],
                                     result: { average: 12, decision: 'Admis', mention: 'Passable' }
@@ -119,7 +119,7 @@ const seedDatabase = async () => {
                 fName: 'IRENE MARTIAL',
                 lName: 'THIOMBIANO',
                 major: 'ICP',
-                level: '1Ëre annÈe',
+                level: '1√©re ann√©e',
                 filiere: 'ICP',
                 birth_date: '2002-05-04',
                 birth_place: 'Settat',
@@ -134,7 +134,7 @@ const seedDatabase = async () => {
                                         { code: 'ICP1', name: 'ICP Module 1', grade: 14, coefficient: 1, validated: true },
                                         { code: 'ICP2', name: 'ICP Module 2', grade: 13, coefficient: 1, validated: true }
                                     ],
-                                    result: { average: 13.5, decision: 'ValidÈ', mention: 'Bien' }
+                                    result: { average: 13.5, decision: 'Valid√©', mention: 'Bien' }
                                 }
                             ]
                         }
@@ -164,10 +164,10 @@ const seedDatabase = async () => {
         console.log('... Seeding requests');
         const requestsData = [
             { sIdx: 0, type: 'school-certificate', status: 'En attente', ref: 'AS-2025-001', academic_year: '2023/2024' },
-            { sIdx: 0, type: 'transcript', status: 'AcceptÈ', ref: 'RN-2025-012', academic_year: '2023/2024', session: 'Session 1' },
+            { sIdx: 0, type: 'transcript', status: 'Accept√©', ref: 'RN-2025-012', academic_year: '2023/2024', session: 'Session 1' },
             { sIdx: 1, type: 'internship', status: 'En attente', ref: 'CS-2025-045', academic_year: '2024/2025', company_name: 'Entreprise X' },
-            { sIdx: 1, type: 'success-certificate', status: 'RefusÈ', ref: 'AR-2025-003', academic_year: '2019/2020', session: 'Session 1', reason: 'Notes manquantes' },
-            { sIdx: 2, type: 'school-certificate', status: 'AcceptÈ', ref: 'AS-2025-089', academic_year: '2020/2021' },
+            { sIdx: 1, type: 'success-certificate', status: 'Refus√©', ref: 'AR-2025-003', academic_year: '2019/2020', session: 'Session 1', reason: 'Notes manquantes' },
+            { sIdx: 2, type: 'school-certificate', status: 'Accept√©', ref: 'AS-2025-089', academic_year: '2020/2021' },
             { sIdx: 3, type: 'transcript', status: 'En attente', ref: 'RN-2025-101', academic_year: '2023/2024', session: 'Session 1' }
         ];
 
@@ -189,13 +189,13 @@ const seedDatabase = async () => {
         const defaultRequests = await db.query('SELECT * FROM requests');
         const reqList = defaultRequests[0];
 
-        const rejectedReq = reqList.find(r => r.status === 'RefusÈ');
+        const rejectedReq = reqList.find(r => r.status === 'Refus√©');
         if (rejectedReq) {
             const [exists] = await db.query('SELECT id FROM complaints WHERE request_id = ?', [rejectedReq.id]);
             if (exists.length === 0) {
                 await db.query(
                     'INSERT INTO complaints (complaint_number, request_id, student_id, reason, description, status) VALUES (?, ?, ?, ?, ?, ?)',
-                    ['CMP-2025-001', rejectedReq.id, rejectedReq.student_id, 'Incorrect Information', 'VÈrifier mes notes S6.', 'En attente']
+                    ['CMP-2025-001', rejectedReq.id, rejectedReq.student_id, 'Incorrect Information', 'V√©rifier mes notes S6.', 'En attente']
                 );
             }
         }
