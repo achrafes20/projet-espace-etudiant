@@ -19,47 +19,84 @@ const generateTranscriptData = (level, major) => {
         numYears = 5;
     }
     
-    // Générer les modules selon la filière
-    const getModulesForMajor = (major) => {
+    // Générer les modules selon la filière - Sessions 1 et 2 strictement différentes
+    const getAllModulesForMajor = (major) => {
         if (major.includes('Informatique') || major.includes('GI')) {
-            return [
-                { code: 'GI101', name: 'Algorithmique et structures de données', coefficient: 3 },
-                { code: 'GI102', name: 'Bases de données', coefficient: 3 },
-                { code: 'GI103', name: 'Programmation orientée objet', coefficient: 3 },
-                { code: 'GI104', name: 'Réseaux et protocoles', coefficient: 2 },
-                { code: 'GI105', name: 'Systèmes d\'exploitation', coefficient: 2 },
-                { code: 'GI106', name: 'Mathématiques pour l\'informatique', coefficient: 2 }
-            ];
+            return {
+                session1: [
+                    { code: 'GI101', name: 'Algorithmique et structures de données', coefficient: 3 },
+                    { code: 'GI102', name: 'Bases de données', coefficient: 3 },
+                    { code: 'GI103', name: 'Programmation orientée objet', coefficient: 3 },
+                    { code: 'GI104', name: 'Réseaux et protocoles', coefficient: 2 },
+                    { code: 'GI105', name: 'Systèmes d\'exploitation', coefficient: 2 },
+                    { code: 'GI106', name: 'Mathématiques pour l\'informatique', coefficient: 2 }
+                ],
+                session2: [
+                    { code: 'GI107', name: 'Architecture des ordinateurs', coefficient: 2 },
+                    { code: 'GI108', name: 'Sécurité informatique', coefficient: 2 },
+                    { code: 'GI109', name: 'Développement web', coefficient: 3 },
+                    { code: 'GI110', name: 'Intelligence artificielle', coefficient: 3 },
+                    { code: 'GI111', name: 'Génie logiciel', coefficient: 3 },
+                    { code: 'GI112', name: 'Bases de données avancées', coefficient: 2 }
+                ]
+            };
         } else if (major.includes('économie') || major.includes('Gestion')) {
-            return [
-                { code: 'ECO101', name: 'Microéconomie', coefficient: 3 },
-                { code: 'ECO102', name: 'Macroéconomie', coefficient: 3 },
-                { code: 'ECO103', name: 'Statistiques descriptives', coefficient: 2 },
-                { code: 'ECO104', name: 'Comptabilité générale', coefficient: 3 },
-                { code: 'ECO105', name: 'Mathématiques financières', coefficient: 2 },
-                { code: 'ECO106', name: 'Droit des affaires', coefficient: 2 }
-            ];
+            return {
+                session1: [
+                    { code: 'ECO101', name: 'Microéconomie', coefficient: 3 },
+                    { code: 'ECO102', name: 'Macroéconomie', coefficient: 3 },
+                    { code: 'ECO103', name: 'Statistiques descriptives', coefficient: 2 },
+                    { code: 'ECO104', name: 'Comptabilité générale', coefficient: 3 },
+                    { code: 'ECO105', name: 'Mathématiques financières', coefficient: 2 },
+                    { code: 'ECO106', name: 'Droit des affaires', coefficient: 2 }
+                ],
+                session2: [
+                    { code: 'ECO107', name: 'Marketing', coefficient: 2 },
+                    { code: 'ECO108', name: 'Gestion des ressources humaines', coefficient: 2 },
+                    { code: 'ECO109', name: 'Analyse financière', coefficient: 3 },
+                    { code: 'ECO110', name: 'Économie internationale', coefficient: 3 },
+                    { code: 'ECO111', name: 'Comptabilité analytique', coefficient: 3 },
+                    { code: 'ECO112', name: 'Stratégie d\'entreprise', coefficient: 2 }
+                ]
+            };
         } else if (major.includes('Droit')) {
-            return [
-                { code: 'DP101', name: 'Droit civil', coefficient: 4 },
-                { code: 'DP102', name: 'Droit constitutionnel', coefficient: 3 },
-                { code: 'DP103', name: 'Droit administratif', coefficient: 3 },
-                { code: 'DP104', name: 'Histoire du droit', coefficient: 2 },
-                { code: 'DP105', name: 'Introduction au droit', coefficient: 2 }
-            ];
+            return {
+                session1: [
+                    { code: 'DP101', name: 'Droit civil', coefficient: 4 },
+                    { code: 'DP102', name: 'Droit constitutionnel', coefficient: 3 },
+                    { code: 'DP103', name: 'Droit administratif', coefficient: 3 },
+                    { code: 'DP104', name: 'Histoire du droit', coefficient: 2 },
+                    { code: 'DP105', name: 'Introduction au droit', coefficient: 2 }
+                ],
+                session2: [
+                    { code: 'DP106', name: 'Droit pénal', coefficient: 3 },
+                    { code: 'DP107', name: 'Droit commercial', coefficient: 2 },
+                    { code: 'DP108', name: 'Droit international', coefficient: 2 },
+                    { code: 'DP109', name: 'Droit du travail', coefficient: 3 },
+                    { code: 'DP110', name: 'Droit fiscal', coefficient: 2 },
+                    { code: 'DP111', name: 'Procédure civile', coefficient: 3 }
+                ]
+            };
         } else {
             // Modules génériques
-            return [
-                { code: 'MOD101', name: 'Module 1', coefficient: 3 },
-                { code: 'MOD102', name: 'Module 2', coefficient: 3 },
-                { code: 'MOD103', name: 'Module 3', coefficient: 2 },
-                { code: 'MOD104', name: 'Module 4', coefficient: 2 },
-                { code: 'MOD105', name: 'Module 5', coefficient: 2 }
-            ];
+            return {
+                session1: [
+                    { code: 'MOD101', name: 'Module 1', coefficient: 3 },
+                    { code: 'MOD102', name: 'Module 2', coefficient: 3 },
+                    { code: 'MOD103', name: 'Module 3', coefficient: 2 },
+                    { code: 'MOD104', name: 'Module 4', coefficient: 2 }
+                ],
+                session2: [
+                    { code: 'MOD105', name: 'Module 5', coefficient: 2 },
+                    { code: 'MOD106', name: 'Module 6', coefficient: 2 },
+                    { code: 'MOD107', name: 'Module 7', coefficient: 3 },
+                    { code: 'MOD108', name: 'Module 8', coefficient: 3 }
+                ]
+            };
         }
     };
     
-    const baseModules = getModulesForMajor(major);
+    const allModules = getAllModulesForMajor(major);
     const parcours = [];
     
     // Générer les années académiques
@@ -72,9 +109,8 @@ const generateTranscriptData = (level, major) => {
         
         const semesters = [];
         
-        // Session 1
-        const session1Modules = baseModules.map((mod, idx) => {
-            // Générer des notes réalistes (entre 7 et 18, avec majorité entre 10-16)
+        // Fonction helper pour générer une note réaliste
+        const generateGrade = () => {
             let baseGrade;
             if (Math.random() < 0.15) {
                 // 15% de chance d'avoir une note entre 7 et 10 (échec)
@@ -83,7 +119,12 @@ const generateTranscriptData = (level, major) => {
                 // 85% de chance d'avoir une note entre 10 et 18 (réussite)
                 baseGrade = 10 + Math.random() * 8;
             }
-            const grade = Math.round(baseGrade * 10) / 10;
+            return Math.round(baseGrade * 10) / 10;
+        };
+        
+        // Session 1 - Modules spécifiques à la session 1
+        const session1Modules = allModules.session1.map((mod) => {
+            const grade = generateGrade();
             return {
                 code: mod.code,
                 name: mod.name,
@@ -112,12 +153,10 @@ const generateTranscriptData = (level, major) => {
             }
         });
         
-        // Session 2
-        const session2Modules = baseModules.map((mod, idx) => {
-            // Pour la session 2, ajuster les notes (peut être meilleur ou pire)
-            const session1Grade = session1Modules[idx].grade;
-            const variation = (Math.random() - 0.5) * 3; // Variation de -1.5 à +1.5
-            const grade = Math.max(0, Math.min(20, Math.round((session1Grade + variation) * 10) / 10));
+        // Session 2 - Modules strictement différents de la session 1
+        const session2Modules = allModules.session2.map((mod) => {
+            // Générer une nouvelle note pour chaque module (pas de modules communs)
+            const grade = generateGrade();
             return {
                 code: mod.code,
                 name: mod.name,
@@ -146,29 +185,40 @@ const generateTranscriptData = (level, major) => {
             }
         });
         
-        // Session 1 + 2 (Rattrapage) - Contient tous les modules avec les données des sessions 1 et 2
-        // Pour chaque module, on inclut les notes des deux sessions mais on utilise la meilleure pour le calcul
-        const sessionRattrapageModules = baseModules.map((mod, idx) => {
-            const session1Grade = session1Modules[idx].grade;
-            const session2Grade = session2Modules[idx].grade;
-            const bestGrade = Math.max(session1Grade, session2Grade);
-            
-            return {
+        // Session 1 + 2 (Rattrapage) - Contient tous les modules des deux sessions (strictement différents)
+        // Chaque module apparaît avec ses données de session respective
+        const sessionRattrapageModules = [];
+        
+        // Ajouter tous les modules de session 1
+        session1Modules.forEach(mod => {
+            sessionRattrapageModules.push({
                 code: mod.code,
                 name: mod.name,
-                grade: bestGrade, // Note utilisée pour le calcul (meilleure des deux)
+                grade: mod.grade,
                 coefficient: mod.coefficient,
-                validated: bestGrade >= 10,
-                // Inclure les données des deux sessions
+                validated: mod.validated,
                 session1: {
-                    grade: session1Grade,
-                    validated: session1Grade >= 10
+                    grade: mod.grade,
+                    validated: mod.validated
                 },
+                session2: null // Module uniquement en session 1
+            });
+        });
+        
+        // Ajouter tous les modules de session 2 (strictement différents)
+        session2Modules.forEach(mod => {
+            sessionRattrapageModules.push({
+                code: mod.code,
+                name: mod.name,
+                grade: mod.grade,
+                coefficient: mod.coefficient,
+                validated: mod.validated,
+                session1: null, // Module uniquement en session 2
                 session2: {
-                    grade: session2Grade,
-                    validated: session2Grade >= 10
+                    grade: mod.grade,
+                    validated: mod.validated
                 }
-            };
+            });
         });
         
         // Calculer la moyenne en utilisant la meilleure note de chaque module
