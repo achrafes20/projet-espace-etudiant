@@ -12,10 +12,17 @@ CREATE TABLE students (
     email VARCHAR(100),
     apogee_number VARCHAR(20),
     cin VARCHAR(20),
+    cne VARCHAR(20),
     last_name VARCHAR(50),
     first_name VARCHAR(50),
     major VARCHAR(100),
     level VARCHAR(50),
+    filiere VARCHAR(100),
+    mention VARCHAR(50),
+    birth_date DATE,
+    birth_place VARCHAR(100),
+    success_session VARCHAR(50),
+    transcript_data JSON,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

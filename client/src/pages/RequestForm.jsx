@@ -8,21 +8,7 @@ import Header from '../components/Header';
 
 const baseDetails = {
     academic_year: '2024/2025',
-    program: 'Génie Informatique',
-    level: '2ème année',
     session: 'Session 1',
-    birth_date: '',
-    birth_place: '',
-    filiere: '',
-    mention: '',
-    modules: [
-        { name: 'Module 1', grade: '' },
-        { name: 'Module 2', grade: '' },
-        { name: 'Module 3', grade: '' },
-        { name: 'Module 4', grade: '' },
-        { name: 'Module 5', grade: '' },
-        { name: 'Module 6', grade: '' }
-    ],
     company_name: '',
     company_address: '',
     company_email: '',
@@ -34,10 +20,7 @@ const baseDetails = {
     end_date: ''
 };
 
-const createDefaultDetails = () => ({
-    ...baseDetails,
-    modules: baseDetails.modules.map(m => ({ ...m }))
-});
+const createDefaultDetails = () => ({ ...baseDetails });
 
 const RequestForm = () => {
     const navigate = useNavigate();
@@ -109,21 +92,6 @@ const RequestForm = () => {
         }));
     };
 
-    const updateModule = (index, key, value) => {
-        const modules = [...formData.specific_details.modules];
-        modules[index] = { ...modules[index], [key]: value };
-        updateDetails('modules', modules);
-    };
-
-    const addModule = () => {
-        updateDetails('modules', [...formData.specific_details.modules, { name: `Module ${formData.specific_details.modules.length + 1}`, grade: '' }]);
-    };
-
-    const removeModule = (index) => {
-        const modules = formData.specific_details.modules.filter((_, i) => i !== index);
-        updateDetails('modules', modules);
-    };
-
     const handleSubmit = async () => {
         setLoading(true);
         try {
@@ -162,21 +130,11 @@ const RequestForm = () => {
                 return (
                     <div className="space-y-4">
                         <div className="bg-blue-50 border border-blue-100 p-4 rounded-lg text-sm text-blue-800">
-                            Attestation de scolarité : année universitaire, filière et niveau sont requis.
-                        </div>
-                        <div className="grid md:grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Année universitaire</label>
-                                <input type="text" value={formData.specific_details.academic_year} onChange={e => updateDetails('academic_year', e.target.value)} className="w-full px-4 py-3 border rounded-lg outline-none focus:ring-2 focus:ring-primary-500" />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Niveau</label>
-                                <input type="text" value={formData.specific_details.level} onChange={e => updateDetails('level', e.target.value)} className="w-full px-4 py-3 border rounded-lg outline-none focus:ring-2 focus:ring-primary-500" />
-                            </div>
+                            L'attestation sera générée automatiquement à partir des informations de l'étudiant. Choisissez juste l'année.
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Filière / Programme</label>
-                            <input type="text" value={formData.specific_details.program} onChange={e => updateDetails('program', e.target.value)} className="w-full px-4 py-3 border rounded-lg outline-none focus:ring-2 focus:ring-primary-500" />
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Année universitaire</label>
+                            <input type="text" value={formData.specific_details.academic_year} onChange={e => updateDetails('academic_year', e.target.value)} className="w-full px-4 py-3 border rounded-lg outline-none focus:ring-2 focus:ring-primary-500" />
                         </div>
                     </div>
                 );
@@ -184,39 +142,7 @@ const RequestForm = () => {
                 return (
                     <div className="space-y-4">
                         <div className="bg-green-50 border border-green-100 p-4 rounded-lg text-sm text-green-800">
-                            Attestation de réussite : précisez naissance, filière, session et mention.
-                        </div>
-                        <div className="grid md:grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Date de naissance</label>
-                                <input type="date" value={formData.specific_details.birth_date} onChange={e => updateDetails('birth_date', e.target.value)} className="w-full px-4 py-3 border rounded-lg outline-none focus:ring-2 focus:ring-primary-500" />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Lieu de naissance</label>
-                                <input type="text" value={formData.specific_details.birth_place} onChange={e => updateDetails('birth_place', e.target.value)} className="w-full px-4 py-3 border rounded-lg outline-none focus:ring-2 focus:ring-primary-500" />
-                            </div>
-                        </div>
-                        <div className="grid md:grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Filière</label>
-                                <input type="text" value={formData.specific_details.filiere} onChange={e => updateDetails('filiere', e.target.value)} className="w-full px-4 py-3 border rounded-lg outline-none focus:ring-2 focus:ring-primary-500" />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Session</label>
-                                <input type="text" value={formData.specific_details.session} onChange={e => updateDetails('session', e.target.value)} className="w-full px-4 py-3 border rounded-lg outline-none focus:ring-2 focus:ring-primary-500" />
-                            </div>
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Mention</label>
-                            <input type="text" value={formData.specific_details.mention} onChange={e => updateDetails('mention', e.target.value)} className="w-full px-4 py-3 border rounded-lg outline-none focus:ring-2 focus:ring-primary-500" />
-                        </div>
-                    </div>
-                );
-            case 'transcript':
-                return (
-                    <div className="space-y-4">
-                        <div className="bg-yellow-50 border border-yellow-100 p-4 rounded-lg text-sm text-yellow-800">
-                            Relevé de notes : merci de saisir les modules et notes de la session.
+                            L'attestation de réussite utilise les données de l'étudiant (naissance, filière, mention). Indiquez l'année/session.
                         </div>
                         <div className="grid md:grid-cols-2 gap-4">
                             <div>
@@ -228,38 +154,23 @@ const RequestForm = () => {
                                 <input type="text" value={formData.specific_details.session} onChange={e => updateDetails('session', e.target.value)} className="w-full px-4 py-3 border rounded-lg outline-none focus:ring-2 focus:ring-primary-500" />
                             </div>
                         </div>
-                        <div className="space-y-3">
-                            <div className="flex items-center justify-between">
-                                <p className="text-sm font-medium text-gray-700">Modules</p>
-                                <button type="button" onClick={addModule} className="text-primary-600 hover:text-primary-700 flex items-center text-sm font-semibold">
-                                    <PlusIcon className="h-4 w-4 mr-1" /> Ajouter un module
-                                </button>
+                    </div>
+                );
+            case 'transcript':
+                return (
+                    <div className="space-y-4">
+                        <div className="bg-yellow-50 border border-yellow-100 p-4 rounded-lg text-sm text-yellow-800">
+                            Le relevé de notes utilisera les notes présentes en base. Choisissez l'année et la session.
+                        </div>
+                        <div className="grid md:grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Année universitaire</label>
+                                <input type="text" value={formData.specific_details.academic_year} onChange={e => updateDetails('academic_year', e.target.value)} className="w-full px-4 py-3 border rounded-lg outline-none focus:ring-2 focus:ring-primary-500" />
                             </div>
-                            {formData.specific_details.modules.map((module, idx) => (
-                                <div key={idx} className="grid md:grid-cols-3 gap-3 items-center">
-                                    <input
-                                        type="text"
-                                        value={module.name}
-                                        onChange={e => updateModule(idx, 'name', e.target.value)}
-                                        className="md:col-span-2 px-4 py-3 border rounded-lg outline-none focus:ring-2 focus:ring-primary-500"
-                                        placeholder={`Module ${idx + 1}`}
-                                    />
-                                    <div className="flex space-x-2 items-center">
-                                        <input
-                                            type="number"
-                                            value={module.grade}
-                                            onChange={e => updateModule(idx, 'grade', e.target.value)}
-                                            className="flex-1 px-4 py-3 border rounded-lg outline-none focus:ring-2 focus:ring-primary-500"
-                                            placeholder="Note"
-                                        />
-                                        {formData.specific_details.modules.length > 1 && (
-                                            <button type="button" onClick={() => removeModule(idx)} className="text-red-500 hover:text-red-700">
-                                                <MinusCircleIcon className="h-5 w-5" />
-                                            </button>
-                                        )}
-                                    </div>
-                                </div>
-                            ))}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Session</label>
+                                <input type="text" value={formData.specific_details.session} onChange={e => updateDetails('session', e.target.value)} className="w-full px-4 py-3 border rounded-lg outline-none focus:ring-2 focus:ring-primary-500" />
+                            </div>
                         </div>
                     </div>
                 );

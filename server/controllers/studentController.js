@@ -66,36 +66,86 @@ exports.checkField = async (req, res) => {
     }
 };
 
+const mergeDetailsWithStudent = (docType, student, payloadDetails = {}) => {
+    const transcriptData = (() => {
+        try {
+            const parsed = typeof student.transcript_data === 'string' ? JSON.parse(student.transcript_data) : student.transcript_data;
+            return parsed?.modules || [];
+        } catch {
+            return [];
+        }
+    })();
+
+    if (docType === 'transcript') {
+        return {
+            academic_year: payloadDetails.academic_year,
+            session: payloadDetails.session || student.success_session,
+            level: student.level,
+            program: student.filiere || student.major,
+            modules: transcriptData
+        };
+    }
+
+    if (docType === 'success-certificate') {
+        return {
+            academic_year: payloadDetails.academic_year,
+            birth_date: student.birth_date,
+            birth_place: student.birth_place,
+            filiere: student.filiere || student.major,
+            mention: student.mention,
+            session: student.success_session,
+            level: student.level,
+            program: student.filiere || student.major
+        };
+    }
+
+    if (docType === 'school-certificate') {
+        return {
+            academic_year: payloadDetails.academic_year,
+            level: student.level,
+            program: student.filiere || student.major
+        };
+    }
+
+    // For internship we keep student defaults for level/program but allow payload company info
+    return {
+        academic_year: payloadDetails.academic_year,
+        level: student.level,
+        program: student.filiere || student.major,
+        ...payloadDetails
+    };
+};
+
 exports.createRequest = async (req, res) => {
     const { student_id, document_type, specific_details = {} } = req.body;
 
     try {
+        const [studentRows] = await db.query('SELECT * FROM students WHERE id = ?', [student_id]);
+        if (studentRows.length === 0) return res.status(404).json({ message: 'Étudiant introuvable' });
+        const student = studentRows[0];
+
+        const mergedDetails = mergeDetailsWithStudent(document_type, student, specific_details);
         const reference = await generateReference(document_type);
 
         const [insertResult] = await db.query(
             'INSERT INTO requests (reference, student_id, document_type, status, specific_details) VALUES (?, ?, ?, ?, ?)',
-            [reference, student_id, document_type, 'En attente', JSON.stringify(specific_details)]
+            [reference, student_id, document_type, 'En attente', JSON.stringify(mergedDetails)]
         );
 
-        const [studentRows] = await db.query('SELECT * FROM students WHERE id = ?', [student_id]);
+        const generated = await documentService.generateDocument({
+            docType: document_type,
+            student,
+            details: mergedDetails,
+            reference,
+            variant: 'draft'
+        });
 
-        if (studentRows.length > 0) {
-            const student = studentRows[0];
-            const generated = await documentService.generateDocument({
-                docType: document_type,
-                student,
-                details: specific_details,
-                reference,
-                variant: 'draft'
-            });
+        await db.query(
+            'UPDATE requests SET generated_document_path = ?, template_data = ? WHERE id = ?',
+            [generated.publicPath, JSON.stringify(generated.details), insertResult.insertId]
+        );
 
-            await db.query(
-                'UPDATE requests SET generated_document_path = ?, template_data = ? WHERE id = ?',
-                [generated.publicPath, JSON.stringify(generated.details), insertResult.insertId]
-            );
-
-            await emailService.sendRequestConfirmation(student.email, student.first_name, reference, document_type);
-        }
+        await emailService.sendRequestConfirmation(student.email, student.first_name, reference, document_type);
 
         res.status(201).json({
             success: true,

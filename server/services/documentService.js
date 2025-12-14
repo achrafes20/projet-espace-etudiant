@@ -27,48 +27,39 @@ const formatName = (student) => `${(student?.last_name || '').toUpperCase()} ${s
 
 const resolveDetails = (docType, incoming = {}) => {
     const base = {
-        academic_year: '2024/2025',
-        program: 'Génie Informatique',
-        level: '2ème année',
-        session: 'Session 1'
+        academic_year: incoming.academic_year || '2024/2025',
+        program: incoming.program,
+        level: incoming.level,
+        session: incoming.session || 'Session 1'
     };
 
     if (docType === 'transcript') {
-        const modules = Array.isArray(incoming.modules) && incoming.modules.length > 0 ? incoming.modules : [
-            { name: 'Module 1', grade: 12 },
-            { name: 'Module 2', grade: 14 },
-            { name: 'Module 3', grade: 11 },
-            { name: 'Module 4', grade: 15 },
-            { name: 'Module 5', grade: 13 },
-            { name: 'Module 6', grade: 10 }
-        ];
+        const modules = Array.isArray(incoming.modules) ? incoming.modules : [];
         return { ...base, ...incoming, modules };
     }
 
     if (docType === 'success-certificate') {
         return {
             ...base,
-            birth_date: incoming.birth_date || '01/01/2000',
-            birth_place: incoming.birth_place || 'Casablanca',
-            filiere: incoming.filiere || 'Droit Public',
-            mention: incoming.mention || 'Passable',
-            session: incoming.session || 'Printemps 2024',
-            ...incoming
+            birth_date: incoming.birth_date,
+            birth_place: incoming.birth_place,
+            filiere: incoming.filiere,
+            mention: incoming.mention,
+            session: incoming.session || incoming.success_session || base.session
         };
     }
 
     if (docType === 'internship') {
         return {
             ...base,
-            company_name: incoming.company_name || 'Société Exemple',
-            company_address: incoming.company_address || 'Parc Technologique, Casablanca',
-            company_email: incoming.company_email || 'contact@entreprise.ma',
-            supervisor_name: incoming.supervisor_name || 'Mme/Mr Encadrant',
-            supervisor_role: incoming.supervisor_role || 'Responsable Technique',
-            internship_subject: incoming.internship_subject || 'Déploiement et supervision d\'une application web',
-            start_date: incoming.start_date || '01/07/2024',
-            end_date: incoming.end_date || '30/09/2024',
-            ...incoming
+            company_name: incoming.company_name,
+            company_address: incoming.company_address,
+            company_email: incoming.company_email,
+            supervisor_name: incoming.supervisor_name,
+            supervisor_role: incoming.supervisor_role,
+            internship_subject: incoming.internship_subject,
+            start_date: incoming.start_date,
+            end_date: incoming.end_date
         };
     }
 
@@ -106,7 +97,7 @@ const buildSchoolCertificate = (doc, payload) => {
     doc.fontSize(12).font('Helvetica-Bold').text(`Nom et Prénom : ${formatName(payload.student)}`);
     doc.font('Helvetica').text(`CIN : ${payload.student.cin || '---'}`);
     doc.text(`Code étudiant (Apogée) : ${payload.student.apogee_number || '---'}`);
-    doc.text(`Code National de l'étudiant : ${payload.student.massar || '---'}`);
+    doc.text(`Code National de l'étudiant : ${payload.student.cne || payload.student.apogee_number || '---'}`);
     doc.text(`Date de naissance : ${payload.details.birth_date || '01/01/2000'}`);
     doc.moveDown(1);
     doc.text(

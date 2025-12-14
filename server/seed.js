@@ -20,11 +20,108 @@ const seedDatabase = async () => {
 
         // 2. Seed Students
         const studentsData = [
-            { email: 'tahaessamit@gmail.com', apogee: '10001', cin: 'A1000', fName: 'Ahmed', lName: 'Hassan', major: 'Computer Science' },
-            { email: 'tahaessamit22@gmail.com', apogee: '10002', cin: 'B2000', fName: 'Fatima', lName: 'Zahra', major: 'Economics' },
-            { email: 'tahaessamitovic@gmail.com', apogee: '10003', cin: 'C3000', fName: 'Youssef', lName: 'Benali', major: 'Physics' },
-            { email: 'leila.amrani@university.edu', apogee: '10004', cin: 'D4000', fName: 'Leila', lName: 'Amrani', major: 'Biology' },
-            { email: 'karim.idrissi@university.edu', apogee: '10005', cin: 'E5000', fName: 'Karim', lName: 'Idrissi', major: 'Mathematics' }
+            {
+                email: 'tahaessamit@gmail.com',
+                apogee: '10001',
+                cin: 'A1000',
+                cne: 'G131541390',
+                fName: 'Ahmed',
+                lName: 'Hassan',
+                major: 'Économie et Gestion',
+                level: '2ème année',
+                filiere: 'Économie et Gestion',
+                mention: 'Passable',
+                birth_date: '2000-01-01',
+                birth_place: 'Marrakech',
+                success_session: 'Printemps 2024',
+                transcript_modules: [
+                    { name: 'Module 1', grade: 10 },
+                    { name: 'Module 2', grade: 12 },
+                    { name: 'Module 3', grade: 8 },
+                    { name: 'Module 4', grade: 17 },
+                    { name: 'Module 5', grade: 7 },
+                    { name: 'Module 6', grade: 14 }
+                ]
+            },
+            {
+                email: 'tahaessamit22@gmail.com',
+                apogee: '10002',
+                cin: 'B2000',
+                cne: 'R149077334',
+                fName: 'Fatima',
+                lName: 'Zahra',
+                major: 'Droit Public',
+                level: 'L3',
+                filiere: 'Droit Public (Sec. Française)',
+                mention: 'Passable',
+                birth_date: '2000-03-15',
+                birth_place: 'Casablanca',
+                success_session: 'Printemps 2024',
+                transcript_modules: [
+                    { name: 'Droit constitutionnel', grade: 14 },
+                    { name: 'Droit civil', grade: 13 },
+                    { name: 'Finances publiques', grade: 12 },
+                    { name: 'Droit international', grade: 11 }
+                ]
+            },
+            {
+                email: 'tahaessamitovic@gmail.com',
+                apogee: '10003',
+                cin: 'C3000',
+                cne: 'CNE10003',
+                fName: 'Youssef',
+                lName: 'Benali',
+                major: 'Informatique',
+                level: 'GI1',
+                filiere: 'Génie Informatique',
+                mention: 'Bien',
+                birth_date: '2001-05-10',
+                birth_place: 'Tétouan',
+                success_session: 'Printemps 2024',
+                transcript_modules: [
+                    { name: 'Algorithmique', grade: 16 },
+                    { name: 'Bases de données', grade: 15 },
+                    { name: 'Réseaux', grade: 14 }
+                ]
+            },
+            {
+                email: 'leila.amrani@university.edu',
+                apogee: '10004',
+                cin: 'D4000',
+                cne: 'CNE10004',
+                fName: 'Leila',
+                lName: 'Amrani',
+                major: 'Biologie',
+                level: 'L3',
+                filiere: 'Biologie',
+                mention: 'Assez bien',
+                birth_date: '2002-09-20',
+                birth_place: 'Settat',
+                success_session: 'Printemps 2024',
+                transcript_modules: [
+                    { name: 'Génétique', grade: 15 },
+                    { name: 'Biochimie', grade: 14 }
+                ]
+            },
+            {
+                email: 'karim.idrissi@university.edu',
+                apogee: '10005',
+                cin: 'E5000',
+                cne: 'CNE10005',
+                fName: 'Karim',
+                lName: 'Idrissi',
+                major: 'Mathematics',
+                level: 'L3',
+                filiere: 'Mathématiques',
+                mention: 'Bien',
+                birth_date: '2001-12-12',
+                birth_place: 'Marrakech',
+                success_session: 'Printemps 2024',
+                transcript_modules: [
+                    { name: 'Analyse', grade: 14 },
+                    { name: 'Algèbre', grade: 15 }
+                ]
+            }
         ];
 
         console.log('... Seeding students');
@@ -32,8 +129,12 @@ const seedDatabase = async () => {
             const [exists] = await db.query('SELECT id FROM students WHERE apogee_number = ?', [s.apogee]);
             if (exists.length === 0) {
                 await db.query(
-                    'INSERT INTO students (email, apogee_number, cin, first_name, last_name, major, level) VALUES (?, ?, ?, ?, ?, ?, ?)',
-                    [s.email, s.apogee, s.cin, s.fName, s.lName, s.major, 'L3']
+                    `INSERT INTO students (email, apogee_number, cin, cne, first_name, last_name, major, level, filiere, mention, birth_date, birth_place, success_session, transcript_data)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                    [
+                        s.email, s.apogee, s.cin, s.cne, s.fName, s.lName, s.major, s.level,
+                        s.filiere, s.mention, s.birth_date, s.birth_place, s.success_session, JSON.stringify({ modules: s.transcript_modules })
+                    ]
                 );
             }
         }
