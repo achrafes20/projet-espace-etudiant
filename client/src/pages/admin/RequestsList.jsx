@@ -81,6 +81,9 @@ const RequestsList = () => {
     const [uploadFile, setUploadFile] = useState(null);
     const [loading, setLoading] = useState(false);
     const [draftLoading, setDraftLoading] = useState(false);
+    const [transcriptData, setTranscriptData] = useState(null);
+    const [availableYears, setAvailableYears] = useState([]);
+    const [availableSessions, setAvailableSessions] = useState([]);
 
     useEffect(() => {
         fetchRequests();
@@ -97,6 +100,24 @@ const RequestsList = () => {
         }
     };
 
+    const loadModulesForYearAndSession = (transcript, academicYear, session) => {
+        if (!transcript || !transcript.parcours) return;
+        
+        const yearData = transcript.parcours.find(p => p.academic_year === academicYear);
+        if (!yearData || !yearData.semesters) return;
+        
+        const semesterData = yearData.semesters.find(s => s.name === session);
+        if (semesterData && semesterData.modules) {
+            const modules = semesterData.modules.map(m => ({
+                name: m.name || m.module_name || '',
+                grade: m.grade || m.note || ''
+            }));
+            setEditableDetails(prev => ({ ...prev, modules }));
+        } else {
+            setEditableDetails(prev => ({ ...prev, modules: [] }));
+        }
+    };
+
     const selectRequest = (req) => {
         setSelectedRequest(req);
         const details = parseDetails(req?.specific_details) || {};
@@ -104,6 +125,71 @@ const RequestsList = () => {
         setEditableDetails(details);
         setModalState({ mode: '', reason: '' });
         setUploadFile(null);
+        
+        // Charger les données de transcript de l'étudiant
+        if (req.transcript_data) {
+            try {
+                const transcript = typeof req.transcript_data === 'string' 
+                    ? JSON.parse(req.transcript_data) 
+                    : req.transcript_data;
+                setTranscriptData(transcript);
+                
+                // Extraire les années disponibles
+                const years = (transcript.parcours || []).map(p => p.academic_year);
+                setAvailableYears(years);
+                
+                // Extraire les sessions pour l'année sélectionnée
+                const selectedYear = details.academic_year || years[0];
+                const yearData = transcript.parcours?.find(p => p.academic_year === selectedYear);
+                const sessions = yearData?.semesters?.map(s => s.name) || [];
+                setAvailableSessions(sessions);
+                
+                // Si une année et session sont sélectionnées, charger les modules
+                if (selectedYear && details.session) {
+                    loadModulesForYearAndSession(transcript, selectedYear, details.session);
+                } else if (selectedYear && sessions[0]) {
+                    // Si année sélectionnée mais pas de session, charger la première session
+                    loadModulesForYearAndSession(transcript, selectedYear, sessions[0]);
+                    setEditableDetails(prev => ({ ...prev, session: sessions[0] }));
+                }
+            } catch (e) {
+                console.error('Error parsing transcript data:', e);
+                setTranscriptData(null);
+                setAvailableYears([]);
+                setAvailableSessions([]);
+            }
+        } else {
+            setTranscriptData(null);
+            setAvailableYears([]);
+            setAvailableSessions([]);
+        }
+    };
+    
+    const handleYearChange = (year) => {
+        updateDetailField('academic_year', year);
+        
+        if (transcriptData) {
+            const yearData = transcriptData.parcours?.find(p => p.academic_year === year);
+            const sessions = yearData?.semesters?.map(s => s.name) || [];
+            setAvailableSessions(sessions);
+            
+            // Réinitialiser la session et charger les modules
+            if (sessions[0]) {
+                updateDetailField('session', sessions[0]);
+                loadModulesForYearAndSession(transcriptData, year, sessions[0]);
+            } else {
+                updateDetailField('session', '');
+                setEditableDetails(prev => ({ ...prev, modules: [] }));
+            }
+        }
+    };
+    
+    const handleSessionChange = (session) => {
+        updateDetailField('session', session);
+        
+        if (transcriptData && editableDetails.academic_year) {
+            loadModulesForYearAndSession(transcriptData, editableDetails.academic_year, session);
+        }
     };
     const handleSaveDraft = async () => {
         if (!selectedRequest) return;
@@ -189,27 +275,87 @@ const RequestsList = () => {
 
         if (docType === 'transcript') {
             return (
-                <div className="space-y-3">
+                <div className="space-y-4">
                     <div className="grid md:grid-cols-2 gap-3">
                         <div>
-                            <label className="block text-xs font-semibold text-gray-600">Année</label>
-                            <input value={editableDetails.academic_year || ''} onChange={e => updateDetailField('academic_year', e.target.value)} className="w-full border rounded px-3 py-2" />
+                            <label className="block text-xs font-semibold text-gray-700 mb-2">Année universitaire *</label>
+                            <select 
+                                value={editableDetails.academic_year || ''} 
+                                onChange={e => handleYearChange(e.target.value)}
+                                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
+                            >
+                                <option value="">Sélectionner une année</option>
+                                {availableYears.map(year => (
+                                    <option key={year} value={year}>{year}</option>
+                                ))}
+                            </select>
                         </div>
                         <div>
-                            <label className="block text-xs font-semibold text-gray-600">Session</label>
-                            <input value={editableDetails.session || ''} onChange={e => updateDetailField('session', e.target.value)} className="w-full border rounded px-3 py-2" />
+                            <label className="block text-xs font-semibold text-gray-700 mb-2">Session *</label>
+                            <select 
+                                value={editableDetails.session || ''} 
+                                onChange={e => handleSessionChange(e.target.value)}
+                                disabled={!editableDetails.academic_year || availableSessions.length === 0}
+                                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none disabled:bg-gray-100 disabled:cursor-not-allowed"
+                            >
+                                <option value="">Sélectionner une session</option>
+                                {availableSessions.map(session => (
+                                    <option key={session} value={session}>{session}</option>
+                                ))}
+                            </select>
                         </div>
                     </div>
-                    <div className="flex items-center justify-between">
-                        <p className="text-sm font-semibold text-gray-700">Modules</p>
-                        <button type="button" onClick={addModule} className="text-primary-600 text-xs font-semibold">+ Module</button>
-                    </div>
-                    {(editableDetails.modules || []).map((m, idx) => (
-                        <div key={idx} className="grid grid-cols-3 gap-2 items-center">
-                            <input value={m.name || ''} onChange={e => updateModule(idx, 'name', e.target.value)} className="col-span-2 border rounded px-2 py-1" />
-                            <input value={m.grade || ''} onChange={e => updateModule(idx, 'grade', e.target.value)} className="border rounded px-2 py-1" placeholder="Note" />
+                    
+                    <div className="border-t border-gray-200 pt-3">
+                        <div className="flex items-center justify-between mb-3">
+                            <p className="text-sm font-semibold text-gray-700">Modules</p>
+                            <button 
+                                type="button" 
+                                onClick={addModule} 
+                                className="px-3 py-1 bg-primary-50 hover:bg-primary-100 text-primary-600 text-xs font-semibold rounded-lg transition-colors"
+                            >
+                                + Ajouter un module
+                            </button>
                         </div>
-                    ))}
+                        <div className="space-y-2 max-h-64 overflow-y-auto">
+                            {(editableDetails.modules || []).length === 0 ? (
+                                <p className="text-xs text-gray-500 italic">Aucun module. Sélectionnez une année et une session pour charger les modules, ou ajoutez-en manuellement.</p>
+                            ) : (
+                                (editableDetails.modules || []).map((m, idx) => (
+                                    <div key={idx} className="grid grid-cols-3 gap-2 items-center p-2 bg-gray-50 rounded-lg">
+                                        <input 
+                                            value={m.name || ''} 
+                                            onChange={e => updateModule(idx, 'name', e.target.value)} 
+                                            className="col-span-2 border border-gray-300 rounded px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" 
+                                            placeholder="Nom du module"
+                                        />
+                                        <div className="flex gap-1">
+                                            <input 
+                                                type="number"
+                                                step="0.01"
+                                                min="0"
+                                                max="20"
+                                                value={m.grade || ''} 
+                                                onChange={e => updateModule(idx, 'grade', e.target.value)} 
+                                                className="flex-1 border border-gray-300 rounded px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" 
+                                                placeholder="Note"
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    const modules = editableDetails.modules.filter((_, i) => i !== idx);
+                                                    updateDetailField('modules', modules);
+                                                }}
+                                                className="px-2 py-1 text-red-600 hover:bg-red-50 rounded text-xs"
+                                            >
+                                                ×
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                    </div>
                 </div>
             );
         }

@@ -277,7 +277,7 @@ const buildTranscript = (doc, payload) => {
     const colModuleX = 80;
     const colNoteX = 450;
     
-    // En-tête du tableau
+    // En-tête du tableau avec style rouge
     doc.rect(colModuleX - 5, tableTop - 5, colNoteX - colModuleX + 10, 25).fill('#dc2626');
     doc.fontSize(12).font('Helvetica-Bold').fillColor('#ffffff');
     doc.text('MODULE', colModuleX, tableTop + 5);
@@ -313,23 +313,27 @@ const buildTranscript = (doc, payload) => {
     doc.moveTo(colModuleX - 5, y).lineTo(colNoteX + 5, y).stroke('#dc2626');
     y += 10;
     
-    // Total et moyenne dans un cadre
-    doc.rect(colModuleX - 5, y - 5, colNoteX - colModuleX + 10, 30).fill('#1f2937').stroke('#111827');
+    // Total dans un cadre bleu foncé (comme dans l'image)
+    const totalY = y;
+    doc.rect(colModuleX - 5, totalY - 5, colNoteX - colModuleX + 10, 25).fill('#1e3a8a').stroke('#1e40af');
     doc.font('Helvetica-Bold').fontSize(11).fillColor('#ffffff');
-    doc.text(`TOTAL : ${total.toFixed(2)}`, colModuleX, y + 5);
-    doc.text(`MOYENNE : ${average}/20`, colNoteX, y + 5);
-    doc.moveDown(2);
-
-    // Résultat
-    doc.fillColor(isAdmitted ? '#059669' : '#dc2626');
+    doc.text(`TOTAL : ${total.toFixed(2)}`, colModuleX, totalY + 5);
+    doc.text(`MOYENNE : ${average}/20`, colNoteX, totalY + 5);
+    
+    // Résultat en vert à droite du total (aligné horizontalement)
+    doc.fillColor('#059669');
     doc.fontSize(12).font('Helvetica-Bold');
-    doc.text(`Résultat : ${isAdmitted ? 'ADMIS(E)' : 'AJOURNÉ(E)'}`, { align: 'center' });
+    const resultX = colNoteX + 30;
+    doc.text(`Résultat :`, resultX, totalY);
+    doc.text(`${isAdmitted ? 'ADMIS(E)' : 'AJOURNÉ(E)'}`, resultX, totalY + 15);
     doc.fillColor('#000');
-
+    
+    doc.y = totalY + 30;
     doc.moveDown(2);
     doc.fontSize(10).font('Helvetica').text(`Fait à Marrakech, le ${payload.issuedAt}`, { align: 'right' });
     doc.moveDown(0.5);
     doc.font('Helvetica-Bold').text('Le Doyen', { align: 'right' });
+    doc.moveDown(1);
 
     addFooterNote(doc, 'Document généré automatiquement. Vérifier les notes avant validation finale.');
 };

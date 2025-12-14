@@ -105,7 +105,7 @@ exports.getRequests = async (req, res) => {
     const { status, type, search } = req.query;
 
     let query = `
-    SELECT r.*, s.first_name, s.last_name, s.apogee_number, s.email, s.cin 
+    SELECT r.*, s.first_name, s.last_name, s.apogee_number, s.email, s.cin, s.transcript_data, s.level, s.filiere, s.major
     FROM requests r 
     JOIN students s ON r.student_id = s.id 
     WHERE 1=1
