@@ -118,15 +118,65 @@ const RequestsList = () => {
         }
     };
 
+    const loadMentionForYearAndSession = (transcript, academicYear, session) => {
+        if (!transcript || !transcript.parcours) return;
+        
+        const yearData = transcript.parcours.find(p => p.academic_year === academicYear);
+        if (!yearData || !yearData.semesters) return;
+        
+        const semesterData = yearData.semesters.find(s => s.name === session);
+        if (semesterData && semesterData.result) {
+            setEditableDetails(prev => ({ 
+                ...prev, 
+                mention: semesterData.result.mention || prev.mention || ''
+            }));
+        }
+    };
+
     const selectRequest = (req) => {
         setSelectedRequest(req);
         const details = parseDetails(req?.specific_details) || {};
         if (!details.modules) details.modules = [];
+        
+        // Initialiser les détails avec les données de l'étudiant si elles ne sont pas déjà présentes
+        // On force l'initialisation même si les valeurs existent mais sont vides
+        if (req.document_type === 'school-certificate') {
+            details.level = details.level || req.level || '';
+            details.program = details.program || req.filiere || req.major || '';
+            // Formater la date pour l'input date (YYYY-MM-DD)
+            if (!details.birth_date && req.birth_date) {
+                details.birth_date = req.birth_date.split('T')[0];
+            }
+        } else if (req.document_type === 'transcript') {
+            // Pour le relevé de notes, initialiser level et program si absents
+            details.level = details.level || req.level || '';
+            details.program = details.program || req.filiere || req.major || '';
+        } else if (req.document_type === 'success-certificate') {
+            // Formater la date pour l'input date (YYYY-MM-DD)
+            // Utiliser req.birth_date si elle existe et que details.birth_date est vide/null/undefined
+            if (req.birth_date) {
+                const existingDate = details.birth_date;
+                if (!existingDate || (typeof existingDate === 'string' && existingDate.trim() === '')) {
+                    // Si la date vient de la DB, elle est déjà au format YYYY-MM-DD
+                    details.birth_date = req.birth_date.split('T')[0]; // Enlever l'heure si présente
+                } else if (typeof existingDate === 'string') {
+                    // S'assurer que la date existante est au bon format
+                    details.birth_date = existingDate.split('T')[0];
+                }
+            } else if (details.birth_date && typeof details.birth_date === 'string') {
+                // S'assurer que la date existante est au bon format
+                details.birth_date = details.birth_date.split('T')[0];
+            }
+            details.birth_place = details.birth_place || req.birth_place || '';
+            details.filiere = details.filiere || req.filiere || req.major || '';
+            // La mention sera chargée depuis le transcript
+        }
+        
         setEditableDetails(details);
         setModalState({ mode: '', reason: '' });
         setUploadFile(null);
         
-        // Charger les données de transcript de l'étudiant
+        // Charger les données de transcript de l'étudiant (pour tous les types de documents)
         if (req.transcript_data) {
             try {
                 const transcript = typeof req.transcript_data === 'string' 
@@ -144,13 +194,28 @@ const RequestsList = () => {
                 const sessions = yearData?.semesters?.map(s => s.name) || [];
                 setAvailableSessions(sessions);
                 
-                // Si une année et session sont sélectionnées, charger les modules
-                if (selectedYear && details.session) {
-                    loadModulesForYearAndSession(transcript, selectedYear, details.session);
-                } else if (selectedYear && sessions[0]) {
-                    // Si année sélectionnée mais pas de session, charger la première session
-                    loadModulesForYearAndSession(transcript, selectedYear, sessions[0]);
-                    setEditableDetails(prev => ({ ...prev, session: sessions[0] }));
+                // Initialiser l'année académique si elle n'est pas définie
+                if (!details.academic_year && years[0]) {
+                    details.academic_year = years[0];
+                }
+                
+                // Pour le relevé de notes: charger les modules
+                if (req.document_type === 'transcript') {
+                    if (selectedYear && details.session) {
+                        loadModulesForYearAndSession(transcript, selectedYear, details.session);
+                    } else if (selectedYear && sessions[0]) {
+                        loadModulesForYearAndSession(transcript, selectedYear, sessions[0]);
+                        details.session = sessions[0];
+                    }
+                }
+                // Pour l'attestation de réussite: charger la mention si année/session sont sélectionnées
+                else if (req.document_type === 'success-certificate') {
+                    if (selectedYear && details.session) {
+                        loadMentionForYearAndSession(transcript, selectedYear, details.session);
+                    } else if (selectedYear && sessions[0]) {
+                        details.session = sessions[0];
+                        loadMentionForYearAndSession(transcript, selectedYear, sessions[0]);
+                    }
                 }
             } catch (e) {
                 console.error('Error parsing transcript data:', e);
@@ -173,13 +238,27 @@ const RequestsList = () => {
             const sessions = yearData?.semesters?.map(s => s.name) || [];
             setAvailableSessions(sessions);
             
-            // Réinitialiser la session et charger les modules
-            if (sessions[0]) {
+            if (selectedRequest?.document_type === 'transcript') {
+                // Pour le relevé de notes: charger les modules
+                if (sessions[0]) {
+                    updateDetailField('session', sessions[0]);
+                    loadModulesForYearAndSession(transcriptData, year, sessions[0]);
+                } else {
+                    updateDetailField('session', '');
+                    setEditableDetails(prev => ({ ...prev, modules: [] }));
+                }
+            } else if (selectedRequest?.document_type === 'success-certificate') {
+                // Pour l'attestation de réussite: charger la mention
+                if (sessions[0]) {
+                    updateDetailField('session', sessions[0]);
+                    loadMentionForYearAndSession(transcriptData, year, sessions[0]);
+                } else {
+                    updateDetailField('session', '');
+                }
+            } else if (sessions[0]) {
                 updateDetailField('session', sessions[0]);
-                loadModulesForYearAndSession(transcriptData, year, sessions[0]);
             } else {
                 updateDetailField('session', '');
-                setEditableDetails(prev => ({ ...prev, modules: [] }));
             }
         }
     };
@@ -188,7 +267,11 @@ const RequestsList = () => {
         updateDetailField('session', session);
         
         if (transcriptData && editableDetails.academic_year) {
-            loadModulesForYearAndSession(transcriptData, editableDetails.academic_year, session);
+            if (selectedRequest?.document_type === 'transcript') {
+                loadModulesForYearAndSession(transcriptData, editableDetails.academic_year, session);
+            } else if (selectedRequest?.document_type === 'success-certificate') {
+                loadMentionForYearAndSession(transcriptData, editableDetails.academic_year, session);
+            }
         }
     };
     const handleSaveDraft = async () => {
@@ -276,6 +359,9 @@ const RequestsList = () => {
         if (docType === 'transcript') {
             return (
                 <div className="space-y-4">
+                    <div className="bg-yellow-50 border border-yellow-100 p-3 rounded-lg text-xs text-yellow-800">
+                        Les informations de l'étudiant sont chargées automatiquement. Vous pouvez les modifier si nécessaire.
+                    </div>
                     <div className="grid md:grid-cols-2 gap-3">
                         <div>
                             <label className="block text-xs font-semibold text-gray-700 mb-2">Année universitaire *</label>
@@ -303,6 +389,28 @@ const RequestsList = () => {
                                     <option key={session} value={session}>{session}</option>
                                 ))}
                             </select>
+                        </div>
+                    </div>
+                    
+                    <div className="border-t border-gray-200 pt-3">
+                        <h4 className="text-xs font-bold text-gray-700 mb-3">Informations de l'étudiant</h4>
+                        <div className="grid md:grid-cols-2 gap-3 mb-3">
+                            <div>
+                                <label className="block text-xs font-semibold text-gray-700 mb-2">Niveau</label>
+                                <input 
+                                    value={editableDetails.level || selectedRequest?.level || ''} 
+                                    onChange={e => updateDetailField('level', e.target.value)} 
+                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" 
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-semibold text-gray-700 mb-2">Programme / Filière</label>
+                                <input 
+                                    value={editableDetails.program || selectedRequest?.filiere || selectedRequest?.major || ''} 
+                                    onChange={e => updateDetailField('program', e.target.value)} 
+                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" 
+                                />
+                            </div>
                         </div>
                     </div>
                     
@@ -362,30 +470,79 @@ const RequestsList = () => {
 
         if (docType === 'success-certificate') {
             return (
-                <div className="space-y-3">
-                    <div className="grid md:grid-cols-2 gap-3">
-                        <div>
-                            <label className="block text-xs font-semibold text-gray-600">Date naissance</label>
-                            <input type="date" value={editableDetails.birth_date || ''} onChange={e => updateDetailField('birth_date', e.target.value)} className="w-full border rounded px-3 py-2" />
-                        </div>
-                        <div>
-                            <label className="block text-xs font-semibold text-gray-600">Lieu</label>
-                            <input value={editableDetails.birth_place || ''} onChange={e => updateDetailField('birth_place', e.target.value)} className="w-full border rounded px-3 py-2" />
-                        </div>
+                <div className="space-y-4">
+                    <div className="bg-green-50 border border-green-100 p-3 rounded-lg text-xs text-green-800">
+                        Les informations de l'étudiant sont chargées automatiquement. Vous pouvez les modifier si nécessaire.
                     </div>
                     <div className="grid md:grid-cols-2 gap-3">
                         <div>
-                            <label className="block text-xs font-semibold text-gray-600">Filière</label>
-                            <input value={editableDetails.filiere || ''} onChange={e => updateDetailField('filiere', e.target.value)} className="w-full border rounded px-3 py-2" />
+                            <label className="block text-xs font-semibold text-gray-700 mb-2">Année universitaire *</label>
+                            <select 
+                                value={editableDetails.academic_year || ''} 
+                                onChange={e => handleYearChange(e.target.value)}
+                                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
+                            >
+                                <option value="">Sélectionner une année</option>
+                                {availableYears.map(year => (
+                                    <option key={year} value={year}>{year}</option>
+                                ))}
+                            </select>
                         </div>
                         <div>
-                            <label className="block text-xs font-semibold text-gray-600">Session</label>
-                            <input value={editableDetails.session || ''} onChange={e => updateDetailField('session', e.target.value)} className="w-full border rounded px-3 py-2" />
+                            <label className="block text-xs font-semibold text-gray-700 mb-2">Session *</label>
+                            <select 
+                                value={editableDetails.session || ''} 
+                                onChange={e => handleSessionChange(e.target.value)}
+                                disabled={!editableDetails.academic_year || availableSessions.length === 0}
+                                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none disabled:bg-gray-100 disabled:cursor-not-allowed"
+                            >
+                                <option value="">Sélectionner une session</option>
+                                {availableSessions.map(session => (
+                                    <option key={session} value={session}>{session}</option>
+                                ))}
+                            </select>
                         </div>
                     </div>
-                    <div>
-                        <label className="block text-xs font-semibold text-gray-600">Mention</label>
-                        <input value={editableDetails.mention || ''} onChange={e => updateDetailField('mention', e.target.value)} className="w-full border rounded px-3 py-2" />
+                    <div className="border-t border-gray-200 pt-3">
+                        <h4 className="text-xs font-bold text-gray-700 mb-3">Informations de l'étudiant</h4>
+                        <div className="grid md:grid-cols-2 gap-3">
+                            <div>
+                                <label className="block text-xs font-semibold text-gray-700 mb-2">Date de naissance</label>
+                                <input 
+                                    type="date" 
+                                    value={editableDetails.birth_date || (selectedRequest?.birth_date ? selectedRequest.birth_date.split('T')[0] : '') || ''} 
+                                    onChange={e => updateDetailField('birth_date', e.target.value)} 
+                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" 
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-semibold text-gray-700 mb-2">Lieu de naissance</label>
+                                <input 
+                                    value={editableDetails.birth_place || selectedRequest?.birth_place || ''} 
+                                    onChange={e => updateDetailField('birth_place', e.target.value)} 
+                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" 
+                                />
+                            </div>
+                        </div>
+                        <div className="grid md:grid-cols-2 gap-3 mt-3">
+                            <div>
+                                <label className="block text-xs font-semibold text-gray-700 mb-2">Filière</label>
+                                <input 
+                                    value={editableDetails.filiere || selectedRequest?.filiere || selectedRequest?.major || ''} 
+                                    onChange={e => updateDetailField('filiere', e.target.value)} 
+                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" 
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-semibold text-gray-700 mb-2">Mention</label>
+                                <input 
+                                    value={editableDetails.mention || ''} 
+                                    onChange={e => updateDetailField('mention', e.target.value)} 
+                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none bg-green-50" 
+                                    placeholder="Chargée automatiquement depuis le relevé"
+                                />
+                            </div>
+                        </div>
                     </div>
                 </div>
             );
@@ -477,6 +634,62 @@ const RequestsList = () => {
                         <div>
                             <label className="block text-xs font-semibold text-gray-600">Stage au *</label>
                             <input type="date" value={editableDetails.end_date || ''} onChange={e => updateDetailField('end_date', e.target.value)} className="w-full border rounded px-3 py-2" />
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // Par défaut (school-certificate et autres)
+        if (docType === 'school-certificate') {
+            return (
+                <div className="space-y-4">
+                    <div className="bg-blue-50 border border-blue-100 p-3 rounded-lg text-xs text-blue-800">
+                        Les informations de l'étudiant sont chargées automatiquement. Vous pouvez les modifier si nécessaire.
+                    </div>
+                    <div className="grid md:grid-cols-2 gap-3">
+                        <div>
+                            <label className="block text-xs font-semibold text-gray-700 mb-2">Année universitaire *</label>
+                            <select 
+                                value={editableDetails.academic_year || ''} 
+                                onChange={e => handleYearChange(e.target.value)}
+                                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
+                            >
+                                <option value="">Sélectionner une année</option>
+                                {availableYears.map(year => (
+                                    <option key={year} value={year}>{year}</option>
+                                ))}
+                            </select>
+                        </div>
+                    </div>
+                    <div className="border-t border-gray-200 pt-3">
+                        <h4 className="text-xs font-bold text-gray-700 mb-3">Informations de l'étudiant</h4>
+                        <div className="grid md:grid-cols-2 gap-3">
+                            <div>
+                                <label className="block text-xs font-semibold text-gray-700 mb-2">Date de naissance</label>
+                                <input 
+                                    type="date" 
+                                    value={editableDetails.birth_date || (selectedRequest?.birth_date ? selectedRequest.birth_date.split('T')[0] : '') || ''} 
+                                    onChange={e => updateDetailField('birth_date', e.target.value)} 
+                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" 
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-semibold text-gray-700 mb-2">Niveau</label>
+                                <input 
+                                    value={editableDetails.level || selectedRequest?.level || ''} 
+                                    onChange={e => updateDetailField('level', e.target.value)} 
+                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" 
+                                />
+                            </div>
+                        </div>
+                        <div className="mt-3">
+                            <label className="block text-xs font-semibold text-gray-700 mb-2">Programme / Filière</label>
+                            <input 
+                                value={editableDetails.program || selectedRequest?.filiere || selectedRequest?.major || ''} 
+                                onChange={e => updateDetailField('program', e.target.value)} 
+                                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" 
+                            />
                         </div>
                     </div>
                 </div>

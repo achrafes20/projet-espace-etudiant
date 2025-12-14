@@ -141,10 +141,12 @@ const buildSchoolCertificate = (doc, payload) => {
     addInfoLine('Code étudiant (Apogée) :', payload.student.apogee_number || '---');
     addInfoLine('Code National de l\'étudiant :', payload.student.cne || payload.student.apogee_number || '---');
     
-    const birthDate = payload.student.birth_date 
-        ? new Date(payload.student.birth_date).toLocaleDateString('fr-FR') 
+    const birthDate = payload.student.birth_date || payload.details.birth_date
+        ? new Date(payload.student.birth_date || payload.details.birth_date).toLocaleDateString('fr-FR')
         : '---';
-    addInfoLine('Date de naissance :', birthDate);
+    const birthPlace = payload.student.birth_place || payload.details.birth_place || '---';
+    const birthInfo = birthDate !== '---' ? `Né(e) le ${birthDate} à ${birthPlace}` : '---';
+    addInfoLine('Date de naissance :', birthInfo);
     
     doc.y = infoY + 155;
     doc.fontSize(12).font('Helvetica').fillColor('#000000');
@@ -234,10 +236,11 @@ const buildSuccessCertificate = (doc, payload) => {
     
     addInfoLine('Nom et Prénom :', formatName(payload.student));
     
-    const birthDate = payload.details.birth_date 
-        ? new Date(payload.details.birth_date).toLocaleDateString('fr-FR') 
+    const birthDate = payload.details.birth_date || payload.student.birth_date
+        ? new Date(payload.details.birth_date || payload.student.birth_date).toLocaleDateString('fr-FR')
         : '---';
-    const birthInfo = `${birthDate} à ${payload.details.birth_place || '---'}`;
+    const birthPlace = payload.details.birth_place || payload.student.birth_place || '---';
+    const birthInfo = birthDate !== '---' ? `${birthDate} à ${birthPlace}` : '---';
     addInfoLine('Né(e) le :', birthInfo);
     
     addInfoLine('Portant le CNE :', payload.student.cin || payload.student.cne || '---');
@@ -309,7 +312,7 @@ const buildTranscript = (doc, payload) => {
 
     // Informations étudiant
     const studentY = doc.y;
-    doc.roundedRect(60, studentY, doc.page.width - 120, 90, 5).fill('#fef2f2').stroke('#fca5a5');
+    doc.roundedRect(60, studentY, doc.page.width - 120, 110, 5).fill('#fef2f2').stroke('#fca5a5');
     
     doc.fontSize(12).font('Helvetica-Bold').fillColor('#dc2626');
     doc.text('INFORMATIONS ÉTUDIANT', 80, studentY + 12);
@@ -327,9 +330,17 @@ const buildTranscript = (doc, payload) => {
     doc.text(`CIN : ${payload.student.cin || '---'}`, col2X, infoY);
     infoY += 18;
     
+    const birthDate = payload.student.birth_date || payload.details.birth_date
+        ? new Date(payload.student.birth_date || payload.details.birth_date).toLocaleDateString('fr-FR')
+        : '---';
+    const birthPlace = payload.student.birth_place || payload.details.birth_place || '---';
+    const birthInfo = birthDate !== '---' ? `Né(e) le ${birthDate} à ${birthPlace}` : '---';
+    doc.text(birthInfo, col1X, infoY);
+    infoY += 18;
+    
     doc.text(`Inscrit en : ${payload.details.level || '---'} - ${payload.details.program || '---'}`, col1X, infoY);
     
-    doc.y = studentY + 100;
+    doc.y = studentY + 120;
     doc.moveDown(1);
 
     // Tableau des notes
@@ -470,10 +481,17 @@ const buildInternship = (doc, payload) => {
     doc.text('ARTICLE 2 - IDENTIFICATION DU STAGIAIRE', 60, doc.y, { underline: true });
     doc.moveDown(0.5);
     doc.fontSize(10).font('Helvetica').fillColor('#000000');
+    const birthDate = payload.student.birth_date || payload.details.birth_date
+        ? new Date(payload.student.birth_date || payload.details.birth_date).toLocaleDateString('fr-FR')
+        : '---';
+    const birthPlace = payload.student.birth_place || payload.details.birth_place || '---';
+    const birthInfo = birthDate !== '---' ? `Né(e) le ${birthDate} à ${birthPlace}` : '---';
+    
     doc.text(
         `Nom et Prénom : ${formatName(payload.student)}\n` +
         `CIN : ${payload.student.cin || '---'}\n` +
         `Code Apogée : ${payload.student.apogee_number || '---'}\n` +
+        `${birthInfo}\n` +
         `Filière : ${payload.student.filiere || payload.student.major || '---'}\n` +
         `Niveau : ${payload.student.level || '---'}`,
         60, doc.y,

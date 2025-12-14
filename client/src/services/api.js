@@ -34,6 +34,14 @@ export const updateRequestStatus = (id, data) => api.put(`/admin/requests/${id}`
 });
 export const updateRequestDraft = (id, data) => api.put(`/admin/requests/${id}/draft`, data);
 export const getComplaints = () => api.get('/admin/complaints');
-export const respondToComplaint = (id, data) => api.put(`/admin/complaints/${id}/respond`, data);
+export const respondToComplaint = (id, data) => {
+    // Si data est FormData, utiliser multipart/form-data, sinon JSON
+    if (data instanceof FormData) {
+        return api.put(`/admin/complaints/${id}/respond`, data, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        });
+    }
+    return api.put(`/admin/complaints/${id}/respond`, data);
+};
 
 export default api;

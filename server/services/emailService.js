@@ -105,8 +105,10 @@ exports.sendRequestUpdate = async (email, name, reference, documentType, status,
     }
 };
 
-exports.sendComplaintResponse = async (email, name, complaintNumber, response) => {
+exports.sendComplaintResponse = async (email, name, complaintNumber, response, documentPath = null) => {
     const transporter = createTransporter();
+    const path = require('path');
+    const fs = require('fs');
 
     const mailOptions = {
         from: process.env.EMAIL_USER,
@@ -121,10 +123,26 @@ exports.sendComplaintResponse = async (email, name, complaintNumber, response) =
                     <p style="margin: 0; font-weight: bold; color: #4338ca;">Réponse de l'administration :</p>
                     <p style="margin: 10px 0 0; white-space: pre-wrap;">${response}</p>
                 </div>
+                ${documentPath ? '<p style="margin-top: 20px;"><strong>Un nouveau document corrigé est joint à cet email.</strong></p>' : ''}
                 <p>Cordialement,<br>Service scolarité</p>
             </div>
         `
     };
+
+    // Ajouter le document en pièce jointe si fourni
+    if (documentPath) {
+        // documentPath est déjà un chemin public comme /uploads/final/... ou /uploads/generated/...
+        // On doit le convertir en chemin absolu
+        const absolutePath = resolveAttachmentPath(documentPath);
+        if (absolutePath && fs.existsSync(absolutePath)) {
+            mailOptions.attachments = [{
+                filename: path.basename(absolutePath),
+                path: absolutePath
+            }];
+        } else {
+            console.warn(`Document path not found: ${documentPath}`);
+        }
+    }
 
     try {
         await transporter.sendMail(mailOptions);

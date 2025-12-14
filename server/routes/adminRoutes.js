@@ -31,6 +31,6 @@ router.get('/requests', adminController.getRequests);
 router.put('/requests/:id/draft', adminController.updateDraft);
 router.put('/requests/:id', upload.single('document'), adminController.updateRequestStatus);
 router.get('/complaints', adminController.getComplaints);
-router.put('/complaints/:id/respond', adminController.respondToComplaint);
+router.put('/complaints/:id/respond', upload.single('document'), adminController.respondToComplaint);
 
 module.exports = router;

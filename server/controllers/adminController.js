@@ -105,7 +105,7 @@ exports.getRequests = async (req, res) => {
     const { status, type, search } = req.query;
 
     let query = `
-    SELECT r.*, s.first_name, s.last_name, s.apogee_number, s.email, s.cin, s.transcript_data, s.level, s.filiere, s.major
+    SELECT r.*, s.first_name, s.last_name, s.apogee_number, s.email, s.cin, s.transcript_data, s.level, s.filiere, s.major, s.birth_date, s.birth_place
     FROM requests r 
     JOIN students s ON r.student_id = s.id 
     WHERE 1=1
@@ -257,7 +257,25 @@ exports.updateRequestStatus = async (req, res) => {
 exports.getComplaints = async (req, res) => {
     try {
         const [complaints] = await db.query(`
-      SELECT c.*, r.reference as request_reference, s.first_name, s.last_name, s.email 
+      SELECT c.*, 
+             r.id as request_id,
+             r.reference as request_reference, 
+             r.document_type,
+             r.status as request_status,
+             r.generated_document_path,
+             r.document_path,
+             r.specific_details,
+             s.first_name, 
+             s.last_name, 
+             s.email,
+             s.apogee_number,
+             s.cin,
+             s.transcript_data,
+             s.level,
+             s.filiere,
+             s.major,
+             s.birth_date,
+             s.birth_place
       FROM complaints c
       JOIN requests r ON c.request_id = r.id
       JOIN students s ON c.student_id = s.id
@@ -271,9 +289,66 @@ exports.getComplaints = async (req, res) => {
 
 exports.respondToComplaint = async (req, res) => {
     const { id } = req.params;
-    const { response, admin_id } = req.body;
+    const { response, admin_id, regenerate_document, template_overrides } = req.body;
+    const uploadedPath = resolveUploadPublicPath(req.file ? req.file.path : null);
 
     try {
+        let documentPath = null;
+        
+        // Si on doit régénérer le document ou si un document est uploadé
+        if (regenerate_document === 'true' || uploadedPath) {
+            // Récupérer la demande associée
+            const [complaintRows] = await db.query(`
+                SELECT c.*, r.id as request_id, r.document_type, r.reference, r.specific_details
+                FROM complaints c
+                JOIN requests r ON c.request_id = r.id
+                WHERE c.id = ?
+            `, [id]);
+
+            if (complaintRows.length > 0) {
+                const complaint = complaintRows[0];
+                const requestId = complaint.request_id;
+                
+                // Récupérer les informations complètes de la demande et de l'étudiant
+                const [requestRows] = await db.query(`
+                    SELECT r.*, s.first_name, s.last_name, s.email, s.cin, s.apogee_number, s.transcript_data, s.level, s.filiere, s.major, s.birth_date, s.birth_place
+                    FROM requests r 
+                    JOIN students s ON r.student_id = s.id 
+                    WHERE r.id = ?
+                `, [requestId]);
+
+                if (requestRows.length > 0) {
+                    const request = requestRows[0];
+                    
+                    // Fusionner les détails avec les overrides si fournis
+                    const mergedDetails = template_overrides 
+                        ? { ...parseDetails(request.specific_details), ...parseDetails(template_overrides) }
+                        : parseDetails(request.specific_details);
+
+                    // Si un document est uploadé, l'utiliser
+                    if (uploadedPath) {
+                        documentPath = uploadedPath;
+                    } else {
+                        // Sinon, régénérer le document
+                        const generated = await documentService.generateDocument({
+                            docType: request.document_type,
+                            student: request,
+                            details: mergedDetails,
+                            reference: request.reference,
+                            variant: 'final'
+                        });
+                        documentPath = generated.publicPath;
+                        
+                        // Mettre à jour la demande avec le nouveau document
+                        await db.query(
+                            'UPDATE requests SET generated_document_path = ?, document_path = ?, specific_details = ?, template_data = ? WHERE id = ?',
+                            [generated.publicPath, generated.publicPath, JSON.stringify(mergedDetails), JSON.stringify(generated.details), requestId]
+                        );
+                    }
+                }
+            }
+        }
+
         await db.query(
             'UPDATE complaints SET response = ?, status = "Traitée", processing_date = CURRENT_TIMESTAMP, processed_by_admin_id = ? WHERE id = ?',
             [response, admin_id, id]
@@ -288,10 +363,10 @@ exports.respondToComplaint = async (req, res) => {
 
         if (rows.length > 0) {
             const { email, first_name, complaint_number } = rows[0];
-            await emailService.sendComplaintResponse(email, first_name, complaint_number, response);
+            await emailService.sendComplaintResponse(email, first_name, complaint_number, response, documentPath);
         }
 
-        res.json({ success: true, message: 'Complaint responded successfully' });
+        res.json({ success: true, message: 'Complaint responded successfully', document_path: documentPath });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
