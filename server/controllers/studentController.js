@@ -24,19 +24,32 @@ const generateReference = async (docType) => {
 };
 
 exports.validateStudent = async (req, res) => {
-    const { email, apogee_number, cin } = req.body;
+    const { email, apogee_number, cin, cne } = req.body;
 
     try {
-        const [students] = await db.query(
-            'SELECT * FROM students WHERE email = ? AND apogee_number = ? AND cin = ?',
-            [email, apogee_number, cin]
-        );
-
-        if (students.length > 0) {
-            res.json({ valid: true, student: students[0] });
-        } else {
-            res.status(401).json({ valid: false, message: 'Invalid credentials' });
+        // Essayer d'abord avec CIN si fourni
+        if (cin) {
+            const [students] = await db.query(
+                'SELECT * FROM students WHERE email = ? AND apogee_number = ? AND cin = ?',
+                [email, apogee_number, cin]
+            );
+            if (students.length > 0) {
+                return res.json({ valid: true, student: students[0] });
+            }
         }
+        
+        // Si CIN n'a pas fonctionné ou n'est pas fourni, essayer avec CNE
+        if (cne) {
+            const [students] = await db.query(
+                'SELECT * FROM students WHERE email = ? AND apogee_number = ? AND cne = ?',
+                [email, apogee_number, cne]
+            );
+            if (students.length > 0) {
+                return res.json({ valid: true, student: students[0] });
+            }
+        }
+        
+        res.status(401).json({ valid: false, message: 'Invalid credentials' });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
@@ -44,7 +57,7 @@ exports.validateStudent = async (req, res) => {
 
 exports.checkField = async (req, res) => {
     const { field, value } = req.body;
-    const allowedFields = ['email', 'apogee_number', 'cin', 'reference'];
+    const allowedFields = ['email', 'apogee_number', 'cin', 'cne', 'reference'];
 
     if (!allowedFields.includes(field)) {
         return res.status(400).json({ error: 'Invalid field' });

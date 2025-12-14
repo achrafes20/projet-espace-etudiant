@@ -47,6 +47,7 @@ const RequestForm = () => {
         email: '',
         apogee_number: '',
         cin: '',
+        cne: '',
         specific_details: createDefaultDetails(),
         request_reference: '',
         reason: '',
@@ -56,7 +57,7 @@ const RequestForm = () => {
     const [fieldStatus, setFieldStatus] = useState({
         email: 'neutral',
         apogee_number: 'neutral',
-        cin: 'neutral'
+        cin_cne: 'neutral'
     });
 
     const [loading, setLoading] = useState(false);
@@ -64,28 +65,58 @@ const RequestForm = () => {
     const [identityError, setIdentityError] = useState('');
     
     const handleBlur = async (field) => {
-        const value = formData[field];
-        if (!value) {
-            setFieldStatus(prev => ({ ...prev, [field]: 'neutral' }));
-            return;
-        }
-        setFieldStatus(prev => ({ ...prev, [field]: 'loading' }));
-        try {
-            const res = await checkField({ field, value });
-            setFieldStatus(prev => ({ ...prev, [field]: res.data.exists ? 'valid' : 'invalid' }));
-        } catch (error) {
-            setFieldStatus(prev => ({ ...prev, [field]: 'invalid' }));
+        if (field === 'cin_cne') {
+            const value = formData.cin || formData.cne;
+            if (!value) {
+                setFieldStatus(prev => ({ ...prev, [field]: 'neutral' }));
+                return;
+            }
+            setFieldStatus(prev => ({ ...prev, [field]: 'loading' }));
+            try {
+                // Essayer d'abord avec CIN
+                let res = await checkField({ field: 'cin', value });
+                if (res.data.exists) {
+                    setFormData(prev => ({ ...prev, cin: value, cne: '' }));
+                    setFieldStatus(prev => ({ ...prev, [field]: 'valid' }));
+                    return;
+                }
+                // Si CIN n'existe pas, essayer avec CNE
+                res = await checkField({ field: 'cne', value });
+                if (res.data.exists) {
+                    setFormData(prev => ({ ...prev, cne: value, cin: '' }));
+                    setFieldStatus(prev => ({ ...prev, [field]: 'valid' }));
+                    return;
+                }
+                // Aucun des deux n'existe
+                setFieldStatus(prev => ({ ...prev, [field]: 'invalid' }));
+            } catch (error) {
+                setFieldStatus(prev => ({ ...prev, [field]: 'invalid' }));
+            }
+        } else {
+            const value = formData[field];
+            if (!value) {
+                setFieldStatus(prev => ({ ...prev, [field]: 'neutral' }));
+                return;
+            }
+            setFieldStatus(prev => ({ ...prev, [field]: 'loading' }));
+            try {
+                const res = await checkField({ field, value });
+                setFieldStatus(prev => ({ ...prev, [field]: res.data.exists ? 'valid' : 'invalid' }));
+            } catch (error) {
+                setFieldStatus(prev => ({ ...prev, [field]: 'invalid' }));
+            }
         }
     };
 
     useEffect(() => {
         const verifyIdentity = async () => {
-            if (fieldStatus.email === 'valid' && fieldStatus.apogee_number === 'valid' && fieldStatus.cin === 'valid') {
+            if (fieldStatus.email === 'valid' && fieldStatus.apogee_number === 'valid' && fieldStatus.cin_cne === 'valid') {
                 try {
                     const res = await validateStudent({
                         email: formData.email,
                         apogee_number: formData.apogee_number,
-                        cin: formData.cin
+                        cin: formData.cin || undefined,
+                        cne: formData.cne || undefined
                     });
                     if (res.data.valid) {
                         setStudent(res.data.student);
@@ -117,7 +148,7 @@ const RequestForm = () => {
             }
         };
         verifyIdentity();
-    }, [fieldStatus, formData.email, formData.apogee_number, formData.cin]);
+    }, [fieldStatus, formData.email, formData.apogee_number, formData.cin, formData.cne]);
 
     const getIcon = (status) => {
         if (status === 'loading') return <div className="animate-spin h-5 w-5 border-2 border-primary-600 border-t-transparent rounded-full" />;
@@ -450,17 +481,25 @@ const RequestForm = () => {
                                     <div className="relative">
                                         <input
                                             type="text"
-                                            className={`w-full px-4 py-3 border rounded-lg outline-none focus:ring-2 transition-colors ${fieldStatus.cin === 'invalid' ? 'border-red-300 focus:ring-red-200' : 'border-gray-300 focus:ring-primary-500'}`}
-                                            value={formData.cin}
-                                            onChange={e => setFormData({ ...formData, cin: e.target.value })}
-                                            onBlur={() => handleBlur('cin')}
-                                            placeholder="AB123456"
+                                            className={`w-full px-4 py-3 border rounded-lg outline-none focus:ring-2 transition-colors ${fieldStatus.cin_cne === 'invalid' ? 'border-red-300 focus:ring-red-200' : 'border-gray-300 focus:ring-primary-500'}`}
+                                            value={formData.cin || formData.cne}
+                                            onChange={e => {
+                                                const value = e.target.value;
+                                                // Si la valeur commence par des lettres (format CNE), utiliser cne, sinon cin
+                                                if (/^[A-Za-z]/.test(value)) {
+                                                    setFormData({ ...formData, cne: value, cin: '' });
+                                                } else {
+                                                    setFormData({ ...formData, cin: value, cne: '' });
+                                                }
+                                            }}
+                                            onBlur={() => handleBlur('cin_cne')}
+                                            placeholder="CNE ou CIN"
                                         />
                                         <div className="absolute right-3 top-3">
-                                            {getIcon(fieldStatus.cin)}
+                                            {getIcon(fieldStatus.cin_cne)}
                                         </div>
                                     </div>
-                                    {fieldStatus.cin === 'invalid' && <p className="text-red-500 text-sm mt-1">CIN incorrect.</p>}
+                                    {fieldStatus.cin_cne === 'invalid' && <p className="text-red-500 text-sm mt-1">CNE ou CIN incorrect.</p>}
                                 </div>
                             </div>
 
