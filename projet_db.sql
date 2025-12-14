@@ -18,10 +18,8 @@ CREATE TABLE students (
     major VARCHAR(100),
     level VARCHAR(50),
     filiere VARCHAR(100),
-    mention VARCHAR(50),
     birth_date DATE,
     birth_place VARCHAR(100),
-    success_session VARCHAR(50),
     transcript_data JSON,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

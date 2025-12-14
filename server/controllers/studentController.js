@@ -66,34 +66,58 @@ exports.checkField = async (req, res) => {
     }
 };
 
+const parseTranscript = (student) => {
+    try {
+        return typeof student.transcript_data === 'string' ? JSON.parse(student.transcript_data) : (student.transcript_data || {});
+    } catch {
+        return {};
+    }
+};
+
+const pickParcours = (student, academic_year, session) => {
+    const data = parseTranscript(student);
+    const parcours = data.parcours || [];
+    const yearData = academic_year
+        ? parcours.find(p => p.academic_year === academic_year) || parcours[0]
+        : parcours[0];
+    if (!yearData) return { modules: [], mention: '', decision: '', session: session || '', academic_year };
+
+    const semesterData = session
+        ? yearData.semesters?.find(s => s.name === session) || yearData.semesters?.[0]
+        : yearData.semesters?.[0];
+
+    const result = semesterData?.result || {};
+    return {
+        modules: semesterData?.modules || [],
+        mention: result.mention || '',
+        decision: result.decision || '',
+        session: semesterData?.name || session || '',
+        academic_year: yearData.academic_year || academic_year
+    };
+};
+
 const mergeDetailsWithStudent = (docType, student, payloadDetails = {}) => {
-    const transcriptData = (() => {
-        try {
-            const parsed = typeof student.transcript_data === 'string' ? JSON.parse(student.transcript_data) : student.transcript_data;
-            return parsed?.modules || [];
-        } catch {
-            return [];
-        }
-    })();
+    const { modules, mention, decision, session, academic_year } = pickParcours(student, payloadDetails.academic_year, payloadDetails.session);
 
     if (docType === 'transcript') {
         return {
-            academic_year: payloadDetails.academic_year,
-            session: payloadDetails.session || student.success_session,
+            academic_year: academic_year,
+            session: session,
             level: student.level,
             program: student.filiere || student.major,
-            modules: transcriptData
+            modules
         };
     }
 
     if (docType === 'success-certificate') {
         return {
-            academic_year: payloadDetails.academic_year,
+            academic_year: academic_year,
             birth_date: student.birth_date,
             birth_place: student.birth_place,
             filiere: student.filiere || student.major,
-            mention: student.mention,
-            session: student.success_session,
+            mention: mention,
+            decision: decision,
+            session: session,
             level: student.level,
             program: student.filiere || student.major
         };
@@ -101,7 +125,7 @@ const mergeDetailsWithStudent = (docType, student, payloadDetails = {}) => {
 
     if (docType === 'school-certificate') {
         return {
-            academic_year: payloadDetails.academic_year,
+            academic_year: payloadDetails.academic_year || academic_year,
             level: student.level,
             program: student.filiere || student.major
         };
@@ -109,7 +133,7 @@ const mergeDetailsWithStudent = (docType, student, payloadDetails = {}) => {
 
     // For internship we keep student defaults for level/program but allow payload company info
     return {
-        academic_year: payloadDetails.academic_year,
+        academic_year: payloadDetails.academic_year || academic_year,
         level: student.level,
         program: student.filiere || student.major,
         ...payloadDetails

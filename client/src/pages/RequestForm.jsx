@@ -26,6 +26,9 @@ const RequestForm = () => {
     const navigate = useNavigate();
     const [student, setStudent] = useState(null);
     const [selection, setSelection] = useState('');
+    const [yearOptions, setYearOptions] = useState([]);
+    const [sessionOptions, setSessionOptions] = useState([]);
+    const [transcriptData, setTranscriptData] = useState({});
 
     const [formData, setFormData] = useState({
         email: '',
@@ -72,6 +75,23 @@ const RequestForm = () => {
                     });
                     if (res.data.valid) {
                         setStudent(res.data.student);
+                        const parsed = (() => {
+                            try {
+                                return typeof res.data.student.transcript_data === 'string'
+                                    ? JSON.parse(res.data.student.transcript_data)
+                                    : res.data.student.transcript_data || {};
+                            } catch {
+                                return {};
+                            }
+                        })();
+                        setTranscriptData(parsed);
+                        const years = (parsed.parcours || []).map(p => p.academic_year);
+                        setYearOptions(years);
+                        setSessionOptions(parsed.parcours?.[0]?.semesters?.map(s => s.name) || []);
+                        setFormData(prev => ({
+                            ...prev,
+                            specific_details: { ...prev.specific_details, academic_year: years[0] || prev.specific_details.academic_year, session: (parsed.parcours?.[0]?.semesters?.[0]?.name) || prev.specific_details.session }
+                        }));
                         setIdentityError('');
                     }
                 } catch (error) {
@@ -118,6 +138,19 @@ const RequestForm = () => {
         }
     };
 
+    useEffect(() => {
+        if (!student) return;
+        if (!formData.specific_details.academic_year) return;
+        const parcours = transcriptData.parcours || [];
+        const found = parcours.find(p => p.academic_year === formData.specific_details.academic_year);
+        if (found && found.semesters) {
+            setSessionOptions(found.semesters.map(s => s.name));
+            if (!found.semesters.find(s => s.name === formData.specific_details.session)) {
+                setFormData(prev => ({ ...prev, specific_details: { ...prev.specific_details, session: found.semesters[0]?.name || '' } }));
+            }
+        }
+    }, [formData.specific_details.academic_year, student, transcriptData]);
+
     const getIcon = (status) => {
         if (status === 'loading') return <div className="animate-spin h-5 w-5 border-2 border-primary-600 border-t-transparent rounded-full" />;
         if (status === 'valid') return <CheckCircleIcon className="h-6 w-6 text-green-500" />;
@@ -134,7 +167,10 @@ const RequestForm = () => {
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">Année universitaire</label>
-                            <input type="text" value={formData.specific_details.academic_year} onChange={e => updateDetails('academic_year', e.target.value)} className="w-full px-4 py-3 border rounded-lg outline-none focus:ring-2 focus:ring-primary-500" />
+                            <select value={formData.specific_details.academic_year} onChange={e => updateDetails('academic_year', e.target.value)} className="w-full px-4 py-3 border rounded-lg outline-none focus:ring-2 focus:ring-primary-500">
+                                <option value="">Sélectionner...</option>
+                                {yearOptions.map(y => <option key={y} value={y}>{y}</option>)}
+                            </select>
                         </div>
                     </div>
                 );
@@ -147,11 +183,17 @@ const RequestForm = () => {
                         <div className="grid md:grid-cols-2 gap-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">Année universitaire</label>
-                                <input type="text" value={formData.specific_details.academic_year} onChange={e => updateDetails('academic_year', e.target.value)} className="w-full px-4 py-3 border rounded-lg outline-none focus:ring-2 focus:ring-primary-500" />
+                                <select value={formData.specific_details.academic_year} onChange={e => updateDetails('academic_year', e.target.value)} className="w-full px-4 py-3 border rounded-lg outline-none focus:ring-2 focus:ring-primary-500">
+                                    <option value="">Sélectionner...</option>
+                                    {yearOptions.map(y => <option key={y} value={y}>{y}</option>)}
+                                </select>
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">Session</label>
-                                <input type="text" value={formData.specific_details.session} onChange={e => updateDetails('session', e.target.value)} className="w-full px-4 py-3 border rounded-lg outline-none focus:ring-2 focus:ring-primary-500" />
+                                <select value={formData.specific_details.session} onChange={e => updateDetails('session', e.target.value)} className="w-full px-4 py-3 border rounded-lg outline-none focus:ring-2 focus:ring-primary-500">
+                                    <option value="">Sélectionner...</option>
+                                    {sessionOptions.map(s => <option key={s} value={s}>{s}</option>)}
+                                </select>
                             </div>
                         </div>
                     </div>
@@ -165,11 +207,17 @@ const RequestForm = () => {
                         <div className="grid md:grid-cols-2 gap-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">Année universitaire</label>
-                                <input type="text" value={formData.specific_details.academic_year} onChange={e => updateDetails('academic_year', e.target.value)} className="w-full px-4 py-3 border rounded-lg outline-none focus:ring-2 focus:ring-primary-500" />
+                                <select value={formData.specific_details.academic_year} onChange={e => updateDetails('academic_year', e.target.value)} className="w-full px-4 py-3 border rounded-lg outline-none focus:ring-2 focus:ring-primary-500">
+                                    <option value="">Sélectionner...</option>
+                                    {yearOptions.map(y => <option key={y} value={y}>{y}</option>)}
+                                </select>
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">Session</label>
-                                <input type="text" value={formData.specific_details.session} onChange={e => updateDetails('session', e.target.value)} className="w-full px-4 py-3 border rounded-lg outline-none focus:ring-2 focus:ring-primary-500" />
+                                <select value={formData.specific_details.session} onChange={e => updateDetails('session', e.target.value)} className="w-full px-4 py-3 border rounded-lg outline-none focus:ring-2 focus:ring-primary-500">
+                                    <option value="">Sélectionner...</option>
+                                    {sessionOptions.map(s => <option key={s} value={s}>{s}</option>)}
+                                </select>
                             </div>
                         </div>
                     </div>

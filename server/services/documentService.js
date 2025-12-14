@@ -57,7 +57,7 @@ const resolveDetails = (docType, incoming = {}) => {
             company_email: incoming.company_email,
             supervisor_name: incoming.supervisor_name,
             supervisor_role: incoming.supervisor_role,
-            internship_subject: incoming.internship_subject,
+            internship_title: incoming.internship_title,
             start_date: incoming.start_date,
             end_date: incoming.end_date
         };
@@ -231,7 +231,7 @@ const buildInternship = (doc, payload) => {
     doc.moveDown(1);
     doc.font('Helvetica-Bold').text('Objet du stage');
     doc.font('Helvetica').text(
-        `Le stage a pour objet d'assurer l'application pratique des enseignements. Sujet : ${payload.details.internship_subject}.`
+        `Le stage a pour objet d'assurer l'application pratique des enseignements. Sujet : ${payload.details.internship_title || ''}.`
     );
 
     doc.moveDown(0.8);
