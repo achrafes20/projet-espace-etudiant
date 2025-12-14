@@ -1,21 +1,23 @@
+
 import React, { useEffect, useState } from 'react';
 import { getRequests } from '../../services/api';
 
 const HistoryList = () => {
     const [requests, setRequests] = useState([]);
+    const [filter, setFilter] = useState({ status: 'processed', type: 'all', search: '' });
 
     useEffect(() => {
-        // Fetch all requests but we might want to filter client-side or server-side for closed ones
-        // For now, fetching all and filtering in UI or modifying API to support 'processed'
         fetchHistory();
-    }, []);
+    }, [filter]);
 
     const fetchHistory = async () => {
         try {
-            const res = await getRequests({ status: 'all' });
-            // Filter for accepted or rejected
+            const params = filter.status === 'processed' ? { status: 'all' } : { status: filter.status };
+            const res = await getRequests(params);
             const history = res.data.filter(r => r.status !== 'En attente');
-            setRequests(history);
+            setRequests(history.filter(r => (filter.type === 'all' || r.document_type === filter.type) && (
+                r.reference.includes(filter.search) || r.last_name?.toLowerCase().includes(filter.search.toLowerCase())
+            )));
         } catch (err) {
             console.error(err);
         }
@@ -24,20 +26,41 @@ const HistoryList = () => {
     return (
         <div>
             <div className="mb-8">
-                <h1 className="text-3xl font-bold text-gray-900 mb-2">Request History</h1>
-                <p className="text-gray-600">View all processed requests</p>
+                <h1 className="text-3xl font-bold text-gray-900 mb-2">Historique des demandes</h1>
+                <p className="text-gray-600">Consultation des demandes acceptées ou refusées.</p>
+            </div>
+
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-4 p-4 flex flex-wrap gap-4">
+                <input
+                    type="text"
+                    placeholder="Référence ou nom..."
+                    className="px-4 py-2 border rounded-lg flex-1 min-w-[180px]"
+                    value={filter.search}
+                    onChange={e => setFilter({ ...filter, search: e.target.value })}
+                />
+                <select
+                    className="px-4 py-2 border rounded-lg"
+                    value={filter.type}
+                    onChange={e => setFilter({ ...filter, type: e.target.value })}
+                >
+                    <option value="all">Tous les types</option>
+                    <option value="school-certificate">Attestation de scolarité</option>
+                    <option value="success-certificate">Attestation de réussite</option>
+                    <option value="transcript">Relevé de notes</option>
+                    <option value="internship">Convention de stage</option>
+                </select>
             </div>
 
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                 <table className="w-full text-left">
                     <thead className="bg-gray-50 border-b border-gray-200">
                         <tr>
-                            <th className="px-6 py-4 text-xs font-semibold text-gray-600 uppercase">Reference</th>
+                            <th className="px-6 py-4 text-xs font-semibold text-gray-600 uppercase">Référence</th>
                             <th className="px-6 py-4 text-xs font-semibold text-gray-600 uppercase">Date</th>
-                            <th className="px-6 py-4 text-xs font-semibold text-gray-600 uppercase">Student</th>
+                            <th className="px-6 py-4 text-xs font-semibold text-gray-600 uppercase">Étudiant</th>
                             <th className="px-6 py-4 text-xs font-semibold text-gray-600 uppercase">Type</th>
-                            <th className="px-6 py-4 text-xs font-semibold text-gray-600 uppercase">Status</th>
-                            <th className="px-6 py-4 text-xs font-semibold text-gray-600 uppercase">Processed By</th>
+                            <th className="px-6 py-4 text-xs font-semibold text-gray-600 uppercase">Statut</th>
+                            <th className="px-6 py-4 text-xs font-semibold text-gray-600 uppercase">Remarques</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200">
@@ -53,7 +76,7 @@ const HistoryList = () => {
                                         {req.status}
                                     </span>
                                 </td>
-                                <td className="px-6 py-4 text-sm text-gray-600">Admin</td>
+                                <td className="px-6 py-4 text-sm text-gray-600">{req.refusal_reason || 'Document envoyé'}</td>
                             </tr>
                         ))}
                     </tbody>

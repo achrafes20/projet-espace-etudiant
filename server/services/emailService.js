@@ -3,9 +3,6 @@ const path = require('path');
 require('dotenv').config();
 
 const createTransporter = () => {
-    // Debug logging
-    console.log('[DEBUG] Creating transporter with User:', process.env.EMAIL_USER);
-
     return nodemailer.createTransport({
         service: process.env.EMAIL_SERVICE || 'gmail',
         auth: {
@@ -15,88 +12,94 @@ const createTransporter = () => {
     });
 };
 
+const resolveAttachmentPath = (documentPath) => {
+    if (!documentPath) return null;
+    if (documentPath.startsWith('/uploads')) {
+        return path.join(__dirname, '..', documentPath);
+    }
+    return documentPath;
+};
+
 exports.sendRequestConfirmation = async (email, name, reference, documentType) => {
     const transporter = createTransporter();
 
     const mailOptions = {
         from: process.env.EMAIL_USER,
         to: email,
-        subject: `Request Received - ${reference}`,
+        subject: `Demande reçue - ${reference}`,
         html: `
             <div style="font-family: Arial, sans-serif; color: #333;">
-                <h2>Request Confirmation</h2>
-                <p>Hello <strong>${name}</strong>,</p>
-                <p>Your request for a <strong>${documentType}</strong> has been successfully received.</p>
+                <h2>Confirmation de demande</h2>
+                <p>Bonjour <strong>${name}</strong>,</p>
+                <p>Votre demande de <strong>${documentType}</strong> a été enregistrée.</p>
                 <div style="background-color: #f4f4f4; padding: 15px; border-left: 4px solid #0056b3; margin: 20px 0;">
-                    <p style="margin: 0; font-size: 14px; color: #666;">Reference Number:</p>
+                    <p style="margin: 0; font-size: 14px; color: #666;">Numéro de référence :</p>
                     <p style="margin: 5px 0 0; font-size: 24px; font-weight: bold; color: #0056b3;">${reference}</p>
                 </div>
-                <p>Please keep this reference number safe. You will need it to track your request status.</p>
-                <p>Best regards,<br>Student Administration</p>
+                <p>Conservez ce numéro pour suivre l'état de votre demande.</p>
+                <p>Cordialement,<br>Service scolarité</p>
             </div>
         `
     };
 
     try {
-        console.log(`[DEBUG] Sending email to ${email}...`);
         await transporter.sendMail(mailOptions);
-        console.log(`[DEBUG] ✅ Confirmation email sent to ${email}`);
     } catch (error) {
-        console.error('[DEBUG] ❌ Error sending confirmation email:', error);
+        console.error('Error sending confirmation email:', error);
     }
 };
 
 exports.sendRequestUpdate = async (email, name, reference, documentType, status, reason, documentPath) => {
     const transporter = createTransporter();
 
-    let subject = `Update on Request ${reference}`;
     let htmlContent = `
         <div style="font-family: Arial, sans-serif; color: #333;">
-            <h2>Request Status Update</h2>
-            <p>Hello <strong>${name}</strong>,</p>
-            <p>Your request for <strong>${documentType}</strong> (Ref: ${reference}) has been updated.</p>
-            <p><strong>Status: <span style="color: ${status === 'Accepté' ? 'green' : 'red'}">${status}</span></strong></p>
+            <h2>Suivi de votre demande</h2>
+            <p>Bonjour <strong>${name}</strong>,</p>
+            <p>Votre demande de <strong>${documentType}</strong> (Ref: ${reference}) a été mise à jour.</p>
+            <p><strong>Statut: <span style="color: ${status === 'Accepté' ? 'green' : 'red'}">${status}</span></strong></p>
     `;
 
     const attachments = [];
+    const resolvedPath = resolveAttachmentPath(documentPath);
 
     if (status === 'Accepté') {
         htmlContent += `
-            <p>Good news! Your document has been prepared and approved.</p>
-            ${documentPath ? '<p>Please find the document attached to this email.</p>' : '<p>You can pick it up at the administration office.</p>'}
+            <p>Bonne nouvelle ! Votre document a été validé.</p>
+            ${documentPath ? '<p>Le document est joint à cet email.</p>' : '<p>Vous pouvez le récupérer à l\'administration.</p>'}
         `;
 
-        if (documentPath) {
+        if (resolvedPath) {
             attachments.push({
-                path: documentPath // path on the server
+                path: resolvedPath,
+                filename: path.basename(documentPath)
             });
         }
     } else if (status === 'Refusé') {
         htmlContent += `
             <div style="background-color: #fff0f0; padding: 15px; border-left: 4px solid #dc3545; margin: 20px 0;">
-                <p style="margin: 0; font-weight: bold; color: #dc3545;">Reason for Rejection:</p>
-                <p style="margin: 5px 0 0;">${reason}</p>
+                <p style="margin: 0; font-weight: bold; color: #dc3545;">Motif du refus :</p>
+                <p style="margin: 5px 0 0;">${reason || 'Non spécifié'}</p>
             </div>
-            <p>You can submit a reclamation if you believe this is a mistake, referencing the code above.</p>
+            <p>Vous pouvez déposer une réclamation en utilisant la référence ci-dessus.</p>
         `;
     }
 
     htmlContent += `
-            <p>Best regards,<br>Student Administration</p>
+            <p>Cordialement,<br>Service scolarité</p>
         </div>
     `;
 
     const mailOptions = {
         from: process.env.EMAIL_USER,
         to: email,
-        subject: subject,
+        subject: `Mise à jour de votre demande ${reference}`,
         html: htmlContent,
-        attachments: attachments
+        attachments
     };
 
     try {
         await transporter.sendMail(mailOptions);
-        console.log(`Update email sent to ${email}`);
     } catch (error) {
         console.error('Error sending update email:', error);
     }
@@ -108,24 +111,23 @@ exports.sendComplaintResponse = async (email, name, complaintNumber, response) =
     const mailOptions = {
         from: process.env.EMAIL_USER,
         to: email,
-        subject: `Response to Complaint ${complaintNumber}`,
+        subject: `Réponse à la réclamation ${complaintNumber}`,
         html: `
             <div style="font-family: Arial, sans-serif; color: #333;">
-                <h2>Complaint Response</h2>
-                <p>Hello <strong>${name}</strong>,</p>
-                <p>We have reviewed your complaint (<strong>${complaintNumber}</strong>).</p>
+                <h2>Réponse à votre réclamation</h2>
+                <p>Bonjour <strong>${name}</strong>,</p>
+                <p>Nous avons traité votre réclamation (<strong>${complaintNumber}</strong>).</p>
                 <div style="background-color: #eef2ff; padding: 15px; border-radius: 5px; margin: 20px 0;">
-                    <p style="margin: 0; font-weight: bold; color: #4338ca;">Administration Response:</p>
+                    <p style="margin: 0; font-weight: bold; color: #4338ca;">Réponse de l'administration :</p>
                     <p style="margin: 10px 0 0; white-space: pre-wrap;">${response}</p>
                 </div>
-                <p>Best regards,<br>Student Administration</p>
+                <p>Cordialement,<br>Service scolarité</p>
             </div>
         `
     };
 
     try {
         await transporter.sendMail(mailOptions);
-        console.log(`Complaint response email sent to ${email}`);
     } catch (error) {
         console.error('Error sending complaint response email:', error);
     }
@@ -137,27 +139,25 @@ exports.sendComplaintConfirmation = async (email, name, complaintNumber, request
     const mailOptions = {
         from: process.env.EMAIL_USER,
         to: email,
-        subject: `Complaint Received - ${complaintNumber}`,
+        subject: `Réclamation reçue - ${complaintNumber}`,
         html: `
             <div style="font-family: Arial, sans-serif; color: #333;">
-                <h2>Complaint Received</h2>
-                <p>Hello <strong>${name}</strong>,</p>
-                <p>We have successfully received your complaint regarding request <strong>${requestReference}</strong>.</p>
+                <h2>Réclamation enregistrée</h2>
+                <p>Bonjour <strong>${name}</strong>,</p>
+                <p>Nous avons bien reçu votre réclamation concernant la demande <strong>${requestReference}</strong>.</p>
                 <div style="background-color: #fef3c7; padding: 15px; border-left: 4px solid #d97706; margin: 20px 0;">
-                    <p style="margin: 0; font-size: 14px; color: #92400e;">Complaint Reference Number:</p>
+                    <p style="margin: 0; font-size: 14px; color: #92400e;">Numéro de réclamation :</p>
                     <p style="margin: 5px 0 0; font-size: 24px; font-weight: bold; color: #b45309;">${complaintNumber}</p>
                 </div>
-                <p>Please use this number to track the status of your complaint.</p>
-                <p>Best regards,<br>Student Administration</p>
+                <p>Conservez ce numéro pour suivre votre réclamation.</p>
+                <p>Cordialement,<br>Service scolarité</p>
             </div>
         `
     };
 
     try {
-        console.log(`[DEBUG] Sending complaint confirmation to ${email}...`);
         await transporter.sendMail(mailOptions);
-        console.log(`[DEBUG] ✅ Complaint confirmation email sent to ${email}`);
     } catch (error) {
-        console.error('[DEBUG] ❌ Error sending complaint confirmation email:', error);
+        console.error('Error sending complaint confirmation email:', error);
     }
 };

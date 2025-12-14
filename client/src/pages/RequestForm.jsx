@@ -1,27 +1,59 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeftIcon, CheckCircleIcon, XCircleIcon } from '@heroicons/react/24/outline';
-import { motion, AnimatePresence } from 'framer-motion';
+import { ArrowLeftIcon, CheckCircleIcon, XCircleIcon, PlusIcon, MinusCircleIcon } from '@heroicons/react/24/outline';
+import { motion } from 'framer-motion';
 import { validateStudent, createRequest, createComplaint, checkField } from '../services/api';
 import Header from '../components/Header';
+
+const baseDetails = {
+    academic_year: '2024/2025',
+    program: 'Génie Informatique',
+    level: '2ème année',
+    session: 'Session 1',
+    birth_date: '',
+    birth_place: '',
+    filiere: '',
+    mention: '',
+    modules: [
+        { name: 'Module 1', grade: '' },
+        { name: 'Module 2', grade: '' },
+        { name: 'Module 3', grade: '' },
+        { name: 'Module 4', grade: '' },
+        { name: 'Module 5', grade: '' },
+        { name: 'Module 6', grade: '' }
+    ],
+    company_name: '',
+    company_address: '',
+    company_email: '',
+    company_phone: '',
+    supervisor_name: '',
+    supervisor_role: '',
+    internship_subject: '',
+    start_date: '',
+    end_date: ''
+};
+
+const createDefaultDetails = () => ({
+    ...baseDetails,
+    modules: baseDetails.modules.map(m => ({ ...m }))
+});
 
 const RequestForm = () => {
     const navigate = useNavigate();
     const [student, setStudent] = useState(null);
     const [selection, setSelection] = useState('');
 
-    // Form Data
     const [formData, setFormData] = useState({
         email: '',
         apogee_number: '',
         cin: '',
-        specific_details: {},
+        specific_details: createDefaultDetails(),
         request_reference: '',
         reason: '',
         description: ''
     });
 
-    // Validation States: 'neutral', 'loading', 'valid', 'invalid'
     const [fieldStatus, setFieldStatus] = useState({
         email: 'neutral',
         apogee_number: 'neutral',
@@ -31,33 +63,23 @@ const RequestForm = () => {
     const [loading, setLoading] = useState(false);
     const [successData, setSuccessData] = useState(null);
     const [identityError, setIdentityError] = useState('');
-
-    // Real-time field check
     const handleBlur = async (field) => {
         const value = formData[field];
         if (!value) {
             setFieldStatus(prev => ({ ...prev, [field]: 'neutral' }));
             return;
         }
-
         setFieldStatus(prev => ({ ...prev, [field]: 'loading' }));
-
         try {
             const res = await checkField({ field, value });
-            if (res.data.exists) {
-                setFieldStatus(prev => ({ ...prev, [field]: 'valid' }));
-            } else {
-                setFieldStatus(prev => ({ ...prev, [field]: 'invalid' }));
-            }
+            setFieldStatus(prev => ({ ...prev, [field]: res.data.exists ? 'valid' : 'invalid' }));
         } catch (error) {
-            console.error('Check failed', error);
             setFieldStatus(prev => ({ ...prev, [field]: 'invalid' }));
         }
     };
 
-    // Auto-validate identity when all 3 fields are valid
     useEffect(() => {
-        const checkIdentity = async () => {
+        const verifyIdentity = async () => {
             if (fieldStatus.email === 'valid' && fieldStatus.apogee_number === 'valid' && fieldStatus.cin === 'valid') {
                 try {
                     const res = await validateStudent({
@@ -70,17 +92,37 @@ const RequestForm = () => {
                         setIdentityError('');
                     }
                 } catch (error) {
-                    setIdentityError('Les informations sont valides individuellement mais ne correspondent pas au même étudiant.');
                     setStudent(null);
+                    setIdentityError('Les informations sont valides individuellement mais ne correspondent pas au même étudiant.');
                 }
             } else {
                 setStudent(null);
             }
         };
+        verifyIdentity();
+    }, [fieldStatus, formData.email, formData.apogee_number, formData.cin]);
 
-        checkIdentity();
-    }, [fieldStatus.email, fieldStatus.apogee_number, fieldStatus.cin, formData.email, formData.apogee_number, formData.cin]);
+    const updateDetails = (key, value) => {
+        setFormData(prev => ({
+            ...prev,
+            specific_details: { ...prev.specific_details, [key]: value }
+        }));
+    };
 
+    const updateModule = (index, key, value) => {
+        const modules = [...formData.specific_details.modules];
+        modules[index] = { ...modules[index], [key]: value };
+        updateDetails('modules', modules);
+    };
+
+    const addModule = () => {
+        updateDetails('modules', [...formData.specific_details.modules, { name: `Module ${formData.specific_details.modules.length + 1}`, grade: '' }]);
+    };
+
+    const removeModule = (index) => {
+        const modules = formData.specific_details.modules.filter((_, i) => i !== index);
+        updateDetails('modules', modules);
+    };
 
     const handleSubmit = async () => {
         setLoading(true);
@@ -88,7 +130,7 @@ const RequestForm = () => {
             if (selection === 'reclamation') {
                 const res = await createComplaint({
                     request_reference: formData.request_reference,
-                    email: student.email,
+                    email: formData.email,
                     reason: formData.reason,
                     description: formData.description
                 });
@@ -108,29 +150,214 @@ const RequestForm = () => {
         }
     };
 
-    const updateDetails = (key, value) => {
-        setFormData(prev => ({
-            ...prev,
-            specific_details: { ...prev.specific_details, [key]: value }
-        }));
-    };
-
-    const options = [
-        { value: '', label: 'Choisissez une option...' },
-        { value: 'school-certificate', label: 'Attestation de Scolarité' },
-        { value: 'success-certificate', label: 'Attestation de Réussite' },
-        { value: 'transcript', label: 'Relevé de Notes' },
-        { value: 'internship', label: 'Convention de Stage' },
-        { value: 'reclamation', label: 'Réclamation' }
-    ];
-
     const getIcon = (status) => {
         if (status === 'loading') return <div className="animate-spin h-5 w-5 border-2 border-primary-600 border-t-transparent rounded-full" />;
         if (status === 'valid') return <CheckCircleIcon className="h-6 w-6 text-green-500" />;
         if (status === 'invalid') return <XCircleIcon className="h-6 w-6 text-red-500" />;
         return null;
     };
-
+    const renderSpecificFields = () => {
+        switch (selection) {
+            case 'school-certificate':
+                return (
+                    <div className="space-y-4">
+                        <div className="bg-blue-50 border border-blue-100 p-4 rounded-lg text-sm text-blue-800">
+                            Attestation de scolarité : année universitaire, filière et niveau sont requis.
+                        </div>
+                        <div className="grid md:grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Année universitaire</label>
+                                <input type="text" value={formData.specific_details.academic_year} onChange={e => updateDetails('academic_year', e.target.value)} className="w-full px-4 py-3 border rounded-lg outline-none focus:ring-2 focus:ring-primary-500" />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Niveau</label>
+                                <input type="text" value={formData.specific_details.level} onChange={e => updateDetails('level', e.target.value)} className="w-full px-4 py-3 border rounded-lg outline-none focus:ring-2 focus:ring-primary-500" />
+                            </div>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Filière / Programme</label>
+                            <input type="text" value={formData.specific_details.program} onChange={e => updateDetails('program', e.target.value)} className="w-full px-4 py-3 border rounded-lg outline-none focus:ring-2 focus:ring-primary-500" />
+                        </div>
+                    </div>
+                );
+            case 'success-certificate':
+                return (
+                    <div className="space-y-4">
+                        <div className="bg-green-50 border border-green-100 p-4 rounded-lg text-sm text-green-800">
+                            Attestation de réussite : précisez naissance, filière, session et mention.
+                        </div>
+                        <div className="grid md:grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Date de naissance</label>
+                                <input type="date" value={formData.specific_details.birth_date} onChange={e => updateDetails('birth_date', e.target.value)} className="w-full px-4 py-3 border rounded-lg outline-none focus:ring-2 focus:ring-primary-500" />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Lieu de naissance</label>
+                                <input type="text" value={formData.specific_details.birth_place} onChange={e => updateDetails('birth_place', e.target.value)} className="w-full px-4 py-3 border rounded-lg outline-none focus:ring-2 focus:ring-primary-500" />
+                            </div>
+                        </div>
+                        <div className="grid md:grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Filière</label>
+                                <input type="text" value={formData.specific_details.filiere} onChange={e => updateDetails('filiere', e.target.value)} className="w-full px-4 py-3 border rounded-lg outline-none focus:ring-2 focus:ring-primary-500" />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Session</label>
+                                <input type="text" value={formData.specific_details.session} onChange={e => updateDetails('session', e.target.value)} className="w-full px-4 py-3 border rounded-lg outline-none focus:ring-2 focus:ring-primary-500" />
+                            </div>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Mention</label>
+                            <input type="text" value={formData.specific_details.mention} onChange={e => updateDetails('mention', e.target.value)} className="w-full px-4 py-3 border rounded-lg outline-none focus:ring-2 focus:ring-primary-500" />
+                        </div>
+                    </div>
+                );
+            case 'transcript':
+                return (
+                    <div className="space-y-4">
+                        <div className="bg-yellow-50 border border-yellow-100 p-4 rounded-lg text-sm text-yellow-800">
+                            Relevé de notes : merci de saisir les modules et notes de la session.
+                        </div>
+                        <div className="grid md:grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Année universitaire</label>
+                                <input type="text" value={formData.specific_details.academic_year} onChange={e => updateDetails('academic_year', e.target.value)} className="w-full px-4 py-3 border rounded-lg outline-none focus:ring-2 focus:ring-primary-500" />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Session</label>
+                                <input type="text" value={formData.specific_details.session} onChange={e => updateDetails('session', e.target.value)} className="w-full px-4 py-3 border rounded-lg outline-none focus:ring-2 focus:ring-primary-500" />
+                            </div>
+                        </div>
+                        <div className="space-y-3">
+                            <div className="flex items-center justify-between">
+                                <p className="text-sm font-medium text-gray-700">Modules</p>
+                                <button type="button" onClick={addModule} className="text-primary-600 hover:text-primary-700 flex items-center text-sm font-semibold">
+                                    <PlusIcon className="h-4 w-4 mr-1" /> Ajouter un module
+                                </button>
+                            </div>
+                            {formData.specific_details.modules.map((module, idx) => (
+                                <div key={idx} className="grid md:grid-cols-3 gap-3 items-center">
+                                    <input
+                                        type="text"
+                                        value={module.name}
+                                        onChange={e => updateModule(idx, 'name', e.target.value)}
+                                        className="md:col-span-2 px-4 py-3 border rounded-lg outline-none focus:ring-2 focus:ring-primary-500"
+                                        placeholder={`Module ${idx + 1}`}
+                                    />
+                                    <div className="flex space-x-2 items-center">
+                                        <input
+                                            type="number"
+                                            value={module.grade}
+                                            onChange={e => updateModule(idx, 'grade', e.target.value)}
+                                            className="flex-1 px-4 py-3 border rounded-lg outline-none focus:ring-2 focus:ring-primary-500"
+                                            placeholder="Note"
+                                        />
+                                        {formData.specific_details.modules.length > 1 && (
+                                            <button type="button" onClick={() => removeModule(idx)} className="text-red-500 hover:text-red-700">
+                                                <MinusCircleIcon className="h-5 w-5" />
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                );
+            case 'internship':
+                return (
+                    <div className="space-y-4">
+                        <div className="bg-purple-50 border border-purple-100 p-4 rounded-lg text-sm text-purple-800">
+                            Convention de stage : renseignez l'entreprise, l'encadrant et la période.
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Nom de l'entreprise</label>
+                            <input type="text" value={formData.specific_details.company_name} onChange={e => updateDetails('company_name', e.target.value)} className="w-full px-4 py-3 border rounded-lg outline-none focus:ring-2 focus:ring-primary-500" />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Adresse</label>
+                            <input type="text" value={formData.specific_details.company_address} onChange={e => updateDetails('company_address', e.target.value)} className="w-full px-4 py-3 border rounded-lg outline-none focus:ring-2 focus:ring-primary-500" />
+                        </div>
+                        <div className="grid md:grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
+                                <input type="email" value={formData.specific_details.company_email} onChange={e => updateDetails('company_email', e.target.value)} className="w-full px-4 py-3 border rounded-lg outline-none focus:ring-2 focus:ring-primary-500" />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Téléphone</label>
+                                <input type="text" value={formData.specific_details.company_phone} onChange={e => updateDetails('company_phone', e.target.value)} className="w-full px-4 py-3 border rounded-lg outline-none focus:ring-2 focus:ring-primary-500" />
+                            </div>
+                        </div>
+                        <div className="grid md:grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Encadrant</label>
+                                <input type="text" value={formData.specific_details.supervisor_name} onChange={e => updateDetails('supervisor_name', e.target.value)} className="w-full px-4 py-3 border rounded-lg outline-none focus:ring-2 focus:ring-primary-500" />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Fonction</label>
+                                <input type="text" value={formData.specific_details.supervisor_role} onChange={e => updateDetails('supervisor_role', e.target.value)} className="w-full px-4 py-3 border rounded-lg outline-none focus:ring-2 focus:ring-primary-500" />
+                            </div>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Sujet du stage</label>
+                            <input type="text" value={formData.specific_details.internship_subject} onChange={e => updateDetails('internship_subject', e.target.value)} className="w-full px-4 py-3 border rounded-lg outline-none focus:ring-2 focus:ring-primary-500" />
+                        </div>
+                        <div className="grid md:grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Date de début</label>
+                                <input type="date" value={formData.specific_details.start_date} onChange={e => updateDetails('start_date', e.target.value)} className="w-full px-4 py-3 border rounded-lg outline-none focus:ring-2 focus:ring-primary-500" />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Date de fin</label>
+                                <input type="date" value={formData.specific_details.end_date} onChange={e => updateDetails('end_date', e.target.value)} className="w-full px-4 py-3 border rounded-lg outline-none focus:ring-2 focus:ring-primary-500" />
+                            </div>
+                        </div>
+                    </div>
+                );
+            case 'reclamation':
+                return (
+                    <div className="space-y-4">
+                        <div className="bg-orange-50 border border-orange-100 p-4 rounded-lg text-sm text-orange-800">
+                            Réclamation : indiquez la référence de la demande concernée et le motif.
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Référence de la demande</label>
+                            <input
+                                type="text"
+                                className="w-full px-4 py-3 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-primary-500"
+                                placeholder="ex: AS-2025-001"
+                                value={formData.request_reference}
+                                onChange={e => setFormData({ ...formData, request_reference: e.target.value })}
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Motif</label>
+                            <select
+                                className="w-full px-4 py-3 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-primary-500 bg-white"
+                                value={formData.reason}
+                                onChange={e => setFormData({ ...formData, reason: e.target.value })}
+                            >
+                                <option value="">Sélectionnez un motif</option>
+                                <option value="Retard">Retard de traitement</option>
+                                <option value="Erreur">Informations incorrectes</option>
+                                <option value="Autre">Autre</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
+                            <textarea
+                                rows="4"
+                                className="w-full px-4 py-3 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-primary-500"
+                                placeholder="Décrivez votre problème..."
+                                value={formData.description}
+                                onChange={e => setFormData({ ...formData, description: e.target.value })}
+                            ></textarea>
+                        </div>
+                    </div>
+                );
+            default:
+                return null;
+        }
+    };
     return (
         <div className="min-h-screen flex flex-col bg-gray-50">
             <Header />
@@ -145,7 +372,6 @@ const RequestForm = () => {
                         animate={{ opacity: 1, y: 0 }}
                         className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 space-y-8"
                     >
-                        {/* SECTION 1: IDENTITY */}
                         <div className="space-y-6">
                             <h2 className="text-2xl font-bold text-gray-900 border-b pb-2">1. Identification</h2>
 
@@ -213,112 +439,39 @@ const RequestForm = () => {
                             {student && !identityError && (
                                 <div className="bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg flex items-center">
                                     <CheckCircleIcon className="h-5 w-5 mr-2" />
-                                    Bonjour, <strong>{student.first_name} {student.last_name}</strong>. Identité vérifiée.
+                                    Bonjour, <strong className="ml-1">{student.first_name} {student.last_name}</strong>. Identité vérifiée.
                                 </div>
                             )}
                         </div>
 
-                        {/* SECTION 2: SERVICE */}
                         <div className={`space-y-6 transition-opacity duration-500 ${student ? 'opacity-100' : 'opacity-40 pointer-events-none'}`}>
-                            <h2 className="text-2xl font-bold text-gray-900 border-b pb-2">2. Service Demandé</h2>
+                            <h2 className="text-2xl font-bold text-gray-900 border-b pb-2">2. Service demandé</h2>
 
                             <div className="mb-8">
-                                <label className="block text-sm font-medium text-gray-700 mb-2">De quoi avez-vous besoin ?</label>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Quel document souhaitez-vous ?</label>
                                 <select
                                     value={selection}
                                     onChange={(e) => setSelection(e.target.value)}
                                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none bg-white font-medium text-gray-800"
                                 >
-                                    {options.map(opt => (
-                                        <option key={opt.value} value={opt.value}>{opt.label}</option>
-                                    ))}
+                                    <option value="">Choisissez une option...</option>
+                                    <option value="school-certificate">Attestation de scolarité</option>
+                                    <option value="success-certificate">Attestation de réussite</option>
+                                    <option value="transcript">Relevé de notes</option>
+                                    <option value="internship">Convention de stage</option>
+                                    <option value="reclamation">Réclamation</option>
                                 </select>
                             </div>
 
-                            {/* Dynamic Fields Area */}
-                            <div className="space-y-6 mb-8">
-                                {/* RECLAMATION FIELDS */}
-                                {selection === 'reclamation' && (
-                                    <div className="animate-fade-in space-y-6 border-t border-gray-100 pt-6">
-                                        <div className="bg-yellow-50 border border-yellow-100 p-4 rounded-lg text-yellow-800 text-sm mb-4">
-                                            Veuillez fournir la référence de la demande concernée par la réclamation.
-                                        </div>
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-2">Référence de la Demande</label>
-                                            <input
-                                                type="text"
-                                                className="w-full px-4 py-3 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-primary-500"
-                                                placeholder="ex: AS-2025-001"
-                                                value={formData.request_reference}
-                                                onChange={e => setFormData({ ...formData, request_reference: e.target.value })}
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-2">Motif</label>
-                                            <select
-                                                className="w-full px-4 py-3 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-primary-500 bg-white"
-                                                value={formData.reason}
-                                                onChange={e => setFormData({ ...formData, reason: e.target.value })}
-                                            >
-                                                <option value="">Sélectionnez un motif</option>
-                                                <option value="Delay">Retard de traitement</option>
-                                                <option value="Error">Informations incorrectes</option>
-                                                <option value="Other">Autre</option>
-                                            </select>
-                                        </div>
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
-                                            <textarea
-                                                rows="4"
-                                                className="w-full px-4 py-3 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-primary-500"
-                                                placeholder="Décrivez votre problème..."
-                                                value={formData.description}
-                                                onChange={e => setFormData({ ...formData, description: e.target.value })}
-                                            ></textarea>
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* INTERNSHIP FIELDS */}
-                                {selection === 'internship' && (
-                                    <div className="animate-fade-in space-y-6 border-t border-gray-100 pt-6">
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-2">Nom de l'Entreprise</label>
-                                            <input type="text" onChange={e => updateDetails('company_name', e.target.value)} className="w-full px-4 py-3 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-primary-500" />
-                                        </div>
-                                        <div className="grid sm:grid-cols-2 gap-4">
-                                            <div>
-                                                <label className="block text-sm font-medium text-gray-700 mb-2">Date de Début</label>
-                                                <input type="date" onChange={e => updateDetails('start_date', e.target.value)} className="w-full px-4 py-3 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-primary-500" />
-                                            </div>
-                                            <div>
-                                                <label className="block text-sm font-medium text-gray-700 mb-2">Date de Fin</label>
-                                                <input type="date" onChange={e => updateDetails('end_date', e.target.value)} className="w-full px-4 py-3 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-primary-500" />
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* TRANSCRIPT FIELDS */}
-                                {selection === 'transcript' && (
-                                    <div className="animate-fade-in border-t border-gray-100 pt-6">
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">Année Universitaire</label>
-                                        <select onChange={e => updateDetails('academic_year', e.target.value)} className="w-full px-4 py-3 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-primary-500 bg-white">
-                                            <option value="">Sélectionnez l'année</option>
-                                            <option value="2024-2025">2024-2025</option>
-                                            <option value="2023-2024">2023-2024</option>
-                                        </select>
-                                    </div>
-                                )}
-                            </div>
+                            {renderSpecificFields()}
 
                             <div className="flex justify-end pt-4">
                                 <button
                                     onClick={handleSubmit}
-                                    disabled={!selection || loading}
+                                    disabled={!selection || loading || !student}
                                     className="bg-primary-600 hover:bg-primary-700 text-white font-medium py-3 px-8 rounded-lg transition-colors shadow-lg shadow-primary-500/30 disabled:opacity-50 disabled:shadow-none"
                                 >
-                                    {loading ? 'Traitement...' : 'Soumettre la demande'}
+                                    {loading ? 'Traitement...' : selection === 'reclamation' ? 'Envoyer la réclamation' : 'Soumettre la demande'}
                                 </button>
                             </div>
                         </div>
@@ -335,26 +488,24 @@ const RequestForm = () => {
 
                         {successData.type === 'complaint' ? (
                             <>
-                                <h2 className="text-3xl font-bold text-gray-900 mb-2">Réclamation Envoyée</h2>
+                                <h2 className="text-3xl font-bold text-gray-900 mb-2">Réclamation envoyée</h2>
                                 <p className="text-gray-600 mb-8">Nous avons bien reçu votre réclamation concernant la demande {formData.request_reference}.</p>
                                 <div className="bg-yellow-50 border border-yellow-100 rounded-xl p-6 mb-8 max-w-md mx-auto">
-                                    <p className="text-lg text-yellow-800 font-medium mb-2">Vérifiez votre Email</p>
+                                    <p className="text-lg text-yellow-800 font-medium mb-2">Vérifiez votre email</p>
                                     <p className="text-gray-600">
-                                        Nous avons envoyé un email de confirmation à <b>{formData.email}</b> contenant le numéro de référence de votre réclamation.
+                                        Nous avons envoyé un email de confirmation à <b>{formData.email}</b> contenant le numéro de réclamation.
                                     </p>
-                                    <p className="text-xs text-gray-500 mt-4">Veuillez conserver ce numéro pour suivre l'état de votre réclamation.</p>
                                 </div>
                             </>
                         ) : (
                             <>
-                                <h2 className="text-3xl font-bold text-gray-900 mb-2">Demande Envoyée !</h2>
-                                <p className="text-gray-600 mb-8">Nous avons bien reçu votre demande.</p>
+                                <h2 className="text-3xl font-bold text-gray-900 mb-2">Demande envoyée !</h2>
+                                <p className="text-gray-600 mb-8">Référence envoyée par email. Un document provisoire a été généré automatiquement.</p>
                                 <div className="bg-primary-50 border border-primary-100 rounded-xl p-6 mb-8 max-w-md mx-auto">
-                                    <p className="text-lg text-primary-800 font-medium mb-2">Vérifiez votre Email</p>
+                                    <p className="text-lg text-primary-800 font-medium mb-2">Vérifiez votre email</p>
                                     <p className="text-gray-600">
-                                        Nous avons envoyé un email de confirmation à <b>{student?.email}</b> contenant votre <b>Référence de Demande</b> unique.
+                                        Nous avons envoyé un email à <b>{student?.email}</b> contenant votre <b>référence</b>.
                                     </p>
-                                    <p className="text-xs text-gray-500 mt-4">Veuillez conserver cette référence pour suivre votre demande.</p>
                                 </div>
                             </>
                         )}

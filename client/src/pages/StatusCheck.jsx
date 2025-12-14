@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeftIcon, MagnifyingGlassIcon, CheckCircleIcon, XCircleIcon } from '@heroicons/react/24/outline';
@@ -15,7 +16,6 @@ const StatusCheck = () => {
         reference: 'neutral',
         email: 'neutral'
     });
-
     const handleBlur = async (field) => {
         const value = formData[field];
         if (!value) {
@@ -59,7 +59,6 @@ const StatusCheck = () => {
         if (status === 'invalid') return <XCircleIcon className="h-6 w-6 text-red-500" />;
         return null;
     };
-
     return (
         <div className="min-h-screen flex flex-col bg-gray-50">
             <Header />

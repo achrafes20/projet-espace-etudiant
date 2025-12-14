@@ -32,6 +32,7 @@ export const getRequests = (params) => api.get('/admin/requests', { params });
 export const updateRequestStatus = (id, data) => api.put(`/admin/requests/${id}`, data, {
     headers: { 'Content-Type': 'multipart/form-data' }
 });
+export const updateRequestDraft = (id, data) => api.put(`/admin/requests/${id}/draft`, data);
 export const getComplaints = () => api.get('/admin/complaints');
 export const respondToComplaint = (id, data) => api.put(`/admin/complaints/${id}/respond`, data);
 

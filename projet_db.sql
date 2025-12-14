@@ -44,6 +44,8 @@ CREATE TABLE requests (
     processed_by_admin_id INT NULL,
     refusal_reason TEXT NULL,
     document_path VARCHAR(255),
+    generated_document_path VARCHAR(255),
+    template_data JSON NULL,
     specific_details JSON,
     FOREIGN KEY (student_id) REFERENCES students(id),
     FOREIGN KEY (processed_by_admin_id) REFERENCES administrators(id)

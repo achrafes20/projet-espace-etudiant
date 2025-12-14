@@ -21,9 +21,10 @@ const ComplaintsList = () => {
 
     const handleRespond = async () => {
         try {
+            const admin = JSON.parse(localStorage.getItem('admin'));
             await respondToComplaint(selectedComplaint.id, {
                 response: responseText,
-                admin_id: 1 // TODO: Get actual logged in admin ID
+                admin_id: admin?.id || ''
             });
             setSelectedComplaint(null);
             setResponseText('');
@@ -38,19 +39,19 @@ const ComplaintsList = () => {
     return (
         <div>
             <div className="mb-8">
-                <h1 className="text-3xl font-bold text-gray-900 mb-2">Complaints Management</h1>
-                <p className="text-gray-600">Review and respond to student complaints</p>
+                <h1 className="text-3xl font-bold text-gray-900 mb-2">Gestion des réclamations</h1>
+                <p className="text-gray-600">Consultez et répondez aux réclamations étudiantes</p>
             </div>
 
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                 <table className="w-full text-left">
                     <thead className="bg-gray-50 border-b border-gray-200">
                         <tr>
-                            <th className="px-6 py-4 text-xs font-semibold text-gray-600 uppercase">Complaint #</th>
-                            <th className="px-6 py-4 text-xs font-semibold text-gray-600 uppercase">Student</th>
-                            <th className="px-6 py-4 text-xs font-semibold text-gray-600 uppercase">Request Ref</th>
-                            <th className="px-6 py-4 text-xs font-semibold text-gray-600 uppercase">Reason</th>
-                            <th className="px-6 py-4 text-xs font-semibold text-gray-600 uppercase">Status</th>
+                            <th className="px-6 py-4 text-xs font-semibold text-gray-600 uppercase">Réclamation #</th>
+                            <th className="px-6 py-4 text-xs font-semibold text-gray-600 uppercase">Étudiant</th>
+                            <th className="px-6 py-4 text-xs font-semibold text-gray-600 uppercase">Ref. Demande</th>
+                            <th className="px-6 py-4 text-xs font-semibold text-gray-600 uppercase">Motif</th>
+                            <th className="px-6 py-4 text-xs font-semibold text-gray-600 uppercase">Statut</th>
                             <th className="px-6 py-4 text-xs font-semibold text-gray-600 uppercase">Actions</th>
                         </tr>
                     </thead>
@@ -72,7 +73,7 @@ const ComplaintsList = () => {
                                         onClick={() => setSelectedComplaint(comp)}
                                         className="text-primary-600 hover:text-primary-800 font-medium text-xs"
                                     >
-                                        View/Respond
+                                        Voir / Répondre
                                     </button>
                                 </td>
                             </tr>
@@ -84,20 +85,20 @@ const ComplaintsList = () => {
             {selectedComplaint && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
                     <div className="bg-white rounded-xl shadow-xl max-w-lg w-full p-6">
-                        <h3 className="text-xl font-bold text-gray-900 mb-4">Respond to Complaint</h3>
+                        <h3 className="text-xl font-bold text-gray-900 mb-4">Répondre à la réclamation</h3>
 
                         <div className="mb-4 bg-gray-50 p-4 rounded-lg">
-                            <p className="text-sm font-semibold text-gray-700">Complaint Details:</p>
+                            <p className="text-sm font-semibold text-gray-700">Détails :</p>
                             <p className="text-sm text-gray-600 mt-1">{selectedComplaint.description}</p>
                         </div>
 
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Your Response</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Réponse</label>
                         <textarea
                             rows="4"
                             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none mb-4"
                             value={responseText}
                             onChange={(e) => setResponseText(e.target.value)}
-                            placeholder="Write your response to the student..."
+                            placeholder="Rédigez votre réponse..."
                         ></textarea>
 
                         <div className="flex justify-end space-x-3">
@@ -105,13 +106,13 @@ const ComplaintsList = () => {
                                 onClick={() => setSelectedComplaint(null)}
                                 className="px-4 py-2 text-gray-600 hover:text-gray-800 font-medium"
                             >
-                                Cancel
+                                Annuler
                             </button>
                             <button
                                 onClick={handleRespond}
                                 className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg"
                             >
-                                Send Response
+                                Envoyer
                             </button>
                         </div>
                     </div>

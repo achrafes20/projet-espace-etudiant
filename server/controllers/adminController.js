@@ -1,9 +1,20 @@
+const path = require('path');
 const db = require('../config/db');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const emailService = require('../services/emailService');
+const documentService = require('../services/documentService');
 
-// ... (keep login, getDashboardStats, getRequests as is, they are fine)
+const parseDetails = (raw) => {
+    if (!raw) return {};
+    try {
+        return typeof raw === 'string' ? JSON.parse(raw) : raw;
+    } catch (e) {
+        return {};
+    }
+};
+
+const resolveUploadPublicPath = (filePath) => filePath ? `/uploads/${path.basename(filePath)}` : null;
 
 exports.login = async (req, res) => {
     const { email, password } = req.body;
@@ -24,12 +35,11 @@ exports.login = async (req, res) => {
 
         const token = jwt.sign({ id: admin.id, email: admin.email }, process.env.JWT_SECRET, { expiresIn: '1d' });
 
-        // Update last login
         await db.query('UPDATE administrators SET last_login = CURRENT_TIMESTAMP WHERE id = ?', [admin.id]);
 
         res.json({ token, admin: { id: admin.id, first_name: admin.first_name, last_name: admin.last_name, email: admin.email } });
     } catch (error) {
-        res.status(500).json({ error: error });
+        res.status(500).json({ error: error.message });
     }
 };
 
@@ -55,7 +65,7 @@ exports.getRequests = async (req, res) => {
     const { status, type, search } = req.query;
 
     let query = `
-    SELECT r.*, s.first_name, s.last_name, s.apogee_number, s.email 
+    SELECT r.*, s.first_name, s.last_name, s.apogee_number, s.email, s.cin 
     FROM requests r 
     JOIN students s ON r.student_id = s.id 
     WHERE 1=1
@@ -87,21 +97,102 @@ exports.getRequests = async (req, res) => {
     }
 };
 
-exports.updateRequestStatus = async (req, res) => {
+exports.updateDraft = async (req, res) => {
     const { id } = req.params;
-    const { status, refusal_reason, admin_id } = req.body;
-    const document_path = req.file ? req.file.path : null;
+    const { template_overrides } = req.body;
 
     try {
-        let query = 'UPDATE requests SET status = ?, processing_date = CURRENT_TIMESTAMP, processed_by_admin_id = ?';
-        const params = [status, admin_id];
+        const [rows] = await db.query(`
+            SELECT r.*, s.first_name, s.last_name, s.email, s.cin, s.apogee_number 
+            FROM requests r 
+            JOIN students s ON r.student_id = s.id 
+            WHERE r.id = ?
+        `, [id]);
+
+        if (rows.length === 0) return res.status(404).json({ message: 'Demande introuvable' });
+
+        const request = rows[0];
+        const mergedDetails = { ...parseDetails(request.specific_details), ...parseDetails(template_overrides) };
+
+        const generated = await documentService.generateDocument({
+            docType: request.document_type,
+            student: request,
+            details: mergedDetails,
+            reference: request.reference,
+            variant: 'draft'
+        });
+
+        await db.query(
+            'UPDATE requests SET specific_details = ?, generated_document_path = ?, template_data = ? WHERE id = ?',
+            [JSON.stringify(mergedDetails), generated.publicPath, JSON.stringify(generated.details), id]
+        );
+
+        res.json({ success: true, generated_document_path: generated.publicPath, details: generated.details });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+exports.updateRequestStatus = async (req, res) => {
+    const { id } = req.params;
+    const { status, refusal_reason, admin_id, template_overrides } = req.body;
+    const uploadedPath = resolveUploadPublicPath(req.file ? req.file.path : null);
+
+    try {
+        const [rows] = await db.query(`
+            SELECT r.*, s.first_name, s.last_name, s.email, s.cin, s.apogee_number 
+            FROM requests r 
+            JOIN students s ON r.student_id = s.id 
+            WHERE r.id = ?
+        `, [id]);
+
+        if (rows.length === 0) return res.status(404).json({ message: 'Demande introuvable' });
+
+        const request = rows[0];
+        const mergedDetails = { ...parseDetails(request.specific_details), ...parseDetails(template_overrides) };
+
+        let finalDocumentPath = request.document_path;
+        let generatedDocumentPath = request.generated_document_path;
+        let templateData = mergedDetails;
+
+        if (status === 'Accepté') {
+            if (uploadedPath) {
+                finalDocumentPath = uploadedPath;
+            } else {
+                const generated = await documentService.generateDocument({
+                    docType: request.document_type,
+                    student: request,
+                    details: mergedDetails,
+                    reference: request.reference,
+                    variant: 'final'
+                });
+                finalDocumentPath = generated.publicPath;
+                generatedDocumentPath = generated.publicPath;
+                templateData = generated.details;
+            }
+        } else if (template_overrides) {
+            // Keep draft refreshed even if rejecting after edits
+            const generated = await documentService.generateDocument({
+                docType: request.document_type,
+                student: request,
+                details: mergedDetails,
+                reference: request.reference,
+                variant: 'draft'
+            });
+            generatedDocumentPath = generated.publicPath;
+            templateData = generated.details;
+        }
+
+        let query = 'UPDATE requests SET status = ?, processing_date = CURRENT_TIMESTAMP, processed_by_admin_id = ?, specific_details = ?, generated_document_path = ?, template_data = ?';
+        const params = [status, admin_id, JSON.stringify(mergedDetails), generatedDocumentPath, JSON.stringify(templateData)];
 
         if (status === 'Refusé') {
             query += ', refusal_reason = ?';
             params.push(refusal_reason);
-        } else if (status === 'Accepté' && document_path) {
+        }
+        if (status === 'Accepté') {
             query += ', document_path = ?';
-            params.push(document_path);
+            params.push(finalDocumentPath);
         }
 
         query += ' WHERE id = ?';
@@ -109,26 +200,15 @@ exports.updateRequestStatus = async (req, res) => {
 
         await db.query(query, params);
 
-        // Logging action
         await db.query(
             'INSERT INTO action_history (admin_id, action_type, entity_type, entity_id, details) VALUES (?, ?, ?, ?, ?)',
             [admin_id, status === 'Accepté' ? 'APPROVE_REQUEST' : 'REJECT_REQUEST', 'REQUEST', id, JSON.stringify({ status, reason: refusal_reason })]
         );
 
-        // Fetch student email and reference
-        const [rows] = await db.query(`
-            SELECT s.email, s.first_name, r.reference, r.document_type 
-            FROM requests r 
-            JOIN students s ON r.student_id = s.id 
-            WHERE r.id = ?
-        `, [id]);
+        const { email, first_name, reference, document_type } = request;
+        await emailService.sendRequestUpdate(email, first_name, reference, document_type, status, refusal_reason, finalDocumentPath);
 
-        if (rows.length > 0) {
-            const { email, first_name, reference, document_type } = rows[0];
-            await emailService.sendRequestUpdate(email, first_name, reference, document_type, status, refusal_reason, document_path);
-        }
-
-        res.json({ success: true, message: 'Request updated' });
+        res.json({ success: true, message: 'Request updated', document_path: finalDocumentPath, generated_document_path: generatedDocumentPath });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
@@ -159,7 +239,6 @@ exports.respondToComplaint = async (req, res) => {
             [response, admin_id, id]
         );
 
-        // Fetch complaint details for email
         const [rows] = await db.query(`
             SELECT s.email, s.first_name, c.complaint_number 
             FROM complaints c 

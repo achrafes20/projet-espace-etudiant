@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { DocumentTextIcon, ExclamationCircleIcon, ArrowRightIcon } from '@heroicons/react/24/outline';
+import { DocumentTextIcon, ArrowRightIcon } from '@heroicons/react/24/outline';
 import { motion } from 'framer-motion';
 import Header from '../components/Header';
 
@@ -11,7 +11,6 @@ const StudentPortal = () => {
         <div className="min-h-screen flex flex-col bg-gray-50">
             <Header />
             <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 w-full grid md:grid-cols-2 gap-8 items-center">
-
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -23,7 +22,9 @@ const StudentPortal = () => {
                     </div>
                     <h2 className="text-3xl font-bold text-gray-900 mb-4">Portail des Services Étudiants</h2>
                     <p className="text-gray-600 mb-8 text-lg leading-relaxed">
-                        Accédez à tous les services administratifs en un seul endroit. Demandez des documents officiels (Relevés de notes, Certificats) ou déposez une réclamation concernant vos demandes.
+                        Accédez à tous les services administratifs : demandes d'attestation de scolarité ou de réussite,
+                        relevé de notes, convention de stage et dépôt de réclamations pour suivre vos dossiers en toute
+                        transparence.
                     </p>
                     <div className="flex justify-center space-x-4">
                         <button
@@ -40,7 +41,6 @@ const StudentPortal = () => {
                         </button>
                     </div>
                 </motion.div>
-
             </main>
         </div>
     );

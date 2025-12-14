@@ -3,7 +3,7 @@ const bcrypt = require('bcryptjs');
 
 const seedDatabase = async () => {
     try {
-        console.log('🌱 Starting database seeding...');
+        console.log('Starting database seeding...');
 
         // 1. Seed Admin
         const [admins] = await db.query('SELECT * FROM administrators WHERE email = ?', ['admin@university.edu']);
@@ -13,9 +13,9 @@ const seedDatabase = async () => {
                 'INSERT INTO administrators (first_name, last_name, email, password, login) VALUES (?, ?, ?, ?, ?)',
                 ['Admin', 'User', 'admin@university.edu', hashedPassword, 'admin']
             );
-            console.log('✅ Default admin created');
+            console.log('Default admin created');
         } else {
-            console.log('ℹ️ Admin already exists');
+            console.log('Admin already exists');
         }
 
         // 2. Seed Students
@@ -101,10 +101,10 @@ const seedDatabase = async () => {
             }
         }
 
-        console.log('✅ Database seeded successfully!');
+        console.log('Database seeded successfully!');
         process.exit();
     } catch (error) {
-        console.error('❌ Seeding failed:', error);
+        console.error('Seeding failed:', error);
         process.exit(1);
     }
 };
