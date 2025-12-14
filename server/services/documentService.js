@@ -30,7 +30,13 @@ const resolveDetails = (docType, incoming = {}) => {
         academic_year: incoming.academic_year || '2024/2025',
         program: incoming.program,
         level: incoming.level,
-        session: incoming.session || 'Session 1'
+        session: incoming.session || 'Session 1',
+        // Ajouter les champs d'identification de l'étudiant pour qu'ils soient éditables
+        cin: incoming.cin,
+        apogee_number: incoming.apogee_number,
+        cne: incoming.cne,
+        birth_date: incoming.birth_date,
+        birth_place: incoming.birth_place
     };
 
     if (docType === 'transcript') {
@@ -43,7 +49,7 @@ const resolveDetails = (docType, incoming = {}) => {
             ...base,
             birth_date: incoming.birth_date,
             birth_place: incoming.birth_place,
-            filiere: incoming.filiere,
+            filiere: incoming.filiere || incoming.program || incoming.major,
             mention: incoming.mention,
             session: incoming.session || incoming.success_session || base.session
         };
@@ -52,6 +58,7 @@ const resolveDetails = (docType, incoming = {}) => {
     if (docType === 'internship') {
         return {
             ...base,
+            major: incoming.major,
             company_name: incoming.company_name || incoming.company_legal_name,
             company_legal_name: incoming.company_legal_name,
             company_address: incoming.company_address,
@@ -137,11 +144,11 @@ const buildSchoolCertificate = (doc, payload) => {
     };
     
     addInfoLine('Nom et Prénom :', formatName(payload.student));
-    addInfoLine('CIN :', payload.student.cin || '---');
-    addInfoLine('Code étudiant (Apogée) :', payload.student.apogee_number || '---');
-    addInfoLine('Code National de l\'étudiant :', payload.student.cne || payload.student.apogee_number || '---');
+    addInfoLine('CIN :', payload.details.cin || payload.student.cin || '---');
+    addInfoLine('Code étudiant (Apogée) :', payload.details.apogee_number || payload.student.apogee_number || '---');
+    addInfoLine('Code National de l\'étudiant (CNE) :', payload.details.cne || payload.student.cne || '---');
     
-    const birthDate = payload.details.birth_date || payload.student.birth_date
+    const birthDate = (payload.details.birth_date || payload.student.birth_date)
         ? new Date(payload.details.birth_date || payload.student.birth_date).toLocaleDateString('fr-FR')
         : '---';
     const birthPlace = payload.details.birth_place || payload.student.birth_place || '---';
@@ -236,14 +243,14 @@ const buildSuccessCertificate = (doc, payload) => {
     
     addInfoLine('Nom et Prénom :', formatName(payload.student));
     
-    const birthDate = payload.details.birth_date || payload.student.birth_date
+    const birthDate = (payload.details.birth_date || payload.student.birth_date)
         ? new Date(payload.details.birth_date || payload.student.birth_date).toLocaleDateString('fr-FR')
         : '---';
     const birthPlace = payload.details.birth_place || payload.student.birth_place || '---';
     const birthInfo = birthDate !== '---' ? `${birthDate} à ${birthPlace}` : '---';
     addInfoLine('Né(e) le :', birthInfo);
     
-    addInfoLine('Portant le CNE :', payload.student.cin || payload.student.cne || '---');
+    addInfoLine('Portant le CNE :', payload.details.cne || payload.student.cne || '---');
     addInfoLine('Filière :', payload.details.filiere || '---');
     addInfoLine('Session :', payload.details.session || '---');
     addInfoLine('Mention :', payload.details.mention || '---', true);
@@ -326,11 +333,11 @@ const buildTranscript = (doc, payload) => {
     doc.text(`Prénom : ${payload.student.first_name || '---'}`, col2X, infoY);
     infoY += 18;
     
-    doc.text(`CNE : ${payload.student.cne || payload.student.apogee_number || '---'}`, col1X, infoY);
-    doc.text(`CIN : ${payload.student.cin || '---'}`, col2X, infoY);
+    doc.text(`CNE : ${payload.details.cne || payload.student.cne || '---'}`, col1X, infoY);
+    doc.text(`CIN : ${payload.details.cin || payload.student.cin || '---'}`, col2X, infoY);
     infoY += 18;
     
-    const birthDate = payload.details.birth_date || payload.student.birth_date
+    const birthDate = (payload.details.birth_date || payload.student.birth_date)
         ? new Date(payload.details.birth_date || payload.student.birth_date).toLocaleDateString('fr-FR')
         : '---';
     const birthPlace = payload.details.birth_place || payload.student.birth_place || '---';
@@ -481,19 +488,19 @@ const buildInternship = (doc, payload) => {
     doc.text('ARTICLE 2 - IDENTIFICATION DU STAGIAIRE', 60, doc.y, { underline: true });
     doc.moveDown(0.5);
     doc.fontSize(10).font('Helvetica').fillColor('#000000');
-    const birthDate = payload.student.birth_date || payload.details.birth_date
-        ? new Date(payload.student.birth_date || payload.details.birth_date).toLocaleDateString('fr-FR')
+    const birthDate = (payload.details.birth_date || payload.student.birth_date)
+        ? new Date(payload.details.birth_date || payload.student.birth_date).toLocaleDateString('fr-FR')
         : '---';
-    const birthPlace = payload.student.birth_place || payload.details.birth_place || '---';
+    const birthPlace = payload.details.birth_place || payload.student.birth_place || '---';
     const birthInfo = birthDate !== '---' ? `Né(e) le ${birthDate} à ${birthPlace}` : '---';
     
     doc.text(
         `Nom et Prénom : ${formatName(payload.student)}\n` +
-        `CIN : ${payload.student.cin || '---'}\n` +
-        `Code Apogée : ${payload.student.apogee_number || '---'}\n` +
+        `CIN : ${payload.details.cin || payload.student.cin || '---'}\n` +
+        `Code Apogée : ${payload.details.apogee_number || payload.student.apogee_number || '---'}\n` +
         `${birthInfo}\n` +
-        `Filière : ${payload.student.filiere || payload.student.major || '---'}\n` +
-        `Niveau : ${payload.student.level || '---'}`,
+        `Filière : ${payload.details.major || payload.student.major || '---'}\n` +
+        `Niveau : ${payload.details.level || payload.student.level || '---'}`,
         60, doc.y,
         { lineGap: 3 }
     );
@@ -505,7 +512,7 @@ const buildInternship = (doc, payload) => {
     doc.moveDown(0.5);
     doc.fontSize(10).font('Helvetica').fillColor('#000000');
     doc.text(
-        `Le présent stage a pour objet de permettre au stagiaire d\'acquérir une expérience professionnelle dans le domaine de ${payload.student.filiere || payload.student.major || '---'}.`,
+        `Le présent stage a pour objet de permettre au stagiaire d\'acquérir une expérience professionnelle dans le domaine de ${payload.student.major || '---'}.`,
         60, doc.y,
         { align: 'justify', width: doc.page.width - 120, lineGap: 2 }
     );

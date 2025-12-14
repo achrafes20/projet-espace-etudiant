@@ -105,7 +105,7 @@ exports.getRequests = async (req, res) => {
     const { status, type, search } = req.query;
 
     let query = `
-    SELECT r.*, s.first_name, s.last_name, s.apogee_number, s.email, s.cin, s.transcript_data, s.level, s.filiere, s.major, s.birth_date, s.birth_place
+    SELECT r.*, s.first_name, s.last_name, s.apogee_number, s.email, s.cin, s.cne, s.transcript_data, s.level, s.major, s.birth_date, s.birth_place
     FROM requests r 
     JOIN students s ON r.student_id = s.id 
     WHERE 1=1
@@ -143,8 +143,8 @@ exports.updateDraft = async (req, res) => {
 
     try {
         const [rows] = await db.query(`
-            SELECT r.*, s.first_name, s.last_name, s.email, s.cin, s.apogee_number,
-                   s.level, s.filiere, s.major, s.birth_date, s.birth_place, s.transcript_data
+            SELECT r.*, s.first_name, s.last_name, s.email, s.cin, s.cne, s.apogee_number,
+                   s.level, s.major, s.birth_date, s.birth_place, s.transcript_data
             FROM requests r 
             JOIN students s ON r.student_id = s.id 
             WHERE r.id = ?
@@ -181,8 +181,8 @@ exports.updateRequestStatus = async (req, res) => {
 
     try {
         const [rows] = await db.query(`
-            SELECT r.*, s.first_name, s.last_name, s.email, s.cin, s.apogee_number,
-                   s.level, s.filiere, s.major, s.birth_date, s.birth_place, s.transcript_data
+            SELECT r.*, s.first_name, s.last_name, s.email, s.cin, s.cne, s.apogee_number,
+                   s.level, s.major, s.birth_date, s.birth_place, s.transcript_data
             FROM requests r 
             JOIN students s ON r.student_id = s.id 
             WHERE r.id = ?
@@ -272,9 +272,9 @@ exports.getComplaints = async (req, res) => {
              s.email,
              s.apogee_number,
              s.cin,
+             s.cne,
              s.transcript_data,
              s.level,
-             s.filiere,
              s.major,
              s.birth_date,
              s.birth_place
@@ -313,7 +313,7 @@ exports.respondToComplaint = async (req, res) => {
                 
                 // Récupérer les informations complètes de la demande et de l'étudiant
                 const [requestRows] = await db.query(`
-                    SELECT r.*, s.first_name, s.last_name, s.email, s.cin, s.apogee_number, s.transcript_data, s.level, s.filiere, s.major, s.birth_date, s.birth_place
+                    SELECT r.*, s.first_name, s.last_name, s.email, s.cin, s.cne, s.apogee_number, s.transcript_data, s.level, s.major, s.birth_date, s.birth_place
                     FROM requests r 
                     JOIN students s ON r.student_id = s.id 
                     WHERE r.id = ?

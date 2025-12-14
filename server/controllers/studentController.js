@@ -104,7 +104,7 @@ const mergeDetailsWithStudent = (docType, student, payloadDetails = {}) => {
             academic_year: academic_year,
             session: session,
             level: student.level,
-            program: student.filiere || student.major,
+            program: student.major,
             modules
         };
     }
@@ -114,12 +114,12 @@ const mergeDetailsWithStudent = (docType, student, payloadDetails = {}) => {
             academic_year: academic_year,
             birth_date: student.birth_date,
             birth_place: student.birth_place,
-            filiere: student.filiere || student.major,
+            filiere: student.major,
             mention: mention,
             decision: decision,
             session: session,
             level: student.level,
-            program: student.filiere || student.major
+            program: student.major
         };
     }
 
@@ -127,7 +127,7 @@ const mergeDetailsWithStudent = (docType, student, payloadDetails = {}) => {
         return {
             academic_year: payloadDetails.academic_year || academic_year,
             level: student.level,
-            program: student.filiere || student.major
+            program: student.major
         };
     }
 
@@ -135,7 +135,7 @@ const mergeDetailsWithStudent = (docType, student, payloadDetails = {}) => {
     return {
         academic_year: payloadDetails.academic_year || academic_year,
         level: student.level,
-        program: student.filiere || student.major,
+        program: student.major,
         ...payloadDetails
     };
 };

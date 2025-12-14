@@ -29,7 +29,6 @@ const seedDatabase = async () => {
                 lName: 'ES-SERRAR',
                 major: 'Génie Informatique',
                 level: '1ére année',
-                filiere: 'Génie Informatique',
                 birth_date: '2001-01-01',
                 birth_place: 'Tétouan',
                 transcript_data: {
@@ -59,7 +58,6 @@ const seedDatabase = async () => {
                 lName: 'ZIATTI',
                 major: 'économie et Gestion',
                 level: '2éme année',
-                filiere: 'économie et Gestion',
                 birth_date: '2000-03-12',
                 birth_place: 'Marrakech',
                 transcript_data: {
@@ -90,7 +88,6 @@ const seedDatabase = async () => {
                 lName: 'BEN MOUSSA',
                 major: 'Droit Public',
                 level: 'Licence',
-                filiere: 'Droit Public',
                 birth_date: '2000-03-15',
                 birth_place: 'Casablanca',
                 transcript_data: {
@@ -120,7 +117,6 @@ const seedDatabase = async () => {
                 lName: 'THIOMBIANO',
                 major: 'ICP',
                 level: '1ére année',
-                filiere: 'ICP',
                 birth_date: '2002-05-04',
                 birth_place: 'Settat',
                 transcript_data: {
@@ -148,11 +144,11 @@ const seedDatabase = async () => {
             const [exists] = await db.query('SELECT id FROM students WHERE apogee_number = ?', [s.apogee]);
             if (exists.length === 0) {
                 await db.query(
-                    `INSERT INTO students (email, apogee_number, cin, cne, first_name, last_name, major, level, filiere, birth_date, birth_place, transcript_data)
-                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)` ,
+                    `INSERT INTO students (email, apogee_number, cin, cne, first_name, last_name, major, level, birth_date, birth_place, transcript_data)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)` ,
                     [
                         s.email, s.apogee, s.cin, s.cne, s.fName, s.lName, s.major, s.level,
-                        s.filiere, s.birth_date, s.birth_place, JSON.stringify(s.transcript_data)
+                        s.birth_date, s.birth_place, JSON.stringify(s.transcript_data)
                     ]
                 );
             }

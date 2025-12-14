@@ -72,6 +72,12 @@ const ComplaintsList = () => {
             const details = parseDetails(selectedComplaint.specific_details) || {};
             if (!details.modules) details.modules = [];
             
+            // Initialiser les champs d'identification de l'étudiant pour tous les types de documents
+            details.cin = details.cin || selectedComplaint.cin || '';
+            details.cne = details.cne || selectedComplaint.cne || '';
+            details.apogee_number = details.apogee_number || selectedComplaint.apogee_number || '';
+            details.birth_place = details.birth_place || selectedComplaint.birth_place || '';
+            
             // Initialiser les détails avec les données de l'étudiant
             const docType = selectedComplaint.document_type;
             if (docType === 'school-certificate') {
@@ -89,8 +95,13 @@ const ComplaintsList = () => {
                 } else if (details.birth_date && typeof details.birth_date === 'string') {
                     details.birth_date = details.birth_date.split('T')[0];
                 }
-                details.birth_place = details.birth_place || selectedComplaint.birth_place || '';
                 details.filiere = details.filiere || selectedComplaint.filiere || selectedComplaint.major || '';
+            } else if (docType === 'internship') {
+                details.major = details.major || selectedComplaint.filiere || selectedComplaint.major || '';
+                details.level = details.level || selectedComplaint.level || '';
+                if (selectedComplaint.birth_date) {
+                    details.birth_date = selectedComplaint.birth_date.split('T')[0];
+                }
             }
             
             setEditableDetails(details);
@@ -312,6 +323,51 @@ const ComplaintsList = () => {
                         <h4 className="text-xs font-bold text-gray-700 mb-3">Informations de l'étudiant</h4>
                         <div className="grid md:grid-cols-2 gap-3 mb-3">
                             <div>
+                                <label className="block text-xs font-semibold text-gray-700 mb-2">CIN</label>
+                                <input 
+                                    value={editableDetails.cin || selectedComplaint?.cin || ''} 
+                                    onChange={e => updateDetailField('cin', e.target.value)} 
+                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" 
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-semibold text-gray-700 mb-2">CNE</label>
+                                <input 
+                                    value={editableDetails.cne || selectedComplaint?.cne || selectedComplaint?.apogee_number || ''} 
+                                    onChange={e => updateDetailField('cne', e.target.value)} 
+                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" 
+                                />
+                            </div>
+                        </div>
+                        <div className="grid md:grid-cols-2 gap-3 mb-3">
+                            <div>
+                                <label className="block text-xs font-semibold text-gray-700 mb-2">Code Apogée</label>
+                                <input 
+                                    value={editableDetails.apogee_number || selectedComplaint?.apogee_number || ''} 
+                                    onChange={e => updateDetailField('apogee_number', e.target.value)} 
+                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" 
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-semibold text-gray-700 mb-2">Date de naissance</label>
+                                <input 
+                                    type="date" 
+                                    value={editableDetails.birth_date || (selectedComplaint?.birth_date ? selectedComplaint.birth_date.split('T')[0] : '') || ''} 
+                                    onChange={e => updateDetailField('birth_date', e.target.value)} 
+                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" 
+                                />
+                            </div>
+                        </div>
+                        <div className="grid md:grid-cols-2 gap-3 mb-3">
+                            <div>
+                                <label className="block text-xs font-semibold text-gray-700 mb-2">Lieu de naissance</label>
+                                <input 
+                                    value={editableDetails.birth_place || selectedComplaint?.birth_place || ''} 
+                                    onChange={e => updateDetailField('birth_place', e.target.value)} 
+                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" 
+                                />
+                            </div>
+                            <div>
                                 <label className="block text-xs font-semibold text-gray-700 mb-2">Niveau</label>
                                 <input 
                                     value={editableDetails.level || selectedComplaint?.level || ''} 
@@ -319,14 +375,14 @@ const ComplaintsList = () => {
                                     className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" 
                                 />
                             </div>
-                            <div>
-                                <label className="block text-xs font-semibold text-gray-700 mb-2">Programme / Filière</label>
-                                <input 
-                                    value={editableDetails.program || selectedComplaint?.filiere || selectedComplaint?.major || ''} 
-                                    onChange={e => updateDetailField('program', e.target.value)} 
-                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" 
-                                />
-                            </div>
+                        </div>
+                        <div className="mb-3">
+                            <label className="block text-xs font-semibold text-gray-700 mb-2">Programme / Filière</label>
+                            <input 
+                                value={editableDetails.program || selectedComplaint?.filiere || selectedComplaint?.major || ''} 
+                                onChange={e => updateDetailField('program', e.target.value)} 
+                                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" 
+                            />
                         </div>
                     </div>
                     
@@ -423,6 +479,24 @@ const ComplaintsList = () => {
                         <h4 className="text-xs font-bold text-gray-700 mb-3">Informations de l'étudiant</h4>
                         <div className="grid md:grid-cols-2 gap-3">
                             <div>
+                                <label className="block text-xs font-semibold text-gray-700 mb-2">CIN</label>
+                                <input 
+                                    value={editableDetails.cin || selectedComplaint?.cin || ''} 
+                                    onChange={e => updateDetailField('cin', e.target.value)} 
+                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" 
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-semibold text-gray-700 mb-2">CNE</label>
+                                <input 
+                                    value={editableDetails.cne || selectedComplaint?.cne || ''} 
+                                    onChange={e => updateDetailField('cne', e.target.value)} 
+                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" 
+                                />
+                            </div>
+                        </div>
+                        <div className="grid md:grid-cols-2 gap-3 mt-3">
+                            <div>
                                 <label className="block text-xs font-semibold text-gray-700 mb-2">Date de naissance</label>
                                 <input 
                                     type="date" 
@@ -442,6 +516,14 @@ const ComplaintsList = () => {
                         </div>
                         <div className="grid md:grid-cols-2 gap-3 mt-3">
                             <div>
+                                <label className="block text-xs font-semibold text-gray-700 mb-2">Lieu de naissance</label>
+                                <input 
+                                    value={editableDetails.birth_place || selectedComplaint?.birth_place || ''} 
+                                    onChange={e => updateDetailField('birth_place', e.target.value)} 
+                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" 
+                                />
+                            </div>
+                            <div>
                                 <label className="block text-xs font-semibold text-gray-700 mb-2">Filière</label>
                                 <input 
                                     value={editableDetails.filiere || selectedComplaint?.filiere || selectedComplaint?.major || ''} 
@@ -449,15 +531,15 @@ const ComplaintsList = () => {
                                     className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" 
                                 />
                             </div>
-                            <div>
-                                <label className="block text-xs font-semibold text-gray-700 mb-2">Mention</label>
-                                <input 
-                                    value={editableDetails.mention || ''} 
-                                    onChange={e => updateDetailField('mention', e.target.value)} 
-                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none bg-green-50" 
-                                    placeholder="Chargée automatiquement depuis le relevé"
-                                />
-                            </div>
+                        </div>
+                        <div className="mt-3">
+                            <label className="block text-xs font-semibold text-gray-700 mb-2">Mention</label>
+                            <input 
+                                value={editableDetails.mention || ''} 
+                                onChange={e => updateDetailField('mention', e.target.value)} 
+                                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none bg-green-50" 
+                                placeholder="Chargée automatiquement depuis le relevé"
+                            />
                         </div>
                     </div>
                 </div>
@@ -489,11 +571,47 @@ const ComplaintsList = () => {
                         <h4 className="text-xs font-bold text-gray-700 mb-3">Informations de l'étudiant</h4>
                         <div className="grid md:grid-cols-2 gap-3">
                             <div>
+                                <label className="block text-xs font-semibold text-gray-700 mb-2">CIN</label>
+                                <input 
+                                    value={editableDetails.cin || selectedComplaint?.cin || ''} 
+                                    onChange={e => updateDetailField('cin', e.target.value)} 
+                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" 
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-semibold text-gray-700 mb-2">Code Apogée</label>
+                                <input 
+                                    value={editableDetails.apogee_number || selectedComplaint?.apogee_number || ''} 
+                                    onChange={e => updateDetailField('apogee_number', e.target.value)} 
+                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" 
+                                />
+                            </div>
+                        </div>
+                        <div className="grid md:grid-cols-2 gap-3 mt-3">
+                            <div>
+                                <label className="block text-xs font-semibold text-gray-700 mb-2">CNE</label>
+                                <input 
+                                    value={editableDetails.cne || selectedComplaint?.cne || ''} 
+                                    onChange={e => updateDetailField('cne', e.target.value)} 
+                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" 
+                                />
+                            </div>
+                            <div>
                                 <label className="block text-xs font-semibold text-gray-700 mb-2">Date de naissance</label>
                                 <input 
                                     type="date" 
                                     value={editableDetails.birth_date || (selectedComplaint?.birth_date ? selectedComplaint.birth_date.split('T')[0] : '') || ''} 
                                     onChange={e => updateDetailField('birth_date', e.target.value)} 
+                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" 
+                                />
+                            </div>
+                        </div>
+                        <div className="grid md:grid-cols-2 gap-3 mt-3">
+                            <div>
+                                <label className="block text-xs font-semibold text-gray-700 mb-2">Lieu de naissance</label>
+                                <input 
+                                    value={editableDetails.birth_place || selectedComplaint?.birth_place || ''} 
+                                    onChange={e => updateDetailField('birth_place', e.target.value)} 
                                     className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" 
                                 />
                             </div>
@@ -522,89 +640,155 @@ const ComplaintsList = () => {
         if (docType === 'internship') {
             return (
                 <div className="space-y-3">
-                    <div className="text-xs font-bold text-gray-700 mb-2">Informations entreprise</div>
+                    <div className="bg-blue-50 border border-blue-100 p-3 rounded-lg text-xs text-blue-800 mb-3">
+                        Les informations de l'étudiant sont chargées automatiquement. Vous pouvez les modifier si nécessaire.
+                    </div>
+                    
+                    <div className="border-t border-gray-200 pt-3 mb-3">
+                        <h4 className="text-xs font-bold text-gray-700 mb-3">Informations de l'étudiant</h4>
+                        <div className="grid md:grid-cols-2 gap-3">
+                            <div>
+                                <label className="block text-xs font-semibold text-gray-600 mb-2">CIN</label>
+                                <input 
+                                    value={editableDetails.cin || selectedComplaint?.cin || ''} 
+                                    onChange={e => updateDetailField('cin', e.target.value)} 
+                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" 
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-semibold text-gray-600 mb-2">Code Apogée</label>
+                                <input 
+                                    value={editableDetails.apogee_number || selectedComplaint?.apogee_number || ''} 
+                                    onChange={e => updateDetailField('apogee_number', e.target.value)} 
+                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" 
+                                />
+                            </div>
+                        </div>
+                        <div className="grid md:grid-cols-2 gap-3 mt-3">
+                            <div>
+                                <label className="block text-xs font-semibold text-gray-600 mb-2">Date de naissance</label>
+                                <input 
+                                    type="date" 
+                                    value={editableDetails.birth_date || (selectedComplaint?.birth_date ? selectedComplaint.birth_date.split('T')[0] : '') || ''} 
+                                    onChange={e => updateDetailField('birth_date', e.target.value)} 
+                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" 
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-semibold text-gray-600 mb-2">Lieu de naissance</label>
+                                <input 
+                                    value={editableDetails.birth_place || selectedComplaint?.birth_place || ''} 
+                                    onChange={e => updateDetailField('birth_place', e.target.value)} 
+                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" 
+                                />
+                            </div>
+                        </div>
+                        <div className="grid md:grid-cols-2 gap-3 mt-3">
+                            <div>
+                                <label className="block text-xs font-semibold text-gray-600 mb-2">Filière</label>
+                                <input 
+                                    value={editableDetails.major || selectedComplaint?.filiere || selectedComplaint?.major || ''} 
+                                    onChange={e => updateDetailField('major', e.target.value)} 
+                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" 
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-semibold text-gray-600 mb-2">Niveau</label>
+                                <input 
+                                    value={editableDetails.level || selectedComplaint?.level || ''} 
+                                    onChange={e => updateDetailField('level', e.target.value)} 
+                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" 
+                                />
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div className="text-xs font-bold text-gray-700 mt-4 mb-2">Informations entreprise</div>
                     <div>
-                        <label className="block text-xs font-semibold text-gray-600">Raison sociale *</label>
-                        <input value={editableDetails.company_legal_name || editableDetails.company_name || ''} onChange={e => updateDetailField('company_legal_name', e.target.value)} className="w-full border rounded px-3 py-2" />
+                        <label className="block text-xs font-semibold text-gray-600 mb-2">Raison sociale *</label>
+                        <input value={editableDetails.company_legal_name || editableDetails.company_name || ''} onChange={e => updateDetailField('company_legal_name', e.target.value)} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" />
                     </div>
                     <div>
-                        <label className="block text-xs font-semibold text-gray-600">Adresse *</label>
-                        <input value={editableDetails.company_address || ''} onChange={e => updateDetailField('company_address', e.target.value)} className="w-full border rounded px-3 py-2" />
+                        <label className="block text-xs font-semibold text-gray-600 mb-2">Adresse *</label>
+                        <input value={editableDetails.company_address || ''} onChange={e => updateDetailField('company_address', e.target.value)} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" />
                     </div>
                     <div className="grid md:grid-cols-2 gap-3">
                         <div>
-                            <label className="block text-xs font-semibold text-gray-600">Ville *</label>
-                            <input value={editableDetails.company_city || ''} onChange={e => updateDetailField('company_city', e.target.value)} className="w-full border rounded px-3 py-2" />
+                            <label className="block text-xs font-semibold text-gray-600 mb-2">Ville *</label>
+                            <input value={editableDetails.company_city || ''} onChange={e => updateDetailField('company_city', e.target.value)} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" />
                         </div>
                         <div>
-                            <label className="block text-xs font-semibold text-gray-600">Téléphone *</label>
-                            <input value={editableDetails.company_phone || ''} onChange={e => updateDetailField('company_phone', e.target.value)} className="w-full border rounded px-3 py-2" />
+                            <label className="block text-xs font-semibold text-gray-600 mb-2">Téléphone *</label>
+                            <input value={editableDetails.company_phone || ''} onChange={e => updateDetailField('company_phone', e.target.value)} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" />
                         </div>
                     </div>
                     <div className="grid md:grid-cols-2 gap-3">
                         <div>
-                            <label className="block text-xs font-semibold text-gray-600">Email *</label>
-                            <input value={editableDetails.company_email || ''} onChange={e => updateDetailField('company_email', e.target.value)} className="w-full border rounded px-3 py-2" />
+                            <label className="block text-xs font-semibold text-gray-600 mb-2">Email *</label>
+                            <input value={editableDetails.company_email || ''} onChange={e => updateDetailField('company_email', e.target.value)} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" />
                         </div>
                         <div>
-                            <label className="block text-xs font-semibold text-gray-600">Secteur *</label>
-                            <input value={editableDetails.company_sector || ''} onChange={e => updateDetailField('company_sector', e.target.value)} className="w-full border rounded px-3 py-2" />
+                            <label className="block text-xs font-semibold text-gray-600 mb-2">Secteur *</label>
+                            <input value={editableDetails.company_sector || ''} onChange={e => updateDetailField('company_sector', e.target.value)} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" />
                         </div>
                     </div>
                     
                     <div className="text-xs font-bold text-gray-700 mt-4 mb-2">Représentant entreprise</div>
                     <div className="grid md:grid-cols-2 gap-3">
                         <div>
-                            <label className="block text-xs font-semibold text-gray-600">Nom *</label>
-                            <input value={editableDetails.company_representative_name || ''} onChange={e => updateDetailField('company_representative_name', e.target.value)} className="w-full border rounded px-3 py-2" />
+                            <label className="block text-xs font-semibold text-gray-600 mb-2">Nom *</label>
+                            <input value={editableDetails.company_representative_name || ''} onChange={e => updateDetailField('company_representative_name', e.target.value)} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" />
                         </div>
                         <div>
-                            <label className="block text-xs font-semibold text-gray-600">Fonction *</label>
-                            <input value={editableDetails.company_representative_function || ''} onChange={e => updateDetailField('company_representative_function', e.target.value)} className="w-full border rounded px-3 py-2" />
+                            <label className="block text-xs font-semibold text-gray-600 mb-2">Fonction *</label>
+                            <input value={editableDetails.company_representative_function || ''} onChange={e => updateDetailField('company_representative_function', e.target.value)} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" />
                         </div>
                     </div>
                     
                     <div className="text-xs font-bold text-gray-700 mt-4 mb-2">Encadrant entreprise</div>
                     <div className="grid md:grid-cols-2 gap-3">
                         <div>
-                            <label className="block text-xs font-semibold text-gray-600">Nom *</label>
-                            <input value={editableDetails.supervisor_name || ''} onChange={e => updateDetailField('supervisor_name', e.target.value)} className="w-full border rounded px-3 py-2" />
+                            <label className="block text-xs font-semibold text-gray-600 mb-2">Nom *</label>
+                            <input value={editableDetails.supervisor_name || ''} onChange={e => updateDetailField('supervisor_name', e.target.value)} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" />
                         </div>
                         <div>
-                            <label className="block text-xs font-semibold text-gray-600">Fonction *</label>
-                            <input value={editableDetails.supervisor_role || ''} onChange={e => updateDetailField('supervisor_role', e.target.value)} className="w-full border rounded px-3 py-2" />
+                            <label className="block text-xs font-semibold text-gray-600 mb-2">Fonction *</label>
+                            <input value={editableDetails.supervisor_role || ''} onChange={e => updateDetailField('supervisor_role', e.target.value)} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" />
                         </div>
                     </div>
                     <div className="grid md:grid-cols-2 gap-3">
                         <div>
-                            <label className="block text-xs font-semibold text-gray-600">Téléphone *</label>
-                            <input value={editableDetails.supervisor_phone || ''} onChange={e => updateDetailField('supervisor_phone', e.target.value)} className="w-full border rounded px-3 py-2" />
+                            <label className="block text-xs font-semibold text-gray-600 mb-2">Téléphone *</label>
+                            <input value={editableDetails.supervisor_phone || ''} onChange={e => updateDetailField('supervisor_phone', e.target.value)} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" />
                         </div>
                         <div>
-                            <label className="block text-xs font-semibold text-gray-600">Email *</label>
-                            <input value={editableDetails.supervisor_email || ''} onChange={e => updateDetailField('supervisor_email', e.target.value)} className="w-full border rounded px-3 py-2" />
+                            <label className="block text-xs font-semibold text-gray-600 mb-2">Email *</label>
+                            <input value={editableDetails.supervisor_email || ''} onChange={e => updateDetailField('supervisor_email', e.target.value)} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" />
                         </div>
                     </div>
                     
                     <div className="text-xs font-bold text-gray-700 mt-4 mb-2">Encadrant ENSA</div>
                     <div>
-                        <label className="block text-xs font-semibold text-gray-600">Nom *</label>
-                        <input value={editableDetails.ensa_supervisor_name || ''} onChange={e => updateDetailField('ensa_supervisor_name', e.target.value)} className="w-full border rounded px-3 py-2" />
+                        <label className="block text-xs font-semibold text-gray-600 mb-2">Nom *</label>
+                        <input value={editableDetails.ensa_supervisor_name || ''} onChange={e => updateDetailField('ensa_supervisor_name', e.target.value)} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" />
                     </div>
                     
                     <div className="text-xs font-bold text-gray-700 mt-4 mb-2">Informations stage</div>
                     <div>
-                        <label className="block text-xs font-semibold text-gray-600">Sujet *</label>
-                        <input value={editableDetails.internship_subject || ''} onChange={e => updateDetailField('internship_subject', e.target.value)} className="w-full border rounded px-3 py-2" />
+                        <label className="block text-xs font-semibold text-gray-600 mb-2">Sujet *</label>
+                        <input value={editableDetails.internship_subject || editableDetails.internship_title || ''} onChange={e => {
+                            updateDetailField('internship_subject', e.target.value);
+                            updateDetailField('internship_title', e.target.value);
+                        }} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" />
                     </div>
                     <div className="grid md:grid-cols-2 gap-3">
                         <div>
-                            <label className="block text-xs font-semibold text-gray-600">Stage du *</label>
-                            <input type="date" value={editableDetails.start_date || ''} onChange={e => updateDetailField('start_date', e.target.value)} className="w-full border rounded px-3 py-2" />
+                            <label className="block text-xs font-semibold text-gray-600 mb-2">Stage du *</label>
+                            <input type="date" value={editableDetails.start_date || ''} onChange={e => updateDetailField('start_date', e.target.value)} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" />
                         </div>
                         <div>
-                            <label className="block text-xs font-semibold text-gray-600">Stage au *</label>
-                            <input type="date" value={editableDetails.end_date || ''} onChange={e => updateDetailField('end_date', e.target.value)} className="w-full border rounded px-3 py-2" />
+                            <label className="block text-xs font-semibold text-gray-600 mb-2">Stage au *</label>
+                            <input type="date" value={editableDetails.end_date || ''} onChange={e => updateDetailField('end_date', e.target.value)} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" />
                         </div>
                     </div>
                 </div>
@@ -834,39 +1018,54 @@ const ComplaintsList = () => {
                             </div>
 
                             {/* Section Réponse à la réclamation */}
-                            <div className="border-2 border-gray-200 rounded-xl p-5 bg-white">
-                                <h3 className="text-lg font-bold text-gray-900 mb-4">Répondre à la réclamation</h3>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Réponse</label>
-                                <textarea
-                                    rows="4"
-                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none mb-4"
-                                    value={responseText}
-                                    onChange={(e) => setResponseText(e.target.value)}
-                                    placeholder="Rédigez votre réponse..."
-                                ></textarea>
-                                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
-                                    <p className="text-xs text-blue-800">
-                                        <strong>Note :</strong> Vous pouvez envoyer uniquement la réponse, ou inclure le nouveau document corrigé généré à partir des champs éditables ci-dessus.
+                            {selectedComplaint.status !== 'Traitée' && (
+                                <div className="border-2 border-gray-200 rounded-xl p-5 bg-white">
+                                    <h3 className="text-lg font-bold text-gray-900 mb-4">Répondre à la réclamation</h3>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">Réponse</label>
+                                    <textarea
+                                        rows="4"
+                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none mb-4"
+                                        value={responseText}
+                                        onChange={(e) => setResponseText(e.target.value)}
+                                        placeholder="Rédigez votre réponse..."
+                                    ></textarea>
+                                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+                                        <p className="text-xs text-blue-800">
+                                            <strong>Note :</strong> Vous pouvez envoyer uniquement la réponse, ou inclure le nouveau document corrigé généré à partir des champs éditables ci-dessus.
+                                        </p>
+                                    </div>
+                                    <div className="flex justify-end gap-3">
+                                        <button
+                                            onClick={() => handleRespond(false)}
+                                            disabled={!responseText.trim()}
+                                            className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white font-medium rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                        >
+                                            Envoyer seulement la réponse
+                                        </button>
+                                        <button
+                                            onClick={() => handleRespond(true)}
+                                            disabled={!responseText.trim()}
+                                            className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+                                        >
+                                            <ArrowPathIcon className="h-4 w-4" />
+                                            Envoyer réponse + nouveau document
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+                            {selectedComplaint.status === 'Traitée' && (
+                                <div className="border-2 border-green-200 rounded-xl p-5 bg-green-50">
+                                    <h3 className="text-lg font-bold text-gray-900 mb-2">Réclamation traitée</h3>
+                                    <p className="text-sm text-gray-600 mb-3">
+                                        Cette réclamation a déjà été traitée. Vous pouvez consulter la réponse ci-dessous.
                                     </p>
+                                    {selectedComplaint.response && (
+                                        <div className="bg-white rounded-lg p-4 border border-green-200">
+                                            <p className="text-sm text-gray-700 whitespace-pre-wrap">{selectedComplaint.response}</p>
+                                        </div>
+                                    )}
                                 </div>
-                                <div className="flex justify-end gap-3">
-                                    <button
-                                        onClick={() => handleRespond(false)}
-                                        disabled={!responseText.trim()}
-                                        className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white font-medium rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                                    >
-                                        Envoyer seulement la réponse
-                                    </button>
-                                    <button
-                                        onClick={() => handleRespond(true)}
-                                        disabled={!responseText.trim()}
-                                        className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
-                                    >
-                                        <ArrowPathIcon className="h-4 w-4" />
-                                        Envoyer réponse + nouveau document
-                                    </button>
-                                </div>
-                            </div>
+                            )}
                         </div>
                     </div>
                 </div>

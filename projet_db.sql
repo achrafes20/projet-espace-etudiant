@@ -17,7 +17,6 @@ CREATE TABLE students (
     first_name VARCHAR(50),
     major VARCHAR(100),
     level VARCHAR(50),
-    filiere VARCHAR(100),
     birth_date DATE,
     birth_place VARCHAR(100),
     transcript_data JSON,

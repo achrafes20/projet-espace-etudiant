@@ -138,6 +138,12 @@ const RequestsList = () => {
         const details = parseDetails(req?.specific_details) || {};
         if (!details.modules) details.modules = [];
         
+        // Initialiser les champs d'identification de l'étudiant pour tous les types de documents
+        details.cin = details.cin || req.cin || '';
+        details.cne = details.cne || req.cne || '';
+        details.apogee_number = details.apogee_number || req.apogee_number || '';
+        details.birth_place = details.birth_place || req.birth_place || '';
+        
         // Initialiser les détails avec les données de l'étudiant si elles ne sont pas déjà présentes
         // On force l'initialisation même si les valeurs existent mais sont vides
         if (req.document_type === 'school-certificate') {
@@ -167,9 +173,14 @@ const RequestsList = () => {
                 // S'assurer que la date existante est au bon format
                 details.birth_date = details.birth_date.split('T')[0];
             }
-            details.birth_place = details.birth_place || req.birth_place || '';
             details.filiere = details.filiere || req.filiere || req.major || '';
             // La mention sera chargée depuis le transcript
+        } else if (req.document_type === 'internship') {
+            details.major = details.major || req.filiere || req.major || '';
+            details.level = details.level || req.level || '';
+            if (req.birth_date) {
+                details.birth_date = req.birth_date.split('T')[0];
+            }
         }
         
         setEditableDetails(details);
@@ -396,6 +407,51 @@ const RequestsList = () => {
                         <h4 className="text-xs font-bold text-gray-700 mb-3">Informations de l'étudiant</h4>
                         <div className="grid md:grid-cols-2 gap-3 mb-3">
                             <div>
+                                <label className="block text-xs font-semibold text-gray-700 mb-2">CIN</label>
+                                <input 
+                                    value={editableDetails.cin || selectedRequest?.cin || ''} 
+                                    onChange={e => updateDetailField('cin', e.target.value)} 
+                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" 
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-semibold text-gray-700 mb-2">CNE</label>
+                                <input 
+                                    value={editableDetails.cne || selectedRequest?.cne || selectedRequest?.apogee_number || ''} 
+                                    onChange={e => updateDetailField('cne', e.target.value)} 
+                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" 
+                                />
+                            </div>
+                        </div>
+                        <div className="grid md:grid-cols-2 gap-3 mb-3">
+                            <div>
+                                <label className="block text-xs font-semibold text-gray-700 mb-2">Code Apogée</label>
+                                <input 
+                                    value={editableDetails.apogee_number || selectedRequest?.apogee_number || ''} 
+                                    onChange={e => updateDetailField('apogee_number', e.target.value)} 
+                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" 
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-semibold text-gray-700 mb-2">Date de naissance</label>
+                                <input 
+                                    type="date" 
+                                    value={editableDetails.birth_date || (selectedRequest?.birth_date ? selectedRequest.birth_date.split('T')[0] : '') || ''} 
+                                    onChange={e => updateDetailField('birth_date', e.target.value)} 
+                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" 
+                                />
+                            </div>
+                        </div>
+                        <div className="grid md:grid-cols-2 gap-3 mb-3">
+                            <div>
+                                <label className="block text-xs font-semibold text-gray-700 mb-2">Lieu de naissance</label>
+                                <input 
+                                    value={editableDetails.birth_place || selectedRequest?.birth_place || ''} 
+                                    onChange={e => updateDetailField('birth_place', e.target.value)} 
+                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" 
+                                />
+                            </div>
+                            <div>
                                 <label className="block text-xs font-semibold text-gray-700 mb-2">Niveau</label>
                                 <input 
                                     value={editableDetails.level || selectedRequest?.level || ''} 
@@ -403,14 +459,14 @@ const RequestsList = () => {
                                     className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" 
                                 />
                             </div>
-                            <div>
-                                <label className="block text-xs font-semibold text-gray-700 mb-2">Programme / Filière</label>
-                                <input 
-                                    value={editableDetails.program || selectedRequest?.filiere || selectedRequest?.major || ''} 
-                                    onChange={e => updateDetailField('program', e.target.value)} 
-                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" 
-                                />
-                            </div>
+                        </div>
+                        <div className="mb-3">
+                            <label className="block text-xs font-semibold text-gray-700 mb-2">Programme / Filière</label>
+                            <input 
+                                value={editableDetails.program || selectedRequest?.filiere || selectedRequest?.major || ''} 
+                                onChange={e => updateDetailField('program', e.target.value)} 
+                                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" 
+                            />
                         </div>
                     </div>
                     
@@ -507,6 +563,24 @@ const RequestsList = () => {
                         <h4 className="text-xs font-bold text-gray-700 mb-3">Informations de l'étudiant</h4>
                         <div className="grid md:grid-cols-2 gap-3">
                             <div>
+                                <label className="block text-xs font-semibold text-gray-700 mb-2">CIN</label>
+                                <input 
+                                    value={editableDetails.cin || selectedRequest?.cin || ''} 
+                                    onChange={e => updateDetailField('cin', e.target.value)} 
+                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" 
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-semibold text-gray-700 mb-2">CNE</label>
+                                <input 
+                                    value={editableDetails.cne || selectedRequest?.cne || ''} 
+                                    onChange={e => updateDetailField('cne', e.target.value)} 
+                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" 
+                                />
+                            </div>
+                        </div>
+                        <div className="grid md:grid-cols-2 gap-3 mt-3">
+                            <div>
                                 <label className="block text-xs font-semibold text-gray-700 mb-2">Date de naissance</label>
                                 <input 
                                     type="date" 
@@ -526,6 +600,14 @@ const RequestsList = () => {
                         </div>
                         <div className="grid md:grid-cols-2 gap-3 mt-3">
                             <div>
+                                <label className="block text-xs font-semibold text-gray-700 mb-2">Lieu de naissance</label>
+                                <input 
+                                    value={editableDetails.birth_place || selectedRequest?.birth_place || ''} 
+                                    onChange={e => updateDetailField('birth_place', e.target.value)} 
+                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" 
+                                />
+                            </div>
+                            <div>
                                 <label className="block text-xs font-semibold text-gray-700 mb-2">Filière</label>
                                 <input 
                                     value={editableDetails.filiere || selectedRequest?.filiere || selectedRequest?.major || ''} 
@@ -533,15 +615,15 @@ const RequestsList = () => {
                                     className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" 
                                 />
                             </div>
-                            <div>
-                                <label className="block text-xs font-semibold text-gray-700 mb-2">Mention</label>
-                                <input 
-                                    value={editableDetails.mention || ''} 
-                                    onChange={e => updateDetailField('mention', e.target.value)} 
-                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none bg-green-50" 
-                                    placeholder="Chargée automatiquement depuis le relevé"
-                                />
-                            </div>
+                        </div>
+                        <div className="mt-3">
+                            <label className="block text-xs font-semibold text-gray-700 mb-2">Mention</label>
+                            <input 
+                                value={editableDetails.mention || ''} 
+                                onChange={e => updateDetailField('mention', e.target.value)} 
+                                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none bg-green-50" 
+                                placeholder="Chargée automatiquement depuis le relevé"
+                            />
                         </div>
                     </div>
                 </div>
@@ -551,89 +633,155 @@ const RequestsList = () => {
         if (docType === 'internship') {
             return (
                 <div className="space-y-3">
-                    <div className="text-xs font-bold text-gray-700 mb-2">Informations entreprise</div>
+                    <div className="bg-blue-50 border border-blue-100 p-3 rounded-lg text-xs text-blue-800 mb-3">
+                        Les informations de l'étudiant sont chargées automatiquement. Vous pouvez les modifier si nécessaire.
+                    </div>
+                    
+                    <div className="border-t border-gray-200 pt-3 mb-3">
+                        <h4 className="text-xs font-bold text-gray-700 mb-3">Informations de l'étudiant</h4>
+                        <div className="grid md:grid-cols-2 gap-3">
+                            <div>
+                                <label className="block text-xs font-semibold text-gray-600 mb-2">CIN</label>
+                                <input 
+                                    value={editableDetails.cin || selectedRequest?.cin || ''} 
+                                    onChange={e => updateDetailField('cin', e.target.value)} 
+                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" 
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-semibold text-gray-600 mb-2">Code Apogée</label>
+                                <input 
+                                    value={editableDetails.apogee_number || selectedRequest?.apogee_number || ''} 
+                                    onChange={e => updateDetailField('apogee_number', e.target.value)} 
+                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" 
+                                />
+                            </div>
+                        </div>
+                        <div className="grid md:grid-cols-2 gap-3 mt-3">
+                            <div>
+                                <label className="block text-xs font-semibold text-gray-600 mb-2">Date de naissance</label>
+                                <input 
+                                    type="date" 
+                                    value={editableDetails.birth_date || (selectedRequest?.birth_date ? selectedRequest.birth_date.split('T')[0] : '') || ''} 
+                                    onChange={e => updateDetailField('birth_date', e.target.value)} 
+                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" 
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-semibold text-gray-600 mb-2">Lieu de naissance</label>
+                                <input 
+                                    value={editableDetails.birth_place || selectedRequest?.birth_place || ''} 
+                                    onChange={e => updateDetailField('birth_place', e.target.value)} 
+                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" 
+                                />
+                            </div>
+                        </div>
+                        <div className="grid md:grid-cols-2 gap-3 mt-3">
+                            <div>
+                                <label className="block text-xs font-semibold text-gray-600 mb-2">Filière</label>
+                                <input 
+                                    value={editableDetails.major || selectedRequest?.filiere || selectedRequest?.major || ''} 
+                                    onChange={e => updateDetailField('major', e.target.value)} 
+                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" 
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-semibold text-gray-600 mb-2">Niveau</label>
+                                <input 
+                                    value={editableDetails.level || selectedRequest?.level || ''} 
+                                    onChange={e => updateDetailField('level', e.target.value)} 
+                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" 
+                                />
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div className="text-xs font-bold text-gray-700 mt-4 mb-2">Informations entreprise</div>
                     <div>
-                        <label className="block text-xs font-semibold text-gray-600">Raison sociale *</label>
-                        <input value={editableDetails.company_legal_name || editableDetails.company_name || ''} onChange={e => updateDetailField('company_legal_name', e.target.value)} className="w-full border rounded px-3 py-2" />
+                        <label className="block text-xs font-semibold text-gray-600 mb-2">Raison sociale *</label>
+                        <input value={editableDetails.company_legal_name || editableDetails.company_name || ''} onChange={e => updateDetailField('company_legal_name', e.target.value)} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" />
                     </div>
                     <div>
-                        <label className="block text-xs font-semibold text-gray-600">Adresse *</label>
-                        <input value={editableDetails.company_address || ''} onChange={e => updateDetailField('company_address', e.target.value)} className="w-full border rounded px-3 py-2" />
+                        <label className="block text-xs font-semibold text-gray-600 mb-2">Adresse *</label>
+                        <input value={editableDetails.company_address || ''} onChange={e => updateDetailField('company_address', e.target.value)} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" />
                     </div>
                     <div className="grid md:grid-cols-2 gap-3">
                         <div>
-                            <label className="block text-xs font-semibold text-gray-600">Ville *</label>
-                            <input value={editableDetails.company_city || ''} onChange={e => updateDetailField('company_city', e.target.value)} className="w-full border rounded px-3 py-2" />
+                            <label className="block text-xs font-semibold text-gray-600 mb-2">Ville *</label>
+                            <input value={editableDetails.company_city || ''} onChange={e => updateDetailField('company_city', e.target.value)} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" />
                         </div>
                         <div>
-                            <label className="block text-xs font-semibold text-gray-600">Téléphone *</label>
-                            <input value={editableDetails.company_phone || ''} onChange={e => updateDetailField('company_phone', e.target.value)} className="w-full border rounded px-3 py-2" />
+                            <label className="block text-xs font-semibold text-gray-600 mb-2">Téléphone *</label>
+                            <input value={editableDetails.company_phone || ''} onChange={e => updateDetailField('company_phone', e.target.value)} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" />
                         </div>
                     </div>
                     <div className="grid md:grid-cols-2 gap-3">
                         <div>
-                            <label className="block text-xs font-semibold text-gray-600">Email *</label>
-                            <input value={editableDetails.company_email || ''} onChange={e => updateDetailField('company_email', e.target.value)} className="w-full border rounded px-3 py-2" />
+                            <label className="block text-xs font-semibold text-gray-600 mb-2">Email *</label>
+                            <input value={editableDetails.company_email || ''} onChange={e => updateDetailField('company_email', e.target.value)} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" />
                         </div>
                         <div>
-                            <label className="block text-xs font-semibold text-gray-600">Secteur *</label>
-                            <input value={editableDetails.company_sector || ''} onChange={e => updateDetailField('company_sector', e.target.value)} className="w-full border rounded px-3 py-2" />
+                            <label className="block text-xs font-semibold text-gray-600 mb-2">Secteur *</label>
+                            <input value={editableDetails.company_sector || ''} onChange={e => updateDetailField('company_sector', e.target.value)} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" />
                         </div>
                     </div>
                     
                     <div className="text-xs font-bold text-gray-700 mt-4 mb-2">Représentant entreprise</div>
                     <div className="grid md:grid-cols-2 gap-3">
                         <div>
-                            <label className="block text-xs font-semibold text-gray-600">Nom *</label>
-                            <input value={editableDetails.company_representative_name || ''} onChange={e => updateDetailField('company_representative_name', e.target.value)} className="w-full border rounded px-3 py-2" />
+                            <label className="block text-xs font-semibold text-gray-600 mb-2">Nom *</label>
+                            <input value={editableDetails.company_representative_name || ''} onChange={e => updateDetailField('company_representative_name', e.target.value)} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" />
                         </div>
                         <div>
-                            <label className="block text-xs font-semibold text-gray-600">Fonction *</label>
-                            <input value={editableDetails.company_representative_function || ''} onChange={e => updateDetailField('company_representative_function', e.target.value)} className="w-full border rounded px-3 py-2" />
+                            <label className="block text-xs font-semibold text-gray-600 mb-2">Fonction *</label>
+                            <input value={editableDetails.company_representative_function || ''} onChange={e => updateDetailField('company_representative_function', e.target.value)} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" />
                         </div>
                     </div>
                     
                     <div className="text-xs font-bold text-gray-700 mt-4 mb-2">Encadrant entreprise</div>
                     <div className="grid md:grid-cols-2 gap-3">
                         <div>
-                            <label className="block text-xs font-semibold text-gray-600">Nom *</label>
-                            <input value={editableDetails.supervisor_name || ''} onChange={e => updateDetailField('supervisor_name', e.target.value)} className="w-full border rounded px-3 py-2" />
+                            <label className="block text-xs font-semibold text-gray-600 mb-2">Nom *</label>
+                            <input value={editableDetails.supervisor_name || ''} onChange={e => updateDetailField('supervisor_name', e.target.value)} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" />
                         </div>
                         <div>
-                            <label className="block text-xs font-semibold text-gray-600">Fonction *</label>
-                            <input value={editableDetails.supervisor_role || ''} onChange={e => updateDetailField('supervisor_role', e.target.value)} className="w-full border rounded px-3 py-2" />
+                            <label className="block text-xs font-semibold text-gray-600 mb-2">Fonction *</label>
+                            <input value={editableDetails.supervisor_role || ''} onChange={e => updateDetailField('supervisor_role', e.target.value)} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" />
                         </div>
                     </div>
                     <div className="grid md:grid-cols-2 gap-3">
                         <div>
-                            <label className="block text-xs font-semibold text-gray-600">Téléphone *</label>
-                            <input value={editableDetails.supervisor_phone || ''} onChange={e => updateDetailField('supervisor_phone', e.target.value)} className="w-full border rounded px-3 py-2" />
+                            <label className="block text-xs font-semibold text-gray-600 mb-2">Téléphone *</label>
+                            <input value={editableDetails.supervisor_phone || ''} onChange={e => updateDetailField('supervisor_phone', e.target.value)} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" />
                         </div>
                         <div>
-                            <label className="block text-xs font-semibold text-gray-600">Email *</label>
-                            <input value={editableDetails.supervisor_email || ''} onChange={e => updateDetailField('supervisor_email', e.target.value)} className="w-full border rounded px-3 py-2" />
+                            <label className="block text-xs font-semibold text-gray-600 mb-2">Email *</label>
+                            <input value={editableDetails.supervisor_email || ''} onChange={e => updateDetailField('supervisor_email', e.target.value)} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" />
                         </div>
                     </div>
                     
                     <div className="text-xs font-bold text-gray-700 mt-4 mb-2">Encadrant ENSA</div>
                     <div>
-                        <label className="block text-xs font-semibold text-gray-600">Nom *</label>
-                        <input value={editableDetails.ensa_supervisor_name || ''} onChange={e => updateDetailField('ensa_supervisor_name', e.target.value)} className="w-full border rounded px-3 py-2" />
+                        <label className="block text-xs font-semibold text-gray-600 mb-2">Nom *</label>
+                        <input value={editableDetails.ensa_supervisor_name || ''} onChange={e => updateDetailField('ensa_supervisor_name', e.target.value)} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" />
                     </div>
                     
                     <div className="text-xs font-bold text-gray-700 mt-4 mb-2">Informations stage</div>
                     <div>
-                        <label className="block text-xs font-semibold text-gray-600">Sujet *</label>
-                        <input value={editableDetails.internship_subject || ''} onChange={e => updateDetailField('internship_subject', e.target.value)} className="w-full border rounded px-3 py-2" />
+                        <label className="block text-xs font-semibold text-gray-600 mb-2">Sujet *</label>
+                        <input value={editableDetails.internship_subject || editableDetails.internship_title || ''} onChange={e => {
+                            updateDetailField('internship_subject', e.target.value);
+                            updateDetailField('internship_title', e.target.value);
+                        }} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" />
                     </div>
                     <div className="grid md:grid-cols-2 gap-3">
                         <div>
-                            <label className="block text-xs font-semibold text-gray-600">Stage du *</label>
-                            <input type="date" value={editableDetails.start_date || ''} onChange={e => updateDetailField('start_date', e.target.value)} className="w-full border rounded px-3 py-2" />
+                            <label className="block text-xs font-semibold text-gray-600 mb-2">Stage du *</label>
+                            <input type="date" value={editableDetails.start_date || ''} onChange={e => updateDetailField('start_date', e.target.value)} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" />
                         </div>
                         <div>
-                            <label className="block text-xs font-semibold text-gray-600">Stage au *</label>
-                            <input type="date" value={editableDetails.end_date || ''} onChange={e => updateDetailField('end_date', e.target.value)} className="w-full border rounded px-3 py-2" />
+                            <label className="block text-xs font-semibold text-gray-600 mb-2">Stage au *</label>
+                            <input type="date" value={editableDetails.end_date || ''} onChange={e => updateDetailField('end_date', e.target.value)} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" />
                         </div>
                     </div>
                 </div>
@@ -666,11 +814,47 @@ const RequestsList = () => {
                         <h4 className="text-xs font-bold text-gray-700 mb-3">Informations de l'étudiant</h4>
                         <div className="grid md:grid-cols-2 gap-3">
                             <div>
+                                <label className="block text-xs font-semibold text-gray-700 mb-2">CIN</label>
+                                <input 
+                                    value={editableDetails.cin || selectedRequest?.cin || ''} 
+                                    onChange={e => updateDetailField('cin', e.target.value)} 
+                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" 
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-semibold text-gray-700 mb-2">Code Apogée</label>
+                                <input 
+                                    value={editableDetails.apogee_number || selectedRequest?.apogee_number || ''} 
+                                    onChange={e => updateDetailField('apogee_number', e.target.value)} 
+                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" 
+                                />
+                            </div>
+                        </div>
+                        <div className="grid md:grid-cols-2 gap-3 mt-3">
+                            <div>
+                                <label className="block text-xs font-semibold text-gray-700 mb-2">CNE</label>
+                                <input 
+                                    value={editableDetails.cne || selectedRequest?.cne || ''} 
+                                    onChange={e => updateDetailField('cne', e.target.value)} 
+                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" 
+                                />
+                            </div>
+                            <div>
                                 <label className="block text-xs font-semibold text-gray-700 mb-2">Date de naissance</label>
                                 <input 
                                     type="date" 
                                     value={editableDetails.birth_date || (selectedRequest?.birth_date ? selectedRequest.birth_date.split('T')[0] : '') || ''} 
                                     onChange={e => updateDetailField('birth_date', e.target.value)} 
+                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" 
+                                />
+                            </div>
+                        </div>
+                        <div className="grid md:grid-cols-2 gap-3 mt-3">
+                            <div>
+                                <label className="block text-xs font-semibold text-gray-700 mb-2">Lieu de naissance</label>
+                                <input 
+                                    value={editableDetails.birth_place || selectedRequest?.birth_place || ''} 
+                                    onChange={e => updateDetailField('birth_place', e.target.value)} 
                                     className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" 
                                 />
                             </div>
