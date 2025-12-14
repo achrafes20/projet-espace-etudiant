@@ -143,7 +143,8 @@ exports.updateDraft = async (req, res) => {
 
     try {
         const [rows] = await db.query(`
-            SELECT r.*, s.first_name, s.last_name, s.email, s.cin, s.apogee_number 
+            SELECT r.*, s.first_name, s.last_name, s.email, s.cin, s.apogee_number,
+                   s.level, s.filiere, s.major, s.birth_date, s.birth_place, s.transcript_data
             FROM requests r 
             JOIN students s ON r.student_id = s.id 
             WHERE r.id = ?
@@ -180,7 +181,8 @@ exports.updateRequestStatus = async (req, res) => {
 
     try {
         const [rows] = await db.query(`
-            SELECT r.*, s.first_name, s.last_name, s.email, s.cin, s.apogee_number 
+            SELECT r.*, s.first_name, s.last_name, s.email, s.cin, s.apogee_number,
+                   s.level, s.filiere, s.major, s.birth_date, s.birth_place, s.transcript_data
             FROM requests r 
             JOIN students s ON r.student_id = s.id 
             WHERE r.id = ?

@@ -1,4 +1,4 @@
-const PDFDocument = require('pdfkit');
+﻿const PDFDocument = require('pdfkit');
 const fs = require('fs');
 const path = require('path');
 
@@ -98,7 +98,7 @@ const buildSchoolCertificate = (doc, payload) => {
     doc.text('Ministère de l\'Enseignement Supérieur, de la Recherche Scientifique', 60, 45);
     doc.text('et de l\'Innovation', 60, 60);
     doc.fontSize(10).font('Helvetica-Bold');
-    doc.text('Université Hassan Ier - Faculté des Sciences et Techniques', 60, 78);
+    doc.text('L\'École Nationale des Sciences Appliquées Tétouan (ENSATe)', 60, 78);
     
     // Ligne décorative
     doc.rect(0, 100, doc.page.width, 3).fill('#93c5fd');
@@ -141,12 +141,12 @@ const buildSchoolCertificate = (doc, payload) => {
     addInfoLine('Code étudiant (Apogée) :', payload.student.apogee_number || '---');
     addInfoLine('Code National de l\'étudiant :', payload.student.cne || payload.student.apogee_number || '---');
     
-    const birthDate = payload.student.birth_date || payload.details.birth_date
-        ? new Date(payload.student.birth_date || payload.details.birth_date).toLocaleDateString('fr-FR')
+    const birthDate = payload.details.birth_date || payload.student.birth_date
+        ? new Date(payload.details.birth_date || payload.student.birth_date).toLocaleDateString('fr-FR')
         : '---';
-    const birthPlace = payload.student.birth_place || payload.details.birth_place || '---';
+    const birthPlace = payload.details.birth_place || payload.student.birth_place || '---';
     const birthInfo = birthDate !== '---' ? `Né(e) le ${birthDate} à ${birthPlace}` : '---';
-    addInfoLine('Date de naissance :', birthInfo);
+    addInfoLine('Né(e) le :', birthInfo);
     
     doc.y = infoY + 155;
     doc.fontSize(12).font('Helvetica').fillColor('#000000');
@@ -166,7 +166,7 @@ const buildSchoolCertificate = (doc, payload) => {
 
     doc.moveDown(4);
     doc.fontSize(11).font('Helvetica').fillColor('#000000');
-    doc.text(`Fait à Marrakech, le ${payload.issuedAt}`, doc.page.width - 250, doc.y);
+    doc.text(`Fait à Tétouan, le ${payload.issuedAt}`, doc.page.width - 250, doc.y);
     
     doc.moveDown(1.5);
     doc.font('Helvetica-Bold');
@@ -192,7 +192,7 @@ const buildSuccessCertificate = (doc, payload) => {
     doc.text('Ministère de l\'Enseignement Supérieur, de la Recherche Scientifique', 60, 45);
     doc.text('et de l\'Innovation', 60, 60);
     doc.fontSize(10).font('Helvetica-Bold');
-    doc.text('Université Hassan II - FSJES Ain Chock', 60, 78);
+    doc.text('L\'École Nationale des Sciences Appliquées Tétouan (ENSATe)', 60, 78);
     
     // Ligne décorative
     doc.rect(0, 100, doc.page.width, 3).fill('#6ee7b7');
@@ -209,7 +209,7 @@ const buildSuccessCertificate = (doc, payload) => {
     doc.moveDown(4);
     doc.fontSize(12).font('Helvetica').fillColor('#000000');
     doc.text(
-        'Le Doyen de la Faculté des Sciences Juridiques, Économiques et Sociales atteste que :',
+        'Le Doyen de L\'École Nationale des Sciences Appliquées Tétouan (ENSATe) atteste que :',
         60, doc.y,
         { align: 'left', width: doc.page.width - 120 }
     );
@@ -251,7 +251,7 @@ const buildSuccessCertificate = (doc, payload) => {
     doc.y = infoY + 175;
     doc.fontSize(12).font('Helvetica').fillColor('#000000');
     doc.text(
-        'A réussi les examens de la licence d\'études fondamentales en validant tous les modules composant la filière.',
+        'A réussi les examens en validant tous les modules composant la filière.',
         60, doc.y,
         { align: 'justify', width: doc.page.width - 120, lineGap: 4 }
     );
@@ -265,7 +265,7 @@ const buildSuccessCertificate = (doc, payload) => {
 
     doc.moveDown(4);
     doc.fontSize(11).font('Helvetica');
-    doc.text(`Casablanca, le ${payload.issuedAt}`, doc.page.width - 250, doc.y);
+    doc.text(`Tétouan, le ${payload.issuedAt}`, doc.page.width - 250, doc.y);
     
     doc.moveDown(1.5);
     doc.font('Helvetica-Bold');
@@ -291,7 +291,7 @@ const buildTranscript = (doc, payload) => {
     doc.text('Ministère de l\'Enseignement Supérieur, de la Recherche Scientifique', 60, 45);
     doc.text('et de l\'Innovation', 60, 60);
     doc.fontSize(10).font('Helvetica-Bold');
-    doc.text('Université Cadi Ayyad - FSJES', 60, 78);
+    doc.text('L\'École Nationale des Sciences Appliquées Tétouan (ENSATe)', 60, 78);
     
     // Ligne décorative
     doc.rect(0, 100, doc.page.width, 3).fill('#fca5a5');
@@ -330,12 +330,13 @@ const buildTranscript = (doc, payload) => {
     doc.text(`CIN : ${payload.student.cin || '---'}`, col2X, infoY);
     infoY += 18;
     
-    const birthDate = payload.student.birth_date || payload.details.birth_date
-        ? new Date(payload.student.birth_date || payload.details.birth_date).toLocaleDateString('fr-FR')
+    const birthDate = payload.details.birth_date || payload.student.birth_date
+        ? new Date(payload.details.birth_date || payload.student.birth_date).toLocaleDateString('fr-FR')
         : '---';
-    const birthPlace = payload.student.birth_place || payload.details.birth_place || '---';
+    const birthPlace = payload.details.birth_place || payload.student.birth_place || '---';
     const birthInfo = birthDate !== '---' ? `Né(e) le ${birthDate} à ${birthPlace}` : '---';
     doc.text(birthInfo, col1X, infoY);
+
     infoY += 18;
     
     doc.text(`Inscrit en : ${payload.details.level || '---'} - ${payload.details.program || '---'}`, col1X, infoY);
@@ -386,7 +387,6 @@ const buildTranscript = (doc, payload) => {
     // Totaux avec résultat
     doc.roundedRect(colModuleX, y, tableWidth, 50, 3).fill('#1e3a8a');
     doc.fontSize(11).font('Helvetica-Bold').fillColor('#ffffff');
-    doc.text(`TOTAL : ${total.toFixed(2)}`, colModuleX + 10, y + 10);
     doc.text(`MOYENNE : ${average}/20`, colModuleX + 10, y + 28);
     
     // Résultat
@@ -402,7 +402,7 @@ const buildTranscript = (doc, payload) => {
     doc.moveDown(2);
     
     doc.fontSize(11).font('Helvetica');
-    doc.text(`Fait à Marrakech, le ${payload.issuedAt}`, doc.page.width - 250, doc.y);
+    doc.text(`Fait à Tétouan, le ${payload.issuedAt}`, doc.page.width - 250, doc.y);
     
     doc.moveDown(1.5);
     doc.font('Helvetica-Bold');
@@ -410,7 +410,7 @@ const buildTranscript = (doc, payload) => {
 
     addFooterNote(
         doc, 
-        'Document généré automatiquement. Vérifier les notes avant validation finale.'
+        ''
     );
 };
 
@@ -427,7 +427,7 @@ const buildInternship = (doc, payload) => {
     doc.fontSize(11).font('Helvetica');
     doc.text('de la Recherche Scientifique et de l\'Innovation', 60, 88);
     doc.fontSize(10).font('Helvetica-Bold');
-    doc.text('École Nationale des Sciences Appliquées', 60, 105);
+    doc.text('École Nationale des Sciences Appliquées Tétouan', 60, 105);
     
     doc.fontSize(9).font('Helvetica').fillColor('#666666');
     doc.text(`Date : ${payload.issuedAt}`, doc.page.width - 160, 55, { align: 'right' });
@@ -454,7 +454,7 @@ const buildInternship = (doc, payload) => {
     doc.moveDown(0.3);
     doc.font('Helvetica');
     doc.text(
-        'L\'École Nationale des Sciences Appliquées (ENSA), établissement d\'enseignement supérieur, représentée par son Directeur, d\'une part.',
+        'L\'École Nationale des Sciences Appliquées Tétouan (ENSATe), établissement d\'enseignement supérieur, représentée par son Directeur, d\'une part.',
         60, doc.y,
         { align: 'justify', width: doc.page.width - 120, lineGap: 2 }
     );
@@ -599,7 +599,7 @@ const buildInternship = (doc, payload) => {
     doc.moveDown(2);
     doc.fontSize(9).font('Helvetica').fillColor('#666666');
     doc.text(
-        `Fait à ${details.company_city || 'Tétouan'}, le ${payload.issuedAt}`, 
+        `Fait à 'Tétouan', le ${payload.issuedAt}`, 
         0, doc.y, 
         { align: 'center' }
     );
