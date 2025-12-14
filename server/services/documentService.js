@@ -76,218 +76,275 @@ const resolveDetails = (docType, incoming = {}) => {
     return { ...base, ...incoming };
 };
 
-const addLetterhead = (doc, left, right) => {
-    doc.fontSize(10).font('Helvetica-Bold').text(left, { align: 'left' });
-    doc.fontSize(10).font('Helvetica').text(right, { align: 'right' });
-    doc.moveDown(1);
-};
-
 const addFooterNote = (doc, text) => {
-    doc.moveDown(2);
-    doc.fontSize(9).fillColor('#444').text(text, { align: 'center' });
+    const pageHeight = doc.page.height;
+    const footerY = pageHeight - 60;
+    
+    doc.fontSize(8).fillColor('#666666').font('Helvetica-Oblique');
+    doc.text(text, 50, footerY, { 
+        align: 'center', 
+        width: doc.page.width - 100,
+        lineGap: 2
+    });
 };
 
 const buildSchoolCertificate = (doc, payload) => {
-    // En-tête stylisé
-    doc.rect(50, 50, 500, 60).fill('#1e40af');
-    doc.fontSize(14).font('Helvetica-Bold').fillColor('#ffffff');
-    doc.text('ROYAUME DU MAROC', 60, 60, { align: 'left' });
-    doc.fontSize(12);
-    doc.text('Ministère de l\'Enseignement Supérieur, de la Recherche Scientifique', 60, 75, { align: 'left' });
-    doc.text('Université Hassan Ier - Faculté des Sciences et Techniques', 60, 90, { align: 'left' });
-    doc.fontSize(10).fillColor('#000');
+    // En-tête avec dégradé visuel
+    doc.rect(0, 0, doc.page.width, 100).fill('#1e40af');
+    
+    doc.fontSize(16).font('Helvetica-Bold').fillColor('#ffffff');
+    doc.text('ROYAUME DU MAROC', 60, 25, { align: 'left' });
+    doc.fontSize(11).font('Helvetica');
+    doc.text('Ministère de l\'Enseignement Supérieur, de la Recherche Scientifique', 60, 45);
+    doc.text('et de l\'Innovation', 60, 60);
+    doc.fontSize(10).font('Helvetica-Bold');
+    doc.text('Université Hassan Ier - Faculté des Sciences et Techniques', 60, 78);
+    
+    // Ligne décorative
+    doc.rect(0, 100, doc.page.width, 3).fill('#93c5fd');
+    
+    doc.fillColor('#000000');
+    doc.moveDown(6);
+    
+    // Titre principal avec encadrement élégant
+    const titleY = doc.y;
+    doc.roundedRect(80, titleY, doc.page.width - 160, 60, 5).lineWidth(2).stroke('#1e40af');
+    doc.fontSize(22).font('Helvetica-Bold').fillColor('#1e40af');
+    doc.text('CERTIFICAT DE SCOLARITÉ', 0, titleY + 20, { align: 'center' });
     
     doc.moveDown(4);
-    
-    // Titre avec bordure
-    doc.rect(100, doc.y, 400, 50).stroke('#1e40af');
-    doc.fontSize(20).font('Helvetica-Bold').fillColor('#1e40af');
-    doc.text('CERTIFICAT DE SCOLARITÉ', 300, doc.y + 15, { align: 'center' });
-    doc.moveDown(2.5);
-
-    doc.fontSize(12).font('Helvetica').fillColor('#000');
+    doc.fontSize(12).font('Helvetica').fillColor('#000000');
     doc.text(
-        `Le Doyen de la Faculté des Sciences et Techniques atteste que l'étudiant(e) :`,
-        { align: 'left' }
+        'Le Doyen de la Faculté des Sciences et Techniques atteste que l\'étudiant(e) :',
+        60, doc.y,
+        { align: 'left', width: doc.page.width - 120 }
     );
-    doc.moveDown(1);
+    
+    doc.moveDown(1.5);
 
-    // Informations dans un cadre
+    // Cadre d'informations avec ombrage
     const infoY = doc.y;
-    doc.rect(80, infoY, 440, 120).stroke('#e5e7eb');
+    doc.roundedRect(60, infoY, doc.page.width - 120, 140, 8).fill('#f8fafc').stroke('#cbd5e1');
+    
+    const labelX = 80;
+    const valueX = 280;
+    let currentY = infoY + 15;
+    
+    const addInfoLine = (label, value) => {
+        doc.fontSize(11).font('Helvetica-Bold').fillColor('#334155').text(label, labelX, currentY);
+        doc.font('Helvetica').fillColor('#000000').text(value || '---', valueX, currentY);
+        currentY += 22;
+    };
+    
+    addInfoLine('Nom et Prénom :', formatName(payload.student));
+    addInfoLine('CIN :', payload.student.cin || '---');
+    addInfoLine('Code étudiant (Apogée) :', payload.student.apogee_number || '---');
+    addInfoLine('Code National de l\'étudiant :', payload.student.cne || payload.student.apogee_number || '---');
+    
+    const birthDate = payload.student.birth_date 
+        ? new Date(payload.student.birth_date).toLocaleDateString('fr-FR') 
+        : '---';
+    addInfoLine('Date de naissance :', birthDate);
+    
+    doc.y = infoY + 155;
+    doc.fontSize(12).font('Helvetica').fillColor('#000000');
+    doc.text(
+        `Poursuit régulièrement ses études pour l'année universitaire ${payload.details.academic_year || '---'} en :`,
+        60, doc.y,
+        { align: 'left', width: doc.page.width - 120 }
+    );
+    
     doc.moveDown(0.5);
-    
-    doc.fontSize(12).font('Helvetica-Bold').text(`Nom et Prénom :`, 90, doc.y);
-    doc.font('Helvetica').text(formatName(payload.student), 220, doc.y);
-    doc.moveDown(0.8);
-    
-    doc.font('Helvetica-Bold').text(`CIN :`, 90, doc.y);
-    doc.font('Helvetica').text(payload.student.cin || '---', 220, doc.y);
-    doc.moveDown(0.8);
-    
-    doc.font('Helvetica-Bold').text(`Code étudiant (Apogée) :`, 90, doc.y);
-    doc.font('Helvetica').text(payload.student.apogee_number || '---', 220, doc.y);
-    doc.moveDown(0.8);
-    
-    doc.font('Helvetica-Bold').text(`Code National de l'étudiant :`, 90, doc.y);
-    doc.font('Helvetica').text(payload.student.cne || payload.student.apogee_number || '---', 220, doc.y);
-    doc.moveDown(0.8);
-    
-    const birthDate = payload.student.birth_date ? new Date(payload.student.birth_date).toLocaleDateString('fr-FR') : '---';
-    doc.font('Helvetica-Bold').text(`Date de naissance :`, 90, doc.y);
-    doc.font('Helvetica').text(birthDate, 220, doc.y);
-    
-    doc.y = infoY + 130;
-    doc.moveDown(1);
-    
-    doc.fontSize(12).font('Helvetica').text(
-        `Poursuit régulièrement ses études pour l'année universitaire ${payload.details.academic_year || '---'} en : ${payload.details.level || '---'} - ${payload.details.program || '---'}.`
+    doc.font('Helvetica-Bold').fillColor('#1e40af');
+    doc.text(
+        `${payload.details.level || '---'} - ${payload.details.program || '---'}`,
+        60, doc.y,
+        { align: 'left', width: doc.page.width - 120 }
     );
 
-    doc.moveDown(3);
-    doc.text(`Fait à Marrakech, le ${payload.issuedAt}`, { align: 'right' });
-    doc.moveDown(1);
-    doc.font('Helvetica-Bold').text('Le Doyen', { align: 'right' });
-    doc.moveDown(0.5);
-    doc.font('Helvetica').fontSize(10).text('Signature et cachet', { align: 'right' });
+    doc.moveDown(4);
+    doc.fontSize(11).font('Helvetica').fillColor('#000000');
+    doc.text(`Fait à Marrakech, le ${payload.issuedAt}`, doc.page.width - 250, doc.y);
+    
+    doc.moveDown(1.5);
+    doc.font('Helvetica-Bold');
+    doc.text('Le Doyen', doc.page.width - 250, doc.y);
+    
+    doc.moveDown(2);
+    doc.fontSize(9).font('Helvetica-Oblique').fillColor('#666666');
+    doc.text('Signature et cachet', doc.page.width - 250, doc.y);
 
-    addFooterNote(doc, 'Le présent document n est délivré qu en un seul exemplaire. Il appartient à l étudiant d en faire des copies certifiées conformes.');
+    addFooterNote(
+        doc, 
+        'Le présent document n\'est délivré qu\'en un seul exemplaire. Il appartient à l\'étudiant d\'en faire des copies certifiées conformes.'
+    );
 };
 
 const buildSuccessCertificate = (doc, payload) => {
-    // En-tête stylisé
-    doc.rect(50, 50, 500, 60).fill('#059669');
-    doc.fontSize(14).font('Helvetica-Bold').fillColor('#ffffff');
-    doc.text('ROYAUME DU MAROC', 60, 60, { align: 'left' });
-    doc.fontSize(12);
-    doc.text('Ministère de l\'Enseignement Supérieur, de la Recherche Scientifique', 60, 75, { align: 'left' });
-    doc.text('Université Hassan II - FSJES Ain Chock', 60, 90, { align: 'left' });
-    doc.fontSize(10).fillColor('#000');
+    // En-tête avec style vert
+    doc.rect(0, 0, doc.page.width, 100).fill('#059669');
+    
+    doc.fontSize(16).font('Helvetica-Bold').fillColor('#ffffff');
+    doc.text('ROYAUME DU MAROC', 60, 25);
+    doc.fontSize(11).font('Helvetica');
+    doc.text('Ministère de l\'Enseignement Supérieur, de la Recherche Scientifique', 60, 45);
+    doc.text('et de l\'Innovation', 60, 60);
+    doc.fontSize(10).font('Helvetica-Bold');
+    doc.text('Université Hassan II - FSJES Ain Chock', 60, 78);
+    
+    // Ligne décorative
+    doc.rect(0, 100, doc.page.width, 3).fill('#6ee7b7');
+    
+    doc.fillColor('#000000');
+    doc.moveDown(6);
+    
+    // Titre avec encadrement
+    const titleY = doc.y;
+    doc.roundedRect(80, titleY, doc.page.width - 160, 60, 5).lineWidth(2).stroke('#059669');
+    doc.fontSize(22).font('Helvetica-Bold').fillColor('#059669');
+    doc.text('ATTESTATION DE RÉUSSITE', 0, titleY + 20, { align: 'center' });
     
     doc.moveDown(4);
-    
-    // Titre avec bordure
-    doc.rect(100, doc.y, 400, 50).stroke('#059669');
-    doc.fontSize(20).font('Helvetica-Bold').fillColor('#059669');
-    doc.text('ATTESTATION DE RÉUSSITE', 300, doc.y + 15, { align: 'center' });
-    doc.moveDown(2.5);
-
-    doc.fontSize(12).font('Helvetica').fillColor('#000');
-    doc.text(`Le Doyen de la Faculté des Sciences Juridiques, Économiques et Sociales atteste que :`);
-    doc.moveDown(1);
-
-    // Informations dans un cadre
-    const infoY = doc.y;
-    doc.rect(80, infoY, 440, 150).stroke('#e5e7eb');
-    doc.moveDown(0.5);
-    
-    doc.fontSize(12).font('Helvetica-Bold').text(`Nom et Prénom :`, 90, doc.y);
-    doc.font('Helvetica').text(formatName(payload.student), 220, doc.y);
-    doc.moveDown(0.8);
-    
-    const birthDate = payload.details.birth_date ? new Date(payload.details.birth_date).toLocaleDateString('fr-FR') : '---';
-    doc.font('Helvetica-Bold').text(`Né(e) le :`, 90, doc.y);
-    doc.font('Helvetica').text(`${birthDate} à ${payload.details.birth_place || '---'}`, 220, doc.y);
-    doc.moveDown(0.8);
-    
-    doc.font('Helvetica-Bold').text(`Portant le CNE :`, 90, doc.y);
-    doc.font('Helvetica').text(payload.student.cin || payload.student.cne || '---', 220, doc.y);
-    doc.moveDown(0.8);
-    
-    doc.font('Helvetica-Bold').text(`Filière :`, 90, doc.y);
-    doc.font('Helvetica').text(payload.details.filiere || '---', 220, doc.y);
-    doc.moveDown(0.8);
-    
-    doc.font('Helvetica-Bold').text(`Session :`, 90, doc.y);
-    doc.font('Helvetica').text(payload.details.session || '---', 220, doc.y);
-    doc.moveDown(0.8);
-    
-    doc.font('Helvetica-Bold').text(`Mention :`, 90, doc.y);
-    doc.font('Helvetica').fontSize(14).fillColor('#059669').text(payload.details.mention || '---', 220, doc.y);
-    doc.fontSize(12).fillColor('#000');
-    
-    doc.y = infoY + 160;
-    doc.moveDown(1);
-    
-    doc.fontSize(12).font('Helvetica').text(
-        `A réussi les examens de la licence d'études fondamentales en validant tous les modules composant la filière.`
+    doc.fontSize(12).font('Helvetica').fillColor('#000000');
+    doc.text(
+        'Le Doyen de la Faculté des Sciences Juridiques, Économiques et Sociales atteste que :',
+        60, doc.y,
+        { align: 'left', width: doc.page.width - 120 }
     );
-    doc.moveDown(1);
-    doc.text(`Cette attestation est délivrée à l'intéressé(e) pour servir et valoir ce que de droit.`, {
-        align: 'left'
-    });
+    
+    doc.moveDown(1.5);
 
-    doc.moveDown(3);
-    doc.text(`Casablanca, le ${payload.issuedAt}`, { align: 'right' });
+    // Cadre d'informations
+    const infoY = doc.y;
+    doc.roundedRect(60, infoY, doc.page.width - 120, 160, 8).fill('#f0fdf4').stroke('#bbf7d0');
+    
+    const labelX = 80;
+    const valueX = 280;
+    let currentY = infoY + 15;
+    
+    const addInfoLine = (label, value, isHighlight = false) => {
+        doc.fontSize(11).font('Helvetica-Bold').fillColor('#334155').text(label, labelX, currentY);
+        if (isHighlight) {
+            doc.fontSize(13).font('Helvetica-Bold').fillColor('#059669').text(value || '---', valueX, currentY);
+        } else {
+            doc.fontSize(11).font('Helvetica').fillColor('#000000').text(value || '---', valueX, currentY);
+        }
+        currentY += 22;
+    };
+    
+    addInfoLine('Nom et Prénom :', formatName(payload.student));
+    
+    const birthDate = payload.details.birth_date 
+        ? new Date(payload.details.birth_date).toLocaleDateString('fr-FR') 
+        : '---';
+    const birthInfo = `${birthDate} à ${payload.details.birth_place || '---'}`;
+    addInfoLine('Né(e) le :', birthInfo);
+    
+    addInfoLine('Portant le CNE :', payload.student.cin || payload.student.cne || '---');
+    addInfoLine('Filière :', payload.details.filiere || '---');
+    addInfoLine('Session :', payload.details.session || '---');
+    addInfoLine('Mention :', payload.details.mention || '---', true);
+    
+    doc.y = infoY + 175;
+    doc.fontSize(12).font('Helvetica').fillColor('#000000');
+    doc.text(
+        'A réussi les examens de la licence d\'études fondamentales en validant tous les modules composant la filière.',
+        60, doc.y,
+        { align: 'justify', width: doc.page.width - 120, lineGap: 4 }
+    );
+    
     doc.moveDown(1);
-    doc.font('Helvetica-Bold').text('Le Doyen', { align: 'right' });
-    doc.moveDown(0.5);
-    doc.font('Helvetica').fontSize(10).text('Signature et cachet', { align: 'right' });
+    doc.text(
+        'Cette attestation est délivrée à l\'intéressé(e) pour servir et valoir ce que de droit.',
+        60, doc.y,
+        { align: 'left', width: doc.page.width - 120 }
+    );
 
-    addFooterNote(doc, 'La présente attestation n est délivrée qu en un seul exemplaire. Copies certifiées conformes recommandées.');
+    doc.moveDown(4);
+    doc.fontSize(11).font('Helvetica');
+    doc.text(`Casablanca, le ${payload.issuedAt}`, doc.page.width - 250, doc.y);
+    
+    doc.moveDown(1.5);
+    doc.font('Helvetica-Bold');
+    doc.text('Le Doyen', doc.page.width - 250, doc.y);
+    
+    doc.moveDown(2);
+    doc.fontSize(9).font('Helvetica-Oblique').fillColor('#666666');
+    doc.text('Signature et cachet', doc.page.width - 250, doc.y);
+
+    addFooterNote(
+        doc, 
+        'La présente attestation n\'est délivrée qu\'en un seul exemplaire. Copies certifiées conformes recommandées.'
+    );
 };
 
 const buildTranscript = (doc, payload) => {
-    // En-tête stylisé
-    doc.rect(50, 50, 500, 60).fill('#dc2626');
-    doc.fontSize(14).font('Helvetica-Bold').fillColor('#ffffff');
-    doc.text('ROYAUME DU MAROC', 60, 60, { align: 'left' });
-    doc.fontSize(12);
-    doc.text('Ministère de l\'Enseignement Supérieur, de la Recherche Scientifique', 60, 75, { align: 'left' });
-    doc.text('Université Cadi Ayyad - Faculté des Sciences Juridiques, Economiques et Sociales', 60, 90, { align: 'left' });
-    doc.fontSize(10).fillColor('#000');
+    // En-tête avec style rouge
+    doc.rect(0, 0, doc.page.width, 100).fill('#dc2626');
     
-    doc.moveDown(4);
+    doc.fontSize(16).font('Helvetica-Bold').fillColor('#ffffff');
+    doc.text('ROYAUME DU MAROC', 60, 25);
+    doc.fontSize(11).font('Helvetica');
+    doc.text('Ministère de l\'Enseignement Supérieur, de la Recherche Scientifique', 60, 45);
+    doc.text('et de l\'Innovation', 60, 60);
+    doc.fontSize(10).font('Helvetica-Bold');
+    doc.text('Université Cadi Ayyad - FSJES', 60, 78);
     
-    // Titre avec bordure
-    doc.rect(100, doc.y, 400, 50).stroke('#dc2626');
-    doc.fontSize(18).font('Helvetica-Bold').fillColor('#dc2626');
-    doc.text('RELEVÉ DE NOTES ET RÉSULTATS', 300, doc.y + 15, { align: 'center' });
-    doc.moveDown(0.5);
-    doc.fontSize(12).font('Helvetica').fillColor('#000');
-    doc.text(`Année universitaire : ${payload.details.academic_year || '---'}`, { align: 'center' });
-    doc.text(`Session : ${payload.details.session || 'Session 1'}`, { align: 'center' });
-    doc.moveDown(1.5);
+    // Ligne décorative
+    doc.rect(0, 100, doc.page.width, 3).fill('#fca5a5');
+    
+    doc.fillColor('#000000');
+    doc.moveDown(6);
+    
+    // Titre
+    const titleY = doc.y;
+    doc.roundedRect(80, titleY, doc.page.width - 160, 70, 5).lineWidth(2).stroke('#dc2626');
+    doc.fontSize(20).font('Helvetica-Bold').fillColor('#dc2626');
+    doc.text('RELEVÉ DE NOTES ET RÉSULTATS', 0, titleY + 12, { align: 'center' });
+    doc.fontSize(11).font('Helvetica').fillColor('#000000');
+    doc.text(`Année universitaire : ${payload.details.academic_year || '---'}`, 0, titleY + 38, { align: 'center' });
+    doc.text(`Session : ${payload.details.session || 'Session 1'}`, 0, titleY + 53, { align: 'center' });
+    
+    doc.moveDown(5);
 
-    // Informations étudiant dans un cadre
+    // Informations étudiant
     const studentY = doc.y;
-    doc.rect(80, studentY, 440, 80).fill('#f3f4f6').stroke('#d1d5db');
-    doc.moveDown(0.5);
+    doc.roundedRect(60, studentY, doc.page.width - 120, 90, 5).fill('#fef2f2').stroke('#fca5a5');
     
-    doc.fontSize(11).font('Helvetica-Bold').fillColor('#000');
-    doc.text('INFORMATIONS ÉTUDIANT', 90, doc.y, { align: 'left' });
-    doc.moveDown(0.8);
+    doc.fontSize(12).font('Helvetica-Bold').fillColor('#dc2626');
+    doc.text('INFORMATIONS ÉTUDIANT', 80, studentY + 12);
     
-    doc.font('Helvetica').fontSize(10);
-    doc.text(`Nom : ${payload.student.last_name || '---'}`, 90, doc.y);
-    doc.text(`Prénom : ${payload.student.first_name || '---'}`, 300, doc.y);
-    doc.moveDown(0.6);
+    doc.fontSize(10).font('Helvetica').fillColor('#000000');
+    const col1X = 80;
+    const col2X = 320;
+    let infoY = studentY + 35;
     
-    doc.text(`CNE : ${payload.student.cne || payload.student.apogee_number || '---'}`, 90, doc.y);
-    doc.text(`CIN : ${payload.student.cin || '---'}`, 300, doc.y);
-    doc.moveDown(0.6);
+    doc.text(`Nom : ${payload.student.last_name || '---'}`, col1X, infoY);
+    doc.text(`Prénom : ${payload.student.first_name || '---'}`, col2X, infoY);
+    infoY += 18;
     
-    doc.text(`Inscrit en : ${payload.details.level || '---'} - ${payload.details.program || '---'}`, 90, doc.y);
+    doc.text(`CNE : ${payload.student.cne || payload.student.apogee_number || '---'}`, col1X, infoY);
+    doc.text(`CIN : ${payload.student.cin || '---'}`, col2X, infoY);
+    infoY += 18;
     
-    doc.y = studentY + 90;
+    doc.text(`Inscrit en : ${payload.details.level || '---'} - ${payload.details.program || '---'}`, col1X, infoY);
+    
+    doc.y = studentY + 100;
     doc.moveDown(1);
 
-    // Tableau des notes avec style amélioré
+    // Tableau des notes
     const tableTop = doc.y;
     const colModuleX = 80;
-    const colNoteX = 450;
+    const colNoteX = 470;
+    const tableWidth = colNoteX - colModuleX + 50;
     
-    // En-tête du tableau avec style rouge
-    doc.rect(colModuleX - 5, tableTop - 5, colNoteX - colModuleX + 10, 25).fill('#dc2626');
+    // En-tête du tableau
+    doc.roundedRect(colModuleX, tableTop, tableWidth, 30, 3).fill('#dc2626');
     doc.fontSize(12).font('Helvetica-Bold').fillColor('#ffffff');
-    doc.text('MODULE', colModuleX, tableTop + 5);
-    doc.text('NOTE/20', colNoteX, tableTop + 5);
-    doc.fillColor('#000');
+    doc.text('MODULE', colModuleX + 10, tableTop + 10);
+    doc.text('NOTE/20', colNoteX, tableTop + 10);
 
-    // Ligne de séparation
-    doc.moveTo(colModuleX - 5, tableTop + 20).lineTo(colNoteX + 5, tableTop + 20).stroke('#dc2626');
-
-    let y = tableTop + 30;
+    let y = tableTop + 35;
     let total = 0;
     const modules = Array.isArray(payload.details.modules) ? payload.details.modules : [];
     
@@ -295,218 +352,314 @@ const buildTranscript = (doc, payload) => {
         const grade = Number(m.grade || 0);
         total += grade;
         
-        // Alternance de couleurs pour les lignes
+        // Alternance de couleurs
         if (idx % 2 === 0) {
-            doc.rect(colModuleX - 5, y - 5, colNoteX - colModuleX + 10, 20).fill('#f9fafb');
+            doc.roundedRect(colModuleX, y - 3, tableWidth, 22, 2).fill('#fef2f2');
         }
         
-        doc.font('Helvetica').fontSize(10).fillColor('#000');
-        doc.text(`${idx + 1}. ${m.name || 'Module ' + (idx + 1)}`, colModuleX, y);
+        doc.fontSize(10).font('Helvetica').fillColor('#000000');
+        doc.text(`${idx + 1}. ${m.name || 'Module ' + (idx + 1)}`, colModuleX + 10, y, { 
+            width: colNoteX - colModuleX - 70 
+        });
         doc.font('Helvetica-Bold').text(grade.toFixed(2), colNoteX, y);
-        y += 20;
+        y += 22;
     });
 
-    const average = modules.length > 0 ? (total / modules.length).toFixed(2) : '0';
+    const average = modules.length > 0 ? (total / modules.length).toFixed(2) : '0.00';
     const isAdmitted = parseFloat(average) >= 10;
 
-    // Ligne de séparation avant le total
-    doc.moveTo(colModuleX - 5, y).lineTo(colNoteX + 5, y).stroke('#dc2626');
-    y += 10;
+    // Ligne totale
+    doc.moveTo(colModuleX, y + 5).lineTo(colModuleX + tableWidth, y + 5).lineWidth(2).stroke('#dc2626');
+    y += 12;
     
-    // Total dans un cadre bleu foncé (comme dans l'image)
-    const totalY = y;
-    doc.rect(colModuleX - 5, totalY - 5, colNoteX - colModuleX + 10, 25).fill('#1e3a8a').stroke('#1e40af');
-    doc.font('Helvetica-Bold').fontSize(11).fillColor('#ffffff');
-    doc.text(`TOTAL : ${total.toFixed(2)}`, colModuleX, totalY + 5);
-    doc.text(`MOYENNE : ${average}/20`, colNoteX, totalY + 5);
+    // Totaux avec résultat
+    doc.roundedRect(colModuleX, y, tableWidth, 50, 3).fill('#1e3a8a');
+    doc.fontSize(11).font('Helvetica-Bold').fillColor('#ffffff');
+    doc.text(`TOTAL : ${total.toFixed(2)}`, colModuleX + 10, y + 10);
+    doc.text(`MOYENNE : ${average}/20`, colModuleX + 10, y + 28);
     
-    // Résultat en vert à droite du total (aligné horizontalement)
-    doc.fillColor('#059669');
-    doc.fontSize(12).font('Helvetica-Bold');
-    const resultX = colNoteX + 30;
-    doc.text(`Résultat :`, resultX, totalY);
-    doc.text(`${isAdmitted ? 'ADMIS(E)' : 'AJOURNÉ(E)'}`, resultX, totalY + 15);
-    doc.fillColor('#000');
+    // Résultat
+    const resultColor = isAdmitted ? '#10b981' : '#ef4444';
+    doc.roundedRect(colNoteX - 80, y + 5, 100, 40, 3).fill(resultColor);
+    doc.fontSize(10).font('Helvetica-Bold').fillColor('#ffffff');
+    doc.text('Résultat :', colNoteX - 70, y + 10, { align: 'center', width: 80 });
+    doc.fontSize(12);
+    doc.text(isAdmitted ? 'ADMIS(E)' : 'AJOURNÉ(E)', colNoteX - 70, y + 25, { align: 'center', width: 80 });
     
-    doc.y = totalY + 30;
+    doc.y = y + 60;
+    doc.fillColor('#000000');
     doc.moveDown(2);
-    doc.fontSize(10).font('Helvetica').text(`Fait à Marrakech, le ${payload.issuedAt}`, { align: 'right' });
-    doc.moveDown(0.5);
-    doc.font('Helvetica-Bold').text('Le Doyen', { align: 'right' });
-    doc.moveDown(1);
+    
+    doc.fontSize(11).font('Helvetica');
+    doc.text(`Fait à Marrakech, le ${payload.issuedAt}`, doc.page.width - 250, doc.y);
+    
+    doc.moveDown(1.5);
+    doc.font('Helvetica-Bold');
+    doc.text('Le Doyen', doc.page.width - 250, doc.y);
 
-    addFooterNote(doc, 'Document généré automatiquement. Vérifier les notes avant validation finale.');
+    addFooterNote(
+        doc, 
+        'Document généré automatiquement. Vérifier les notes avant validation finale.'
+    );
 };
 
 const buildInternship = (doc, payload) => {
     const details = payload.details;
     
-    // En-tête avec style amélioré
-    doc.rect(50, 50, 500, 80).stroke('#1e40af');
-    doc.fontSize(14).font('Helvetica-Bold').fillColor('#1e40af');
-    doc.text('ROYAUME DU MAROC', 60, 60, { align: 'left' });
-    doc.text('Ministère de l\'Enseignement Supérieur', 60, 75, { align: 'left' });
+    // En-tête élégant
+    doc.roundedRect(40, 40, doc.page.width - 80, 90, 5).lineWidth(2).stroke('#1e40af');
+    
+    doc.fontSize(15).font('Helvetica-Bold').fillColor('#1e40af');
+    doc.text('ROYAUME DU MAROC', 60, 55);
     doc.fontSize(12);
-    doc.text('École Nationale des Sciences Appliquées', 60, 90, { align: 'left' });
-    doc.fontSize(10).font('Helvetica').fillColor('#000');
-    doc.text(`Date : ${payload.issuedAt}`, 480, 65, { align: 'right' });
+    doc.text('Ministère de l\'Enseignement Supérieur', 60, 73);
+    doc.fontSize(11).font('Helvetica');
+    doc.text('de la Recherche Scientifique et de l\'Innovation', 60, 88);
+    doc.fontSize(10).font('Helvetica-Bold');
+    doc.text('École Nationale des Sciences Appliquées', 60, 105);
+    
+    doc.fontSize(9).font('Helvetica').fillColor('#666666');
+    doc.text(`Date : ${payload.issuedAt}`, doc.page.width - 160, 55, { align: 'right' });
 
-    doc.moveDown(3);
-    doc.fontSize(18).font('Helvetica-Bold').fillColor('#000').text('CONVENTION DE STAGE', { align: 'center' });
-    doc.moveDown(0.5);
-    doc.fontSize(10).font('Helvetica').text('(Conforme aux dispositions réglementaires en vigueur)', { align: 'center' });
+    doc.fillColor('#000000');
+    doc.moveDown(8);
+    
+    // Titre
+    doc.fontSize(20).font('Helvetica-Bold').fillColor('#1e40af');
+    doc.text('CONVENTION DE STAGE', 0, doc.y, { align: 'center' });
+    doc.fontSize(9).font('Helvetica-Oblique').fillColor('#666666');
+    doc.text('(Conforme aux dispositions réglementaires en vigueur)', 0, doc.y + 5, { align: 'center' });
+    
+    doc.fillColor('#000000');
     doc.moveDown(2);
 
-    // Partie 1 : Identification des parties
-    doc.fontSize(12).font('Helvetica-Bold').text('ARTICLE 1 - IDENTIFICATION DES PARTIES', { underline: true });
+    // ARTICLE 1
+    doc.fontSize(11).font('Helvetica-Bold').fillColor('#1e40af');
+    doc.text('ARTICLE 1 - IDENTIFICATION DES PARTIES', 60, doc.y, { underline: true });
     doc.moveDown(0.5);
     
-    doc.font('Helvetica-Bold').text('ENTRE :');
-    doc.font('Helvetica').text(
-        `L'École Nationale des Sciences Appliquées (ENSA), établissement d'enseignement supérieur,\n` +
-        `représentée par son Directeur, d'une part.`
+    doc.fontSize(10).font('Helvetica-Bold').fillColor('#000000');
+    doc.text('ENTRE :', 60, doc.y);
+    doc.moveDown(0.3);
+    doc.font('Helvetica');
+    doc.text(
+        'L\'École Nationale des Sciences Appliquées (ENSA), établissement d\'enseignement supérieur, représentée par son Directeur, d\'une part.',
+        60, doc.y,
+        { align: 'justify', width: doc.page.width - 120, lineGap: 2 }
     );
     doc.moveDown(0.8);
     
-    doc.font('Helvetica-Bold').text('ET :');
-    doc.font('Helvetica').text(
+    doc.font('Helvetica-Bold');
+    doc.text('ET :', 60, doc.y);
+    doc.moveDown(0.3);
+    doc.font('Helvetica');
+    doc.text(
         `${details.company_legal_name || details.company_name || '---'}\n` +
         `Raison sociale : ${details.company_legal_name || details.company_name || '---'}\n` +
-        `Adresse : ${details.company_address || '---'}\n` +
-        `${details.company_city ? `Ville : ${details.company_city}\n` : ''}` +
-        `Téléphone : ${details.company_phone || '---'}\n` +
-        `Email : ${details.company_email || '---'}\n` +
-        `Secteur d'activité : ${details.company_sector || '---'}\n` +
-        `Représentée par : ${details.company_representative_name || '---'}, ${details.company_representative_function || '---'}, d'autre part.`
+        `Adresse : ${details.company_address || '---'}${details.company_city ? ', ' + details.company_city : ''}\n` +
+        `Téléphone : ${details.company_phone || '---'} | Email : ${details.company_email || '---'}\n` +
+        `Secteur d\'activité : ${details.company_sector || '---'}\n` +
+        `Représentée par : ${details.company_representative_name || '---'}, ${details.company_representative_function || '---'}, d\'autre part.`,
+        60, doc.y,
+        { align: 'left', width: doc.page.width - 120, lineGap: 3 }
     );
     doc.moveDown(1);
 
-    // Partie 2 : Stagiaire
-    doc.fontSize(12).font('Helvetica-Bold').text('ARTICLE 2 - IDENTIFICATION DU STAGIAIRE', { underline: true });
+    // ARTICLE 2
+    doc.fontSize(11).font('Helvetica-Bold').fillColor('#1e40af');
+    doc.text('ARTICLE 2 - IDENTIFICATION DU STAGIAIRE', 60, doc.y, { underline: true });
     doc.moveDown(0.5);
-    doc.font('Helvetica').text(
+    doc.fontSize(10).font('Helvetica').fillColor('#000000');
+    doc.text(
         `Nom et Prénom : ${formatName(payload.student)}\n` +
         `CIN : ${payload.student.cin || '---'}\n` +
         `Code Apogée : ${payload.student.apogee_number || '---'}\n` +
         `Filière : ${payload.student.filiere || payload.student.major || '---'}\n` +
-        `Niveau : ${payload.student.level || '---'}`
+        `Niveau : ${payload.student.level || '---'}`,
+        60, doc.y,
+        { lineGap: 3 }
     );
     doc.moveDown(1);
 
-    // Partie 3 : Objet et sujet
-    doc.fontSize(12).font('Helvetica-Bold').text('ARTICLE 3 - OBJET DU STAGE', { underline: true });
+    // ARTICLE 3
+    doc.fontSize(11).font('Helvetica-Bold').fillColor('#1e40af');
+    doc.text('ARTICLE 3 - OBJET DU STAGE', 60, doc.y, { underline: true });
     doc.moveDown(0.5);
-    doc.font('Helvetica').text(
-        `Le présent stage a pour objet de permettre au stagiaire d'acquérir une expérience professionnelle\n` +
-        `dans le domaine de ${payload.student.filiere || payload.student.major || '---'}.\n\n` +
-        `Sujet du stage : ${details.internship_subject || details.internship_title || '---'}`
+    doc.fontSize(10).font('Helvetica').fillColor('#000000');
+    doc.text(
+        `Le présent stage a pour objet de permettre au stagiaire d\'acquérir une expérience professionnelle dans le domaine de ${payload.student.filiere || payload.student.major || '---'}.`,
+        60, doc.y,
+        { align: 'justify', width: doc.page.width - 120, lineGap: 2 }
     );
+    doc.moveDown(0.5);
+    doc.font('Helvetica-Bold');
+    doc.text(`Sujet du stage : `, 60, doc.y, { continued: true });
+    doc.font('Helvetica');
+    doc.text(details.internship_subject || details.internship_title || '---');
     doc.moveDown(1);
 
-    // Partie 4 : Encadrement
-    doc.fontSize(12).font('Helvetica-Bold').text('ARTICLE 4 - ENCADREMENT', { underline: true });
+    // ARTICLE 4
+    doc.fontSize(11).font('Helvetica-Bold').fillColor('#1e40af');
+    doc.text('ARTICLE 4 - ENCADREMENT', 60, doc.y, { underline: true });
     doc.moveDown(0.5);
-    doc.font('Helvetica').text(
-        `L'encadrement du stagiaire est assuré par :\n\n` +
-        `Au sein de l'entreprise :\n` +
+    doc.fontSize(10).font('Helvetica').fillColor('#000000');
+    doc.text('L\'encadrement du stagiaire est assuré par :', 60, doc.y);
+    doc.moveDown(0.5);
+    
+    doc.font('Helvetica-Bold').text('Au sein de l\'entreprise :', 80, doc.y);
+    doc.font('Helvetica');
+    doc.text(
         `- Nom : ${details.supervisor_name || '---'}\n` +
         `- Fonction : ${details.supervisor_role || '---'}\n` +
         `- Téléphone : ${details.supervisor_phone || '---'}\n` +
-        `- Email : ${details.supervisor_email || '---'}\n\n` +
-        `Au sein de l'ENSA :\n` +
-        `- Encadrant pédagogique : ${details.ensa_supervisor_name || '---'}`
+        `- Email : ${details.supervisor_email || '---'}`,
+        80, doc.y + 15,
+        { lineGap: 2 }
     );
+    doc.moveDown(0.5);
+    
+    doc.font('Helvetica-Bold').text('Au sein de l\'ENSA :', 80, doc.y);
+    doc.font('Helvetica');
+    doc.text(`- Encadrant pédagogique : ${details.ensa_supervisor_name || '---'}`, 80, doc.y + 15);
     doc.moveDown(1);
 
-    // Partie 5 : Période
-    doc.fontSize(12).font('Helvetica-Bold').text('ARTICLE 5 - PÉRIODE DU STAGE', { underline: true });
+    // ARTICLE 5
+    doc.fontSize(11).font('Helvetica-Bold').fillColor('#1e40af');
+    doc.text('ARTICLE 5 - PÉRIODE DU STAGE', 60, doc.y, { underline: true });
     doc.moveDown(0.5);
     const startDate = details.start_date ? new Date(details.start_date).toLocaleDateString('fr-FR') : '---';
     const endDate = details.end_date ? new Date(details.end_date).toLocaleDateString('fr-FR') : '---';
-    doc.font('Helvetica').text(
-        `Le stage se déroulera du ${startDate} au ${endDate}.`
-    );
+    doc.fontSize(10).font('Helvetica').fillColor('#000000');
+    doc.text(`Le stage se déroulera du ${startDate} au ${endDate}.`, 60, doc.y);
     doc.moveDown(1);
 
-    // Partie 6 : Engagements
-    doc.fontSize(12).font('Helvetica-Bold').text('ARTICLE 6 - ENGAGEMENTS', { underline: true });
+    // ARTICLE 6
+    doc.fontSize(11).font('Helvetica-Bold').fillColor('#1e40af');
+    doc.text('ARTICLE 6 - ENGAGEMENTS', 60, doc.y, { underline: true });
     doc.moveDown(0.5);
-    doc.font('Helvetica').text(
-        `Le stagiaire s'engage à :\n` +
-        `- Respecter le règlement intérieur de l'entreprise\n` +
-        `- Respecter les horaires de travail\n` +
-        `- Signaler toute absence\n` +
-        `- Respecter la confidentialité des informations\n` +
-        `- Rédiger un rapport de stage à l'issue de la période`
-    );
-    doc.moveDown(2);
+    doc.fontSize(10).font('Helvetica').fillColor('#000000');
+    doc.text('Le stagiaire s\'engage à :', 60, doc.y);
+    doc.list([
+        'Respecter le règlement intérieur de l\'entreprise',
+        'Respecter les horaires de travail convenus',
+        'Signaler toute absence dans les délais',
+        'Respecter la confidentialité des informations',
+        'Rédiger et soutenir un rapport de stage à l\'issue de la période'
+    ], 80, doc.y + 15, { bulletRadius: 2, lineGap: 3 });
+    
+    doc.moveDown(3);
 
     // Signatures
-    doc.moveTo(50, doc.y).lineTo(550, doc.y).stroke();
+    doc.moveTo(60, doc.y).lineTo(doc.page.width - 60, doc.y).lineWidth(1.5).stroke('#1e40af');
     doc.moveDown(1);
-    doc.fontSize(10).font('Helvetica').text('Signatures :', { underline: true });
+    
+    doc.fontSize(10).font('Helvetica-Bold').fillColor('#1e40af');
+    doc.text('SIGNATURES', 60, doc.y);
     doc.moveDown(1);
-    doc.text('Le stagiaire', 60, doc.y);
-    doc.text('Le représentant de l\'entreprise', 350, doc.y);
+    
+    doc.fontSize(9).font('Helvetica-Bold').fillColor('#000000');
+    const sigY = doc.y;
+    doc.text('Le stagiaire', 80, sigY);
+    doc.text('Le représentant de l\'entreprise', 340, sigY);
+    
     doc.moveDown(2);
-    doc.text(formatName(payload.student), 60, doc.y);
-    doc.text(details.company_representative_name || '---', 350, doc.y);
-    doc.moveDown(3);
-    doc.text('L\'encadrant pédagogique ENSA', 60, doc.y);
-    doc.text('Le Directeur de l\'ENSA', 350, doc.y);
+    doc.fontSize(9).font('Helvetica');
+    doc.text(formatName(payload.student), 80, doc.y);
+    doc.text(details.company_representative_name || '---', 340, doc.y);
+    
+    doc.moveDown(2.5);
+    
+    doc.fontSize(9).font('Helvetica-Bold');
+    const encY = doc.y;
+    doc.text('L\'encadrant pédagogique ENSA', 80, encY);
+    doc.text('Le Directeur de l\'ENSA', 340, encY);
+    
     doc.moveDown(2);
-    doc.text(details.ensa_supervisor_name || '---', 60, doc.y);
-    doc.moveDown(1);
-    doc.text(`Fait à ${details.company_city || 'Tétouan'}, le ${payload.issuedAt}`, { align: 'center' });
+    doc.fontSize(9).font('Helvetica');
+    doc.text(details.ensa_supervisor_name || '---', 80, doc.y);
+    
+    doc.moveDown(2);
+    doc.fontSize(9).font('Helvetica').fillColor('#666666');
+    doc.text(
+        `Fait à ${details.company_city || 'Tétouan'}, le ${payload.issuedAt}`, 
+        0, doc.y, 
+        { align: 'center' }
+    );
 
-    addFooterNote(doc, 'La présente convention est établie en deux exemplaires, un pour chaque partie.');
+    addFooterNote(
+        doc, 
+        'La présente convention est établie en deux exemplaires originaux, un pour chaque partie.'
+    );
 };
 
 const createPdf = (docType, payload, absolutePath) => new Promise((resolve, reject) => {
-    const doc = new PDFDocument({ margin: 50 });
-    const stream = fs.createWriteStream(absolutePath);
-    doc.pipe(stream);
+    try {
+        const doc = new PDFDocument({ 
+            margin: 50,
+            size: 'A4',
+            bufferPages: true
+        });
+        
+        const stream = fs.createWriteStream(absolutePath);
+        doc.pipe(stream);
 
-    switch (docType) {
-        case 'school-certificate':
-            buildSchoolCertificate(doc, payload);
-            break;
-        case 'success-certificate':
-            buildSuccessCertificate(doc, payload);
-            break;
-        case 'transcript':
-            buildTranscript(doc, payload);
-            break;
-        case 'internship':
-            buildInternship(doc, payload);
-            break;
-        default:
-            doc.fontSize(16).text('Document non supporté', { align: 'center' });
+        switch (docType) {
+            case 'school-certificate':
+                buildSchoolCertificate(doc, payload);
+                break;
+            case 'success-certificate':
+                buildSuccessCertificate(doc, payload);
+                break;
+            case 'transcript':
+                buildTranscript(doc, payload);
+                break;
+            case 'internship':
+                buildInternship(doc, payload);
+                break;
+            default:
+                doc.fontSize(16).font('Helvetica-Bold').fillColor('#dc2626');
+                doc.text('Document non supporté', { align: 'center' });
+                doc.moveDown(1);
+                doc.fontSize(12).font('Helvetica').fillColor('#000000');
+                doc.text(`Type de document demandé : ${docType}`, { align: 'center' });
+        }
+
+        doc.end();
+
+        stream.on('finish', () => resolve());
+        stream.on('error', (err) => reject(err));
+    } catch (error) {
+        reject(error);
     }
-
-    doc.end();
-
-    stream.on('finish', resolve);
-    stream.on('error', reject);
 });
 
 const generateDocument = async ({ docType, student, details = {}, reference, variant = 'draft' }) => {
-    const resolvedDetails = resolveDetails(docType, details);
-    const payload = {
-        student,
-        details: resolvedDetails,
-        issuedAt: new Date().toLocaleDateString('fr-FR'),
-        label: DOC_LABELS[docType] || 'Document'
-    };
+    try {
+        const resolvedDetails = resolveDetails(docType, details);
+        const payload = {
+            student,
+            details: resolvedDetails,
+            issuedAt: new Date().toLocaleDateString('fr-FR'),
+            label: DOC_LABELS[docType] || 'Document'
+        };
 
-    const filename = `${reference}-${variant}.pdf`;
-    const targetDir = variant === 'final' ? finalDir : draftDir;
-    const absolutePath = path.join(targetDir, filename);
-    const publicPath = `/uploads/${variant === 'final' ? 'final' : 'generated'}/${filename}`;
+        const filename = `${reference}-${variant}.pdf`;
+        const targetDir = variant === 'final' ? finalDir : draftDir;
+        const absolutePath = path.join(targetDir, filename);
+        const publicPath = `/uploads/${variant === 'final' ? 'final' : 'generated'}/${filename}`;
 
-    await createPdf(docType, payload, absolutePath);
+        await createPdf(docType, payload, absolutePath);
 
-    return { absolutePath, publicPath, details: resolvedDetails };
+        return { 
+            absolutePath, 
+            publicPath, 
+            details: resolvedDetails,
+            success: true
+        };
+    } catch (error) {
+        console.error('Erreur lors de la génération du document:', error);
+        throw error;
+    }
 };
 
 module.exports = {
