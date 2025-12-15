@@ -304,7 +304,7 @@ const buildTranscript = (doc, payload) => {
     doc.rect(0, 100, doc.page.width, 3).fill('#fca5a5');
     
     doc.fillColor('#000000');
-    doc.moveDown(6);
+    doc.moveDown(2);
     
     // Titre
     const titleY = doc.y;
@@ -315,7 +315,7 @@ const buildTranscript = (doc, payload) => {
     doc.text(`Année universitaire : ${payload.details.academic_year || '---'}`, 0, titleY + 38, { align: 'center' });
     doc.text(`Session : ${payload.details.session || 'Session 1'}`, 0, titleY + 53, { align: 'center' });
     
-    doc.moveDown(5);
+    doc.moveDown(2);
 
     // Informations étudiant
     const studentY = doc.y;
@@ -391,18 +391,47 @@ const buildTranscript = (doc, payload) => {
     doc.moveTo(colModuleX, y + 5).lineTo(colModuleX + tableWidth, y + 5).lineWidth(2).stroke('#dc2626');
     y += 12;
     
-    // Totaux avec résultat
-    doc.roundedRect(colModuleX, y, tableWidth, 50, 3).fill('#1e3a8a');
-    doc.fontSize(11).font('Helvetica-Bold').fillColor('#ffffff');
-    doc.text(`MOYENNE : ${average}/20`, colModuleX + 10, y + 28);
-    
-    // Résultat
-    const resultColor = isAdmitted ? '#10b981' : '#ef4444';
-    doc.roundedRect(colNoteX - 80, y + 5, 100, 40, 3).fill(resultColor);
-    doc.fontSize(10).font('Helvetica-Bold').fillColor('#ffffff');
-    doc.text('Résultat :', colNoteX - 70, y + 10, { align: 'center', width: 80 });
-    doc.fontSize(12);
-    doc.text(isAdmitted ? 'ADMIS(E)' : 'AJOURNÉ(E)', colNoteX - 70, y + 25, { align: 'center', width: 80 });
+// --- Totaux + Résultat (stylé) ---
+const boxH = 46;
+
+// Bandeau moyenne (gauche)
+doc.roundedRect(colModuleX, y, tableWidth, boxH, 6).fill('#1e3a8a');
+
+// Centrage vertical pour "MOYENNE :"
+const textHeight = 11; // Hauteur approximative du texte fontSize 11
+const moyenneY = y + (boxH - textHeight) / 2;
+
+doc.font('Helvetica-Bold').fontSize(11).fillColor('#ffffff');
+doc.text('MOYENNE :', colModuleX + 12, moyenneY);
+
+// Centrage vertical pour la valeur de la moyenne
+const valueHeight = 13; // Hauteur approximative du texte fontSize 13
+const valueY = y + (boxH - valueHeight) / 2;
+
+doc.font('Helvetica-Bold').fontSize(13).fillColor('#ffffff');
+doc.text(`${average}/20`, colModuleX + 85, valueY);
+
+// Carte résultat (droite) — même ligne : "Résultat : ADMIS(E)"
+const resultColor = isAdmitted ? '#10b981' : '#ef4444';
+const resultW = 180;
+const resultBoxH = boxH - 14;
+const resultX = colModuleX + tableWidth - resultW - 10;
+const resultY = y + (boxH - resultBoxH) / 2; // Centré verticalement dans le bandeau
+
+doc.roundedRect(resultX, resultY, resultW, resultBoxH, 8).fill(resultColor);
+
+// Centrage vertical du texte dans la carte résultat
+const resultTextHeight = 11;
+const resultTextY = resultY + (resultBoxH - resultTextHeight) / 2;
+
+doc.font('Helvetica-Bold').fontSize(11).fillColor('#ffffff');
+doc.text(
+  `Résultat : ${isAdmitted ? 'ADMIS(E)' : 'AJOURNÉ(E)'}`,
+  resultX,
+  resultTextY,
+  { width: resultW, align: 'center' }
+);
+
     
     doc.y = y + 60;
     doc.fillColor('#000000');
@@ -551,7 +580,7 @@ const buildInternship = (doc, payload) => {
     // ARTICLE 5
     doc.fontSize(11).font('Helvetica-Bold').fillColor('#1e40af');
     doc.text('ARTICLE 5 - PÉRIODE DU STAGE', 60, doc.y, { underline: true });
-    doc.moveDown(0.5);
+    doc.moveDown(1);
     const startDate = details.start_date ? new Date(details.start_date).toLocaleDateString('fr-FR') : '---';
     const endDate = details.end_date ? new Date(details.end_date).toLocaleDateString('fr-FR') : '---';
     doc.fontSize(10).font('Helvetica').fillColor('#000000');
@@ -603,7 +632,7 @@ const buildInternship = (doc, payload) => {
     doc.fontSize(9).font('Helvetica');
     doc.text(details.ensa_supervisor_name || '---', 80, doc.y);
     
-    doc.moveDown(2);
+    doc.moveDown(4);
     doc.fontSize(9).font('Helvetica').fillColor('#666666');
     doc.text(
         `Fait à 'Tétouan', le ${payload.issuedAt}`, 
