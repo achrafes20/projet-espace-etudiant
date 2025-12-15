@@ -35,7 +35,7 @@ const AdminSidebar = () => {
                     </div>
                     <div>
                         <h2 className="font-bold text-gray-900 leading-tight">Admin Panel</h2>
-                        <p className="text-xs text-gray-500 font-medium">Student Services</p>
+                        <p className="text-xs text-gray-500 font-medium">Services étudiants</p>
                     </div>
                 </div>
             </div>
