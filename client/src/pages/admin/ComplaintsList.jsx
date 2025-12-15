@@ -11,6 +11,15 @@ const parseDetails = (raw) => {
     }
 };
 
+const DOC_TYPE_LABELS = {
+    'school-certificate': 'Attestation de scolarité',
+    'success-certificate': 'Attestation de réussite',
+    transcript: 'Relevé de notes',
+    internship: 'Convention de stage'
+};
+
+const formatDocType = (docType) => DOC_TYPE_LABELS[docType] || docType;
+
 const ComplaintsList = () => {
     const [complaints, setComplaints] = useState([]);
     const [selectedComplaint, setSelectedComplaint] = useState(null);
@@ -903,7 +912,7 @@ const ComplaintsList = () => {
                                     <div className="grid md:grid-cols-2 gap-3 text-sm">
                                         <div>
                                             <span className="font-semibold text-gray-700">Type de document :</span>
-                                            <span className="ml-2 text-gray-600 capitalize">{selectedComplaint.document_type?.replace('-', ' ')}</span>
+                                    <span className="ml-2 text-gray-600 capitalize">{formatDocType(selectedComplaint.document_type)}</span>
                                         </div>
                                         <div>
                                             <span className="font-semibold text-gray-700">Référence :</span>

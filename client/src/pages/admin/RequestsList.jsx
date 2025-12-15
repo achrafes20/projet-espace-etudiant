@@ -12,6 +12,15 @@ const parseDetails = (raw) => {
     }
 };
 
+const DOC_TYPE_LABELS = {
+    'school-certificate': 'Attestation de scolarité',
+    'success-certificate': 'Attestation de réussite',
+    transcript: 'Relevé de notes',
+    internship: 'Convention de stage'
+};
+
+const formatDocType = (docType) => DOC_TYPE_LABELS[docType] || docType;
+
 // Fonction helper pour normaliser et comparer les statuts
 const normalizeStatus = (status) => {
     if (!status) return '';
@@ -958,7 +967,7 @@ const RequestsList = () => {
                                     {req.first_name} {req.last_name}
                                     <div className="text-xs text-gray-500">Apogée: {req.apogee_number}</div>
                                 </td>
-                                <td className="px-6 py-4 text-sm text-gray-600 capitalize">{req.document_type.replace('-', ' ')}</td>
+                                <td className="px-6 py-4 text-sm text-gray-600 capitalize">{formatDocType(req.document_type)}</td>
                                 <td className="px-6 py-4">
                                     <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(req.status)}`}>
                                         {req.status}
@@ -1027,7 +1036,7 @@ const RequestsList = () => {
                                     </div>
                                     <div>
                                         <span className="font-semibold text-gray-700">Type de document :</span>
-                                        <span className="ml-2 text-gray-600 capitalize">{selectedRequest.document_type.replace('-', ' ')}</span>
+                                        <span className="ml-2 text-gray-600 capitalize">{formatDocType(selectedRequest.document_type)}</span>
                                     </div>
                                 </div>
                                 <div className="mt-4 flex gap-3">
