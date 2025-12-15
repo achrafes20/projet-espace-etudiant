@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeftIcon, MagnifyingGlassIcon, CheckCircleIcon, XCircleIcon } from '@heroicons/react/24/outline';
@@ -16,6 +15,7 @@ const StatusCheck = () => {
         reference: 'neutral',
         email: 'neutral'
     });
+
     const handleBlur = async (field) => {
         const value = formData[field];
         if (!value) {
@@ -59,17 +59,27 @@ const StatusCheck = () => {
         if (status === 'invalid') return <XCircleIcon className="h-6 w-6 text-red-500" />;
         return null;
     };
+
+    const documentTypeLabels = {
+        'school-certificate': 'Attestation de scolarité',
+        'success-certificate': 'Attestation de réussite',
+        transcript: 'Relevé de notes',
+        internship: 'Convention de stage'
+    };
+
+    const formatDocType = (type) => documentTypeLabels[type] || type;
+
     return (
         <div className="min-h-screen flex flex-col bg-gray-50">
             <Header />
-            <main className="flex-1 max-w-2xl mx-auto px-4 py-12 w-full">
-                <button onClick={() => navigate('/')} className="text-primary-600 hover:text-primary-700 font-medium mb-8 flex items-center transition-colors">
+            <main className="flex-1 max-w-2xl mx-auto px-4 py-12 w-full space-y-8">
+                <button onClick={() => navigate('/')} className="text-primary-600 hover:text-primary-700 font-medium flex items-center transition-colors">
                     <ArrowLeftIcon className="h-5 w-5 mr-2" /> Retour au Portail
                 </button>
 
-                <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 mb-8">
-                    <h2 className="text-2xl font-bold text-gray-900 mb-6">Suivre ma Demande</h2>
-                    <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 space-y-6">
+                    <h2 className="text-3xl font-bold text-gray-900">Suivre ma Demande</h2>
+                    <form onSubmit={handleSubmit} className="space-y-6">
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">Référence de la Demande</label>
                             <div className="relative">
@@ -86,7 +96,7 @@ const StatusCheck = () => {
                                     {getIcon(fieldStatus.reference)}
                                 </div>
                             </div>
-                            {fieldStatus.reference === 'invalid' && <p className="text-red-500 text-sm mt-1">Référence introuvable.</p>}
+                            {fieldStatus.reference === 'invalid' && <p className="text-red-600 text-sm mt-2">Référence introuvable.</p>}
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">Adresse Email</label>
@@ -104,12 +114,12 @@ const StatusCheck = () => {
                                     {getIcon(fieldStatus.email)}
                                 </div>
                             </div>
-                            {fieldStatus.email === 'invalid' && <p className="text-red-500 text-sm mt-1">Email introuvable.</p>}
+                            {fieldStatus.email === 'invalid' && <p className="text-red-600 text-sm mt-2">Email introuvable.</p>}
                         </div>
                         <button
                             type="submit"
                             disabled={loading || fieldStatus.email === 'invalid' || fieldStatus.reference === 'invalid'}
-                            className="w-full bg-gray-900 hover:bg-gray-800 text-white font-medium py-3 rounded-lg transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="w-full bg-primary-600 hover:bg-primary-700 text-white font-semibold py-3 rounded-lg transition-all shadow-lg shadow-primary-500/30 flex items-center justify-center disabled:opacity-60 disabled:cursor-not-allowed disabled:shadow-none"
                         >
                             {loading ? 'Vérification...' : (
                                 <>
@@ -118,14 +128,14 @@ const StatusCheck = () => {
                             )}
                         </button>
                     </form>
-                    {error && <div className="mt-4 text-red-500 text-sm bg-red-50 p-3 rounded-lg">{error}</div>}
+                    {error && <div className="text-red-600 text-sm bg-red-50 border border-red-100 p-3 rounded-lg">{error}</div>}
                 </div>
 
                 {result && (
-                    <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-8 animate-fade-in">
-                        <div className="flex items-center justify-between mb-6">
+                    <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 space-y-6">
+                        <div className="flex items-center justify-between">
                             <div>
-                                <h3 className="text-xl font-bold text-gray-900">{result.document_type}</h3>
+                                <h3 className="text-xl font-bold text-gray-900">{formatDocType(result.document_type)}</h3>
                                 <p className="text-sm text-gray-500">Réf: {result.reference}</p>
                             </div>
                             <span className={`px-4 py-2 rounded-full text-sm font-bold ${result.status === 'En attente' ? 'bg-yellow-100 text-yellow-800' :
@@ -153,7 +163,7 @@ const StatusCheck = () => {
                                 <div className="bg-green-50 p-4 rounded-lg border border-green-100">
                                     <p className="text-sm font-bold text-green-800 mb-1">Statut du Document</p>
                                     <p className="text-green-700">
-                                        Votre document est prêt. {result.document_path ? "Il a été envoyé sur votre email." : "Veuillez le récupérer au bureau de l'administration."}
+                                        Votre document est prêt. {result.document_path ? 'Il a été envoyé sur votre email.' : "Veuillez le récupérer au bureau de l'administration."}
                                     </p>
                                 </div>
                             )}

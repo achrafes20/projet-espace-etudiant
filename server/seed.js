@@ -270,12 +270,12 @@ const seedDatabase = async () => {
         // 2. Seed Students with full transcript_data
         const studentsData = [
             {
-                email: 'achraf.esserrar@etu.uae.ac.ma',
-                apogee: '22001234',
-                cin: 'EE9B6532',
-                cne: 'EE9B6532',
-                fName: 'ACHRAF',
-                lName: 'ES-SERRAR',
+                email: 'AKRAM.MAZARI@etu.uae.ac.ma',
+                apogee: '22789524',
+                cin: 'EE9B785',
+                cne: 'EE98965',
+                fName: 'AKRAM',
+                lName: 'MAZARI',
                 major: 'Génie Informatique',
                 level: '1ére année',
                 birth_date: '2001-01-01',
