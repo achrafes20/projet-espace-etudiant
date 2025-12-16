@@ -575,7 +575,7 @@ const buildInternship = (doc, payload) => {
     doc.font('Helvetica-Bold').text('Au sein de l\'ENSA :', 80, doc.y);
     doc.font('Helvetica');
     doc.text(`- Encadrant pédagogique : ${details.ensa_supervisor_name || '---'}`, 80, doc.y + 15);
-    doc.moveDown(1);
+    doc.moveDown(3);
 
     // ARTICLE 5
     doc.fontSize(11).font('Helvetica-Bold').fillColor('#1e40af');
