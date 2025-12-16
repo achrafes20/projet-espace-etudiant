@@ -90,7 +90,7 @@ npm run dev
 ---
 
 ## Structure et données
-- Base MySQL : tables `students`, `requests`, `complaints`, `administrators`, `action_history`, `email_notifications`
+- Base MySQL : tables `students`, `requests`, `complaints`, `administrators`
 - Données spécifiques par document stockées en JSON (année, session, entreprise, modules…)
 - Script `npm run seed` : crée un admin et des jeux d’essai étudiants/demandes/réclamations
 
@@ -109,3 +109,4 @@ npm run dev
 - Génération avancée de PDF (modèles brandés)
 - Webhooks de suivi ou notifications SMS
 - Internationalisation FR/EN
+

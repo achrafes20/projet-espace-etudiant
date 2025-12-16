@@ -29,6 +29,9 @@ export const checkStatus = (data) => api.post('/student/status', data);
 export const adminLogin = (data) => api.post('/admin/login', data);
 export const getDashboardStats = () => api.get('/admin/dashboard-stats');
 export const getRequests = (params) => api.get('/admin/requests', { params });
+export const getHistory = (params) => api.get('/admin/history', { params });
+export const exportHistory = (params) => api.get('/admin/history/export', { params, responseType: 'blob' });
+export const getRequestById = (id) => api.get(`/admin/requests/${id}`);
 export const updateRequestStatus = (id, data) => api.put(`/admin/requests/${id}`, data, {
     headers: { 'Content-Type': 'multipart/form-data' }
 });

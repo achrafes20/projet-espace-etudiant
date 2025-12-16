@@ -28,6 +28,9 @@ const upload = multer({
 router.post('/login', adminController.login);
 router.get('/dashboard-stats', adminController.getDashboardStats);
 router.get('/requests', adminController.getRequests);
+router.get('/history', adminController.getHistory);
+router.get('/history/export', adminController.exportHistory);
+router.get('/requests/:id', adminController.getRequestById);
 router.put('/requests/:id/draft', adminController.updateDraft);
 router.put('/requests/:id', upload.single('document'), adminController.updateRequestStatus);
 router.get('/complaints', adminController.getComplaints);

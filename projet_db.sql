@@ -1,6 +1,3 @@
--- Drop tables if they exist (in reverse dependency order)
-DROP TABLE IF EXISTS email_notifications;
-DROP TABLE IF EXISTS action_history;
 DROP TABLE IF EXISTS complaints;
 DROP TABLE IF EXISTS requests;
 DROP TABLE IF EXISTS administrators;
@@ -73,35 +70,6 @@ CREATE TABLE complaints (
     FOREIGN KEY (processed_by_admin_id) REFERENCES administrators(id)
 );
 
--- Action history table
-CREATE TABLE action_history (
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    admin_id INT,
-    action_type VARCHAR(50),
-    entity_type VARCHAR(50),
-    entity_id INT,
-    details JSON,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (admin_id) REFERENCES administrators(id)
-);
-
--- Email notifications table
-CREATE TABLE email_notifications (
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    recipient VARCHAR(100),
-    subject VARCHAR(200),
-    email_type VARCHAR(50),
-    request_id INT NULL,
-    complaint_id INT NULL,
-    email_content TEXT,
-    sent_at TIMESTAMP NULL,
-    status VARCHAR(20),
-    error_message TEXT NULL,
-    attempts INT DEFAULT 0,
-    FOREIGN KEY (request_id) REFERENCES requests(id),
-    FOREIGN KEY (complaint_id) REFERENCES complaints(id)
-);
-
 -- Indexes for better performance
 CREATE INDEX idx_students_email ON students(email);
 CREATE INDEX idx_students_apogee ON students(apogee_number);
@@ -109,4 +77,3 @@ CREATE INDEX idx_requests_student ON requests(student_id);
 CREATE INDEX idx_requests_status ON requests(status);
 CREATE INDEX idx_complaints_request ON complaints(request_id);
 CREATE INDEX idx_complaints_student ON complaints(student_id);
-CREATE INDEX idx_action_history_admin ON action_history(admin_id);

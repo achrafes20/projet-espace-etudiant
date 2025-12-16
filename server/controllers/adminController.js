@@ -4,6 +4,8 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const emailService = require('../services/emailService');
 const documentService = require('../services/documentService');
+const ExcelJS = require('exceljs');
+const PDFDocument = require('pdfkit');
 
 const parseDetails = (raw) => {
     if (!raw) return {};
@@ -15,6 +17,64 @@ const parseDetails = (raw) => {
 };
 
 const resolveUploadPublicPath = (filePath) => filePath ? `/uploads/${path.basename(filePath)}` : null;
+
+const buildRequestQuery = ({ status, type, search, dateFrom, dateTo, includePending = true }) => {
+    let query = `
+    SELECT r.*, s.first_name, s.last_name, s.apogee_number, s.email, s.cin, s.cne, s.transcript_data, s.level, s.major, s.birth_date, s.birth_place
+    FROM requests r 
+    JOIN students s ON r.student_id = s.id 
+    WHERE 1=1
+  `;
+    const params = [];
+
+    if (!includePending) {
+        query += ' AND r.status != "En attente"';
+    }
+
+    if (status && status !== 'all') {
+        query += ' AND r.status = ?';
+        params.push(status);
+    }
+
+    if (type && type !== 'all') {
+        query += ' AND r.document_type = ?';
+        params.push(type);
+    }
+
+    if (search) {
+        query += ' AND (r.reference LIKE ? OR s.last_name LIKE ? OR s.apogee_number LIKE ? OR s.first_name LIKE ?)';
+        params.push(`%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`);
+    }
+
+    if (dateFrom) {
+        query += ' AND DATE(r.submission_date) >= ?';
+        params.push(dateFrom);
+    }
+
+    if (dateTo) {
+        query += ' AND DATE(r.submission_date) <= ?';
+        params.push(dateTo);
+    }
+
+    query += ' ORDER BY r.submission_date DESC';
+
+    return { query, params };
+};
+
+const formatDate = (value) => {
+    if (!value) return '';
+    return new Date(value).toLocaleDateString('fr-FR');
+};
+
+const documentTypeLabel = (type) => {
+    const labels = {
+        'school-certificate': 'Attestation de scolarité',
+        'success-certificate': 'Attestation de réussite',
+        transcript: 'Relevé de notes',
+        internship: 'Convention de stage'
+    };
+    return labels[type] || type;
+};
 
 exports.login = async (req, res) => {
     const { email, password } = req.body;
@@ -104,34 +164,147 @@ exports.getDashboardStats = async (req, res) => {
 exports.getRequests = async (req, res) => {
     const { status, type, search } = req.query;
 
-    let query = `
-    SELECT r.*, s.first_name, s.last_name, s.apogee_number, s.email, s.cin, s.cne, s.transcript_data, s.level, s.major, s.birth_date, s.birth_place
-    FROM requests r 
-    JOIN students s ON r.student_id = s.id 
-    WHERE 1=1
-  `;
-    const params = [];
-
-    if (status && status !== 'all') {
-        query += ' AND r.status = ?';
-        params.push(status);
-    }
-
-    if (type && type !== 'all') {
-        query += ' AND r.document_type = ?';
-        params.push(type);
-    }
-
-    if (search) {
-        query += ' AND (r.reference LIKE ? OR s.last_name LIKE ? OR s.apogee_number LIKE ?)';
-        params.push(`%${search}%`, `%${search}%`, `%${search}%`);
-    }
-
-    query += ' ORDER BY r.submission_date DESC';
+    const { query, params } = buildRequestQuery({ status, type, search });
 
     try {
         const [requests] = await db.query(query, params);
         res.json(requests);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+exports.getHistory = async (req, res) => {
+    const { status, type, search, dateFrom, dateTo } = req.query;
+
+    const { query, params } = buildRequestQuery({
+        status,
+        type,
+        search,
+        dateFrom,
+        dateTo,
+        includePending: false
+    });
+
+    try {
+        const [requests] = await db.query(query, params);
+        res.json(requests);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+const exportHistoryToExcel = async (requests, res) => {
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Historique');
+
+    worksheet.columns = [
+        { header: '#', key: 'index', width: 6 },
+        { header: 'Référence', key: 'reference', width: 18 },
+        { header: 'Etudiant', key: 'student', width: 25 },
+        { header: 'Apogée', key: 'apogee', width: 12 },
+        { header: 'Email', key: 'email', width: 28 },
+        { header: 'Type', key: 'type', width: 20 },
+        { header: 'Statut', key: 'status', width: 12 },
+        { header: 'Soumission', key: 'submission', width: 16 },
+        { header: 'Traitement', key: 'processing', width: 16 },
+        { header: 'Remarque', key: 'remark', width: 30 }
+    ];
+
+    requests.forEach((req, index) => {
+        worksheet.addRow({
+            index: index + 1,
+            reference: req.reference,
+            student: `${req.first_name || ''} ${req.last_name || ''}`.trim(),
+            apogee: req.apogee_number || '',
+            email: req.email || '',
+            type: documentTypeLabel(req.document_type),
+            status: req.status,
+            submission: formatDate(req.submission_date),
+            processing: formatDate(req.processing_date),
+            remark: req.refusal_reason || (req.status === 'AcceptÇ¸' ? 'Document envoyé' : '')
+        });
+    });
+
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="historique-${new Date().toISOString().split('T')[0]}.xlsx"`);
+
+    await workbook.xlsx.write(res);
+    res.end();
+};
+
+const exportHistoryToPdf = (requests, res) => {
+    const doc = new PDFDocument({ margin: 40, size: 'A4' });
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="historique-${new Date().toISOString().split('T')[0]}.pdf"`);
+
+    doc.pipe(res);
+
+    doc.fontSize(18).text('Historique des demandes', { align: 'center' });
+    doc.moveDown();
+    doc.fontSize(10);
+
+    requests.forEach((req, idx) => {
+        doc.fillColor('#000').font('Helvetica-Bold').text(`${idx + 1}. ${req.reference} - ${documentTypeLabel(req.document_type)}`, { continued: false });
+        doc.font('Helvetica').text(`Etudiant: ${req.first_name || ''} ${req.last_name || ''} (${req.apogee_number || 'N/A'})`);
+        doc.text(`Statut: ${req.status} | Soumission: ${formatDate(req.submission_date)} | Traitement: ${formatDate(req.processing_date) || 'N/A'}`);
+        if (req.refusal_reason || req.status === 'RefusÇ¸') {
+            doc.text(`Motif: ${req.refusal_reason || 'Non précisé'}`);
+        }
+        doc.moveDown(0.75);
+
+        if ((idx + 1) % 4 === 0) {
+            doc.addPage();
+        }
+    });
+
+    doc.end();
+};
+
+exports.exportHistory = async (req, res) => {
+    const { status, type, search, dateFrom, dateTo, format } = req.query;
+
+    if (!['excel', 'pdf'].includes(format)) {
+        return res.status(400).json({ error: 'Format must be excel or pdf' });
+    }
+
+    const { query, params } = buildRequestQuery({
+        status,
+        type,
+        search,
+        dateFrom,
+        dateTo,
+        includePending: false
+    });
+
+    try {
+        const [requests] = await db.query(query, params);
+
+        if (format === 'excel') {
+            await exportHistoryToExcel(requests, res);
+        } else {
+            exportHistoryToPdf(requests, res);
+        }
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+exports.getRequestById = async (req, res) => {
+    const { id } = req.params;
+
+    const detailQuery = `
+        SELECT r.*, s.first_name, s.last_name, s.apogee_number, s.email, s.cin, s.cne, s.transcript_data, s.level, s.major, s.birth_date, s.birth_place
+        FROM requests r 
+        JOIN students s ON r.student_id = s.id 
+        WHERE r.id = ?
+        LIMIT 1
+    `;
+
+    try {
+        const [rows] = await db.query(detailQuery, [id]);
+        if (rows.length === 0) return res.status(404).json({ message: 'Demande introuvable' });
+        res.json(rows[0]);
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
@@ -241,11 +414,6 @@ exports.updateRequestStatus = async (req, res) => {
         params.push(id);
 
         await db.query(query, params);
-
-        await db.query(
-            'INSERT INTO action_history (admin_id, action_type, entity_type, entity_id, details) VALUES (?, ?, ?, ?, ?)',
-            [admin_id, status === 'Accepté' ? 'APPROVE_REQUEST' : 'REJECT_REQUEST', 'REQUEST', id, JSON.stringify({ status, reason: refusal_reason })]
-        );
 
         const { email, first_name, reference, document_type } = request;
         await emailService.sendRequestUpdate(email, first_name, reference, document_type, status, refusal_reason, finalDocumentPath);
