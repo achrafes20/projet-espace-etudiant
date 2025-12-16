@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { getRequests, updateRequestStatus, updateRequestDraft } from '../../services/api';
-import { CheckIcon, XMarkIcon, ArrowPathIcon, DocumentMagnifyingGlassIcon, XCircleIcon } from '@heroicons/react/24/outline';
+import { CheckIcon, XMarkIcon, ArrowPathIcon, DocumentMagnifyingGlassIcon, XCircleIcon, MagnifyingGlassIcon, FunnelIcon } from '@heroicons/react/24/outline';
 
 const parseDetails = (raw) => {
     if (!raw) return {};
@@ -83,7 +83,8 @@ const isPending = (status) => {
 };
 const RequestsList = () => {
     const [requests, setRequests] = useState([]);
-    const [filter, setFilter] = useState({ status: 'all', type: 'all', search: '' });
+    const defaultFilter = { type: 'all', search: '', dateFrom: '', dateTo: '' };
+    const [filter, setFilter] = useState(defaultFilter);
     const [selectedRequest, setSelectedRequest] = useState(null);
     const [editableDetails, setEditableDetails] = useState({ modules: [] });
     const [modalState, setModalState] = useState({ mode: '', reason: '' });
@@ -93,6 +94,7 @@ const RequestsList = () => {
     const [transcriptData, setTranscriptData] = useState(null);
     const [availableYears, setAvailableYears] = useState([]);
     const [availableSessions, setAvailableSessions] = useState([]);
+    const [showFilters, setShowFilters] = useState(false);
 
     useEffect(() => {
         fetchRequests();
@@ -102,7 +104,7 @@ const RequestsList = () => {
 
     const fetchRequests = async () => {
         try {
-            const res = await getRequests(filter);
+            const res = await getRequests({ ...filter, status: 'En attente' });
             setRequests(res.data);
         } catch (err) {
             console.error(err);
@@ -915,37 +917,77 @@ const RequestsList = () => {
                 <p className="page-subtitle">Vérifier, modifier les brouillons et valider ou refuser les demandes</p>
             </div>
 
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-6 p-4">
-                <div className="flex flex-wrap gap-4">
-                    <input
-                        type="text"
-                        placeholder="Rechercher (référence, nom, apogée)"
-                        className="flex-1 min-w-[180px] px-4 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-primary-500"
-                        value={filter.search}
-                        onChange={e => setFilter({ ...filter, search: e.target.value })}
-                    />
-                    <select
-                        className="px-4 py-2 border border-gray-300 rounded-lg outline-none"
-                        value={filter.status}
-                        onChange={e => setFilter({ ...filter, status: e.target.value })}
-                    >
-                        <option value="all">Tous les statuts</option>
-                        <option value="En attente">En attente</option>
-                        <option value="Accepté">Accepté</option>
-                        <option value="Refusé">Refusé</option>
-                    </select>
-                    <select
-                        className="px-4 py-2 border border-gray-300 rounded-lg outline-none"
-                        value={filter.type}
-                        onChange={e => setFilter({ ...filter, type: e.target.value })}
-                    >
-                        <option value="all">Tous les types</option>
-                        <option value="school-certificate">Attestation de scolarité</option>
-                        <option value="success-certificate">Attestation de réussite</option>
-                        <option value="transcript">Relevé de notes</option>
-                        <option value="internship">Convention de stage</option>
-                    </select>
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
+                <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+                    <div className="flex items-center gap-2">
+                        <FunnelIcon className="h-5 w-5 text-gray-500" />
+                        <p className="text-sm text-gray-700">Filtres des demandes</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={() => setShowFilters(!showFilters)}
+                            className="px-3 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50"
+                        >
+                            {showFilters ? 'Masquer les filtres' : 'Afficher les filtres'}
+                        </button>
+                        <button
+                            onClick={() => setFilter({ ...defaultFilter })}
+                            className="px-3 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50"
+                        >
+                            Réinitialiser
+                        </button>
+                    </div>
                 </div>
+
+                {showFilters && (
+                    <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
+                        <div className="lg:col-span-2">
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Recherche</label>
+                            <div className="relative">
+                                <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                                <input
+                                    type="text"
+                                    placeholder="Référence, nom, apogée..."
+                                    className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
+                                    value={filter.search}
+                                    onChange={e => setFilter({ ...filter, search: e.target.value })}
+                                />
+                            </div>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Type de document</label>
+                            <select
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
+                                value={filter.type}
+                                onChange={e => setFilter({ ...filter, type: e.target.value })}
+                            >
+                                <option value="all">Tous les types</option>
+                                <option value="school-certificate">Attestation de scolarité</option>
+                                <option value="success-certificate">Attestation de réussite</option>
+                                <option value="transcript">Relevé de notes</option>
+                                <option value="internship">Convention de stage</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Date de début</label>
+                            <input
+                                type="date"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
+                                value={filter.dateFrom}
+                                onChange={e => setFilter({ ...filter, dateFrom: e.target.value })}
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Date de fin</label>
+                            <input
+                                type="date"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
+                                value={filter.dateTo}
+                                onChange={e => setFilter({ ...filter, dateTo: e.target.value })}
+                            />
+                        </div>
+                    </div>
+                )}
             </div>
 
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
@@ -1144,6 +1186,3 @@ const RequestsList = () => {
 };
 
 export default RequestsList;
-
-
-

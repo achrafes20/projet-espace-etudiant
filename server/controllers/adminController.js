@@ -187,9 +187,9 @@ exports.getDashboardStats = async (req, res) => {
 };
 
 exports.getRequests = async (req, res) => {
-    const { status, type, search } = req.query;
+    const { status, type, search, dateFrom, dateTo } = req.query;
 
-    const { query, params } = buildRequestQuery({ status, type, search });
+    const { query, params } = buildRequestQuery({ status, type, search, dateFrom, dateTo });
 
     try {
         const [requests] = await db.query(query, params);
@@ -593,5 +593,4 @@ exports.respondToComplaint = async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 };
-
 
