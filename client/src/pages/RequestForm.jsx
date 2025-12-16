@@ -63,6 +63,8 @@ const RequestForm = () => {
     const [loading, setLoading] = useState(false);
     const [successData, setSuccessData] = useState(null);
     const [identityError, setIdentityError] = useState('');
+    const [validationError, setValidationError] = useState('');
+    const [submitError, setSubmitError] = useState('');
     
     const handleBlur = async (field) => {
         if (field === 'cin_cne') {
@@ -164,9 +166,73 @@ const RequestForm = () => {
         }));
     };
 
+    const validateInternshipFields = () => {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        const phoneRegex = /^0[567]\d{8}$/;
+        const requiredFields = [
+            'company_legal_name',
+            'company_address',
+            'company_city',
+            'company_email',
+            'company_phone',
+            'company_sector',
+            'company_representative_name',
+            'company_representative_function',
+            'supervisor_name',
+            'supervisor_role',
+            'supervisor_phone',
+            'supervisor_email',
+            'ensa_supervisor_name',
+            'internship_subject',
+            'start_date',
+            'end_date'
+        ];
+
+        for (const key of requiredFields) {
+            if (!formData.specific_details[key] || String(formData.specific_details[key]).trim() === '') {
+                return 'Tous les champs marqués * sont obligatoires.';
+            }
+        }
+
+        const { company_email, supervisor_email, company_phone, supervisor_phone, start_date, end_date } = formData.specific_details;
+
+        if (!emailRegex.test(company_email)) {
+            return "Email de l’entreprise invalide.";
+        }
+        if (!emailRegex.test(supervisor_email)) {
+            return "Email de l’encadrant invalide.";
+        }
+        if (!phoneRegex.test(company_phone) || !phoneRegex.test(supervisor_phone)) {
+            return 'Les numéros de téléphone doivent contenir 10 chiffres et commencer par 05, 06 ou 07.';
+        }
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const start = new Date(start_date);
+        const end = new Date(end_date);
+
+        if (start < today) {
+            return 'La date de début ne peut pas être dans le passé.';
+        }
+        if (end <= start) {
+            return 'La date de fin doit être postérieure à la date de début.';
+        }
+        return '';
+    };
+
     const handleSubmit = async () => {
         setLoading(true);
         try {
+            setValidationError('');
+            setSubmitError('');
+            if (selection === 'internship') {
+                const internshipError = validateInternshipFields();
+                if (internshipError) {
+                    setValidationError(internshipError);
+                    setLoading(false);
+                    return;
+                }
+            }
             if (selection === 'reclamation') {
                 const res = await createComplaint({
                     request_reference: formData.request_reference,
@@ -185,6 +251,7 @@ const RequestForm = () => {
             }
         } catch (err) {
             console.error(err);
+            setSubmitError('Une erreur est survenue, merci de réessayer sans recharger la page.');
         } finally {
             setLoading(false);
         }
@@ -539,6 +606,12 @@ const RequestForm = () => {
                             {renderSpecificFields()}
 
                             <div className="flex justify-end pt-4">
+                                {validationError && (
+                                    <div className="text-red-600 text-sm font-medium mr-4">{validationError}</div>
+                                )}
+                                {submitError && (
+                                    <div className="text-red-600 text-sm font-medium mr-4">{submitError}</div>
+                                )}
                                 <button
                                     onClick={handleSubmit}
                                     disabled={!selection || loading || !student}
