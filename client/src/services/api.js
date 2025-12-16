@@ -27,7 +27,7 @@ export const createComplaint = (data) => api.post('/student/complaint', data);
 export const checkStatus = (data) => api.post('/student/status', data);
 
 export const adminLogin = (data) => api.post('/admin/login', data);
-export const getDashboardStats = () => api.get('/admin/dashboard-stats');
+export const getDashboardStats = (params) => api.get('/admin/dashboard-stats', { params });
 export const getRequests = (params) => api.get('/admin/requests', { params });
 export const getHistory = (params) => api.get('/admin/history', { params });
 export const exportHistory = (params) => api.get('/admin/history/export', { params, responseType: 'blob' });
@@ -36,7 +36,7 @@ export const updateRequestStatus = (id, data) => api.put(`/admin/requests/${id}`
     headers: { 'Content-Type': 'multipart/form-data' }
 });
 export const updateRequestDraft = (id, data) => api.put(`/admin/requests/${id}/draft`, data);
-export const getComplaints = () => api.get('/admin/complaints');
+export const getComplaints = (params) => api.get('/admin/complaints', { params });
 export const respondToComplaint = (id, data) => {
     // Si data est FormData, utiliser multipart/form-data, sinon JSON
     if (data instanceof FormData) {

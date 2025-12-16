@@ -53,7 +53,7 @@ const HistoryList = () => {
         dateFrom: '',
         dateTo: ''
     });
-    const [showFilters, setShowFilters] = useState(true);
+    const [showFilters, setShowFilters] = useState(false);
     const [selectedRequest, setSelectedRequest] = useState(null);
     const [isExporting, setIsExporting] = useState(false);
 
@@ -215,8 +215,6 @@ const HistoryList = () => {
                                 <option value="all">Tous les statuts</option>
                                 <option value="Accepté">Accepté</option>
                                 <option value="Refusé">Refusé</option>
-                                <option value="AcceptÇ¸">AcceptÇ¸</option>
-                                <option value="RefusÇ¸">RefusÇ¸</option>
                             </select>
                         </div>
                         

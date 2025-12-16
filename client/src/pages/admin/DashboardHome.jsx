@@ -10,7 +10,7 @@ import {
     Title
 } from 'chart.js';
 import { Pie, Bar } from 'react-chartjs-2';
-import { ClockIcon, CheckCircleIcon, XCircleIcon, DocumentDuplicateIcon, ExclamationCircleIcon, ChartBarIcon, CalendarIcon } from '@heroicons/react/24/outline';
+import { ClockIcon, CheckCircleIcon, XCircleIcon, DocumentDuplicateIcon, ExclamationCircleIcon, ChartBarIcon, CalendarIcon, FunnelIcon } from '@heroicons/react/24/outline';
 import { getDashboardStats } from '../../services/api';
 
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title);
@@ -27,16 +27,23 @@ const DashboardHome = () => {
         pendingComplaints: 0,
         processingRate: 0
     });
+    const [filters, setFilters] = useState({
+        status: 'all',
+        type: 'all',
+        dateFrom: '',
+        dateTo: ''
+    });
+    const [showFilters, setShowFilters] = useState(false);
 
     useEffect(() => {
         fetchStats();
         const interval = setInterval(fetchStats, 30000); // Refresh every 30 seconds
         return () => clearInterval(interval);
-    }, []);
+    }, [filters]);
 
     const fetchStats = async () => {
         try {
-            const res = await getDashboardStats();
+            const res = await getDashboardStats(filters);
             setStats(res.data);
         } catch (err) {
             console.error(err);
@@ -91,7 +98,79 @@ const DashboardHome = () => {
                 <p className="text-gray-600">Vue d'ensemble et statistiques des services étudiants</p>
             </div>
 
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
+                <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+                    <div className="flex items-center gap-2">
+                        <FunnelIcon className="h-5 w-5 text-gray-500" />
+                        <p className="text-sm text-gray-700">Filtres appliqués sur les statistiques</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={() => setShowFilters(!showFilters)}
+                            className="px-3 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50"
+                        >
+                            {showFilters ? 'Masquer les filtres' : 'Afficher les filtres'}
+                        </button>
+                        <button
+                            onClick={() => setFilters({ status: 'all', type: 'all', dateFrom: '', dateTo: '' })}
+                            className="px-3 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50"
+                        >
+                            Réinitialiser
+                        </button>
+                    </div>
+                </div>
+
+                {showFilters && (
+                    <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Statut</label>
+                            <select
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                                value={filters.status}
+                                onChange={e => setFilters({ ...filters, status: e.target.value })}
+                            >
+                                <option value="all">Tous</option>
+                                <option value="En attente">En attente</option>
+                                <option value="Accepté">Accepté</option>
+                                <option value="Refusé">Refusé</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
+                            <select
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                                value={filters.type}
+                                onChange={e => setFilters({ ...filters, type: e.target.value })}
+                            >
+                                <option value="all">Tous les types</option>
+                                <option value="school-certificate">Attestation de scolarité</option>
+                                <option value="success-certificate">Attestation de réussite</option>
+                                <option value="transcript">Relevé de notes</option>
+                                <option value="internship">Convention de stage</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Date de début</label>
+                            <input
+                                type="date"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                                value={filters.dateFrom}
+                                onChange={e => setFilters({ ...filters, dateFrom: e.target.value })}
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Date de fin</label>
+                            <input
+                                type="date"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                                value={filters.dateTo}
+                                onChange={e => setFilters({ ...filters, dateTo: e.target.value })}
+                            />
+                        </div>
+                    </div>
+                )}
+            </div>            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
                 {cards.map((card, idx) => (
                     <div key={idx} className="bg-white rounded-xl shadow-sm border-2 border-gray-100 p-6 transition-all hover:shadow-lg hover:scale-105">
                         <div className="flex items-center justify-between mb-4">
@@ -193,3 +272,4 @@ const DashboardHome = () => {
 };
 
 export default DashboardHome;
+

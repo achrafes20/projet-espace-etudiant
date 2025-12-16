@@ -18,45 +18,51 @@ const parseDetails = (raw) => {
 
 const resolveUploadPublicPath = (filePath) => filePath ? `/uploads/${path.basename(filePath)}` : null;
 
-const buildRequestQuery = ({ status, type, search, dateFrom, dateTo, includePending = true }) => {
-    let query = `
-    SELECT r.*, s.first_name, s.last_name, s.apogee_number, s.email, s.cin, s.cne, s.transcript_data, s.level, s.major, s.birth_date, s.birth_place
-    FROM requests r 
-    JOIN students s ON r.student_id = s.id 
-    WHERE 1=1
-  `;
+const buildRequestFilters = ({ status, type, search, dateFrom, dateTo, includePending = true }) => {
     const params = [];
+    const clauses = ['1=1'];
 
     if (!includePending) {
-        query += ' AND r.status != "En attente"';
+        clauses.push('r.status != "En attente"');
     }
 
     if (status && status !== 'all') {
-        query += ' AND r.status = ?';
+        clauses.push('r.status = ?');
         params.push(status);
     }
 
     if (type && type !== 'all') {
-        query += ' AND r.document_type = ?';
+        clauses.push('r.document_type = ?');
         params.push(type);
     }
 
     if (search) {
-        query += ' AND (r.reference LIKE ? OR s.last_name LIKE ? OR s.apogee_number LIKE ? OR s.first_name LIKE ?)';
+        clauses.push('(r.reference LIKE ? OR s.last_name LIKE ? OR s.apogee_number LIKE ? OR s.first_name LIKE ?)');
         params.push(`%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`);
     }
 
     if (dateFrom) {
-        query += ' AND DATE(r.submission_date) >= ?';
+        clauses.push('DATE(r.submission_date) >= ?');
         params.push(dateFrom);
     }
 
     if (dateTo) {
-        query += ' AND DATE(r.submission_date) <= ?';
+        clauses.push('DATE(r.submission_date) <= ?');
         params.push(dateTo);
     }
 
-    query += ' ORDER BY r.submission_date DESC';
+    const where = clauses.length ? `WHERE ${clauses.join(' AND ')}` : '';
+    return { where, params };
+};
+
+const buildRequestQuery = ({ status, type, search, dateFrom, dateTo, includePending = true }) => {
+    const base = `
+    SELECT r.*, s.first_name, s.last_name, s.apogee_number, s.email, s.cin, s.cne, s.transcript_data, s.level, s.major, s.birth_date, s.birth_place
+    FROM requests r 
+    JOIN students s ON r.student_id = s.id 
+  `;
+    const { where, params } = buildRequestFilters({ status, type, search, dateFrom, dateTo, includePending });
+    const query = `${base} ${where} ORDER BY r.submission_date DESC`;
 
     return { query, params };
 };
@@ -104,41 +110,60 @@ exports.login = async (req, res) => {
 };
 
 exports.getDashboardStats = async (req, res) => {
+    const { status, type, dateFrom, dateTo } = req.query;
+    const filters = buildRequestFilters({ status, type, dateFrom, dateTo, includePending: true });
+
+    const withExtra = (extraClause) => {
+        const where = filters.where
+            ? `${filters.where} AND ${extraClause}`
+            : `WHERE ${extraClause}`;
+        return { where, params: [...filters.params] };
+    };
+
     try {
-        const [pending] = await db.query('SELECT COUNT(*) as count FROM requests WHERE status = "En attente"');
-        const [accepted] = await db.query('SELECT COUNT(*) as count FROM requests WHERE status = "Accepté"');
-        const [rejected] = await db.query('SELECT COUNT(*) as count FROM requests WHERE status = "Refusé"');
-        const [total] = await db.query('SELECT COUNT(*) as count FROM requests');
+        const pendingQuery = withExtra('r.status = "En attente"');
+        const [pending] = await db.query(
+            `SELECT COUNT(*) as count FROM requests r ${pendingQuery.where}`,
+            pendingQuery.params
+        );
+
+        const acceptedQuery = withExtra('r.status LIKE "Accept%"');
+        const [accepted] = await db.query(
+            `SELECT COUNT(*) as count FROM requests r ${acceptedQuery.where}`,
+            acceptedQuery.params
+        );
+
+        const rejectedQuery = withExtra('r.status LIKE "Refus%"');
+        const [rejected] = await db.query(
+            `SELECT COUNT(*) as count FROM requests r ${rejectedQuery.where}`,
+            rejectedQuery.params
+        );
+
+        const [total] = await db.query(
+            `SELECT COUNT(*) as count FROM requests r ${filters.where}`,
+            filters.params
+        );
         
-        // Statistiques par type de document
-        const [byType] = await db.query(`
-            SELECT document_type, COUNT(*) as count 
-            FROM requests 
-            GROUP BY document_type
-        `);
+        const [byType] = await db.query(
+            `SELECT document_type, COUNT(*) as count FROM requests r ${filters.where} GROUP BY document_type`,
+            filters.params
+        );
         
-        // Statistiques par statut et type
-        const [byStatusType] = await db.query(`
-            SELECT document_type, status, COUNT(*) as count 
-            FROM requests 
-            GROUP BY document_type, status
-        `);
+        const [byStatusType] = await db.query(
+            `SELECT document_type, status, COUNT(*) as count FROM requests r ${filters.where} GROUP BY document_type, status`,
+            filters.params
+        );
         
-        // Demandes récentes (7 derniers jours)
-        const [recent] = await db.query(`
-            SELECT COUNT(*) as count 
-            FROM requests 
-            WHERE submission_date >= DATE_SUB(NOW(), INTERVAL 7 DAY)
-        `);
+        const recentFilters = withExtra('r.submission_date >= DATE_SUB(NOW(), INTERVAL 7 DAY)');
+        const [recent] = await db.query(
+            `SELECT COUNT(*) as count FROM requests r ${recentFilters.where}`,
+            recentFilters.params
+        );
         
-        // Réclamations en attente
-        const [pendingComplaints] = await db.query(`
-            SELECT COUNT(*) as count 
-            FROM complaints 
-            WHERE status = "En attente"
-        `);
+        const [pendingComplaints] = await db.query(
+            `SELECT COUNT(*) as count FROM complaints WHERE status = "En attente"`
+        );
         
-        // Taux de traitement
         const totalProcessed = accepted[0].count + rejected[0].count;
         const processingRate = total[0].count > 0 ? ((totalProcessed / total[0].count) * 100).toFixed(1) : 0;
 
@@ -222,7 +247,7 @@ const exportHistoryToExcel = async (requests, res) => {
             status: req.status,
             submission: formatDate(req.submission_date),
             processing: formatDate(req.processing_date),
-            remark: req.refusal_reason || (req.status === 'AcceptÇ¸' ? 'Document envoyé' : '')
+            remark: req.refusal_reason || (req.status === 'Accepté' ? 'Document envoyé' : '')
         });
     });
 
@@ -248,7 +273,7 @@ const exportHistoryToPdf = (requests, res) => {
         doc.fillColor('#000').font('Helvetica-Bold').text(`${idx + 1}. ${req.reference} - ${documentTypeLabel(req.document_type)}`, { continued: false });
         doc.font('Helvetica').text(`Etudiant: ${req.first_name || ''} ${req.last_name || ''} (${req.apogee_number || 'N/A'})`);
         doc.text(`Statut: ${req.status} | Soumission: ${formatDate(req.submission_date)} | Traitement: ${formatDate(req.processing_date) || 'N/A'}`);
-        if (req.refusal_reason || req.status === 'RefusÇ¸') {
+        if (req.refusal_reason || req.status === 'RefusÃÂ¸') {
             doc.text(`Motif: ${req.refusal_reason || 'Non précisé'}`);
         }
         doc.moveDown(0.75);
@@ -425,8 +450,8 @@ exports.updateRequestStatus = async (req, res) => {
 };
 
 exports.getComplaints = async (req, res) => {
-    try {
-        const [complaints] = await db.query(`
+    const { status, type, search, dateFrom, dateTo } = req.query;
+    let query = `
       SELECT c.*, 
              r.id as request_id,
              r.reference as request_reference, 
@@ -449,8 +474,35 @@ exports.getComplaints = async (req, res) => {
       FROM complaints c
       JOIN requests r ON c.request_id = r.id
       JOIN students s ON c.student_id = s.id
-      ORDER BY c.submission_date DESC
-    `);
+      WHERE 1=1
+    `;
+    const params = [];
+
+    if (status && status !== 'all') {
+        query += ' AND c.status = ?';
+        params.push(status);
+    }
+    if (type && type !== 'all') {
+        query += ' AND r.document_type = ?';
+        params.push(type);
+    }
+    if (search) {
+        query += ' AND (c.complaint_number LIKE ? OR r.reference LIKE ? OR s.last_name LIKE ? OR s.apogee_number LIKE ?)';
+        params.push(`%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`);
+    }
+    if (dateFrom) {
+        query += ' AND DATE(c.submission_date) >= ?';
+        params.push(dateFrom);
+    }
+    if (dateTo) {
+        query += ' AND DATE(c.submission_date) <= ?';
+        params.push(dateTo);
+    }
+
+    query += ' ORDER BY c.submission_date DESC';
+
+    try {
+        const [complaints] = await db.query(query, params);
         res.json(complaints);
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -479,7 +531,7 @@ exports.respondToComplaint = async (req, res) => {
                 const complaint = complaintRows[0];
                 const requestId = complaint.request_id;
                 
-                // Récupérer les informations complètes de la demande et de l'étudiant
+                // Récupérer les informations complÃ¨tes de la demande et de l'étudiant
                 const [requestRows] = await db.query(`
                     SELECT r.*, s.first_name, s.last_name, s.email, s.cin, s.cne, s.apogee_number, s.transcript_data, s.level, s.major, s.birth_date, s.birth_place
                     FROM requests r 
@@ -509,7 +561,7 @@ exports.respondToComplaint = async (req, res) => {
                         });
                         documentPath = generated.publicPath;
                         
-                        // Mettre à jour la demande avec le nouveau document
+                        // Mettre Ã  jour la demande avec le nouveau document
                         await db.query(
                             'UPDATE requests SET generated_document_path = ?, document_path = ?, specific_details = ?, template_data = ? WHERE id = ?',
                             [generated.publicPath, generated.publicPath, JSON.stringify(mergedDetails), JSON.stringify(generated.details), requestId]
@@ -541,3 +593,5 @@ exports.respondToComplaint = async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 };
+
+

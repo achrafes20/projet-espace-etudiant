@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { getComplaints, respondToComplaint, updateRequestStatus, updateRequestDraft } from '../../services/api';
-import { CheckIcon, XMarkIcon, ArrowPathIcon, XCircleIcon } from '@heroicons/react/24/outline';
+import { CheckIcon, XMarkIcon, ArrowPathIcon, XCircleIcon, MagnifyingGlassIcon, FunnelIcon } from '@heroicons/react/24/outline';
 
 const parseDetails = (raw) => {
     if (!raw) return {};
@@ -32,15 +32,23 @@ const ComplaintsList = () => {
     const [transcriptData, setTranscriptData] = useState(null);
     const [availableYears, setAvailableYears] = useState([]);
     const [availableSessions, setAvailableSessions] = useState([]);
+    const [filters, setFilters] = useState({
+        status: 'all',
+        type: 'all',
+        search: '',
+        dateFrom: '',
+        dateTo: ''
+    });
+    const [showFilters, setShowFilters] = useState(false);
     const serverBase = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
     useEffect(() => {
         fetchComplaints();
-    }, []);
+    }, [filters]);
 
     const fetchComplaints = async () => {
         try {
-            const res = await getComplaints();
+            const res = await getComplaints(filters);
             setComplaints(res.data);
         } catch (err) {
             console.error(err);
@@ -814,7 +822,91 @@ const ComplaintsList = () => {
                 <p className="page-subtitle">Consultez et répondez aux réclamations des étudiants</p>
             </div>
 
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
+                <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+                    <div className="flex items-center gap-2">
+                        <FunnelIcon className="h-5 w-5 text-gray-500" />
+                        <p className="text-sm text-gray-700">Filtres des réclamations</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={() => setShowFilters(!showFilters)}
+                            className="px-3 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50"
+                        >
+                            {showFilters ? 'Masquer les filtres' : 'Afficher les filtres'}
+                        </button>
+                        <button
+                            onClick={() => setFilters({ status: 'all', type: 'all', search: '', dateFrom: '', dateTo: '' })}
+                            className="px-3 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50"
+                        >
+                            Réinitialiser
+                        </button>
+                    </div>
+                </div>
+
+                {showFilters && (
+                    <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
+                        <div className="lg:col-span-2">
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Recherche</label>
+                            <div className="relative">
+                                <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                                <input
+                                    type="text"
+                                    className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg"
+                                    placeholder="Référence demande, réclamation, nom, apogée..."
+                                    value={filters.search}
+                                    onChange={e => setFilters({ ...filters, search: e.target.value })}
+                                />
+                            </div>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Statut</label>
+                            <select
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                                value={filters.status}
+                                onChange={e => setFilters({ ...filters, status: e.target.value })}
+                            >
+                                <option value="all">Tous</option>
+                                <option value="En attente">En attente</option>
+                                <option value="Traitée">Traitée</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Type de document</label>
+                            <select
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                                value={filters.type}
+                                onChange={e => setFilters({ ...filters, type: e.target.value })}
+                            >
+                                <option value="all">Tous</option>
+                                <option value="school-certificate">Attestation de scolarité</option>
+                                <option value="success-certificate">Attestation de réussite</option>
+                                <option value="transcript">Relevé de notes</option>
+                                <option value="internship">Convention de stage</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Date de début</label>
+                            <input
+                                type="date"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                                value={filters.dateFrom}
+                                onChange={e => setFilters({ ...filters, dateFrom: e.target.value })}
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Date de fin</label>
+                            <input
+                                type="date"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                                value={filters.dateTo}
+                                onChange={e => setFilters({ ...filters, dateTo: e.target.value })}
+                            />
+                        </div>
+                    </div>
+                )}
+            </div>            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                 <table className="w-full text-left">
                     <thead className="bg-gray-50 border-b border-gray-200">
                         <tr>
@@ -1084,3 +1176,4 @@ const ComplaintsList = () => {
 };
 
 export default ComplaintsList;
+
