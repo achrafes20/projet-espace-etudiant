@@ -10,6 +10,7 @@ import DashboardHome from './pages/admin/DashboardHome';
 import RequestsList from './pages/admin/RequestsList';
 import ComplaintsList from './pages/admin/ComplaintsList';
 import HistoryList from './pages/admin/HistoryList';
+import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
     return (
@@ -23,7 +24,14 @@ function App() {
 
                 {/* Admin Routes */}
                 <Route path="/admin/login" element={<AdminLogin />} />
-                <Route path="/admin" element={<AdminLayout />}>
+                <Route
+                    path="/admin"
+                    element={
+                        <ProtectedRoute>
+                            <AdminLayout />
+                        </ProtectedRoute>
+                    }
+                >
                     <Route path="dashboard" element={<DashboardHome />} />
                     <Route path="requests" element={<RequestsList />} />
                     <Route path="complaints" element={<ComplaintsList />} />

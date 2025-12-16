@@ -20,6 +20,21 @@ api.interceptors.request.use(
     }
 );
 
+// Écoute les 401 pour forcer la reconnexion admin
+api.interceptors.response.use(
+    (response) => response,
+    (error) => {
+        if (error.response?.status === 401) {
+            localStorage.removeItem('token');
+            localStorage.removeItem('admin');
+            if (window.location.pathname.startsWith('/admin')) {
+                window.location.href = '/admin/login';
+            }
+        }
+        return Promise.reject(error);
+    }
+);
+
 export const validateStudent = (data) => api.post('/student/validate', data);
 export const checkField = (data) => api.post('/student/check-field', data);
 export const createRequest = (data) => api.post('/student/request', data);

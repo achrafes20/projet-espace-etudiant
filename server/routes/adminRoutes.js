@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const adminController = require('../controllers/adminController');
+const auth = require('../middleware/auth');
 const multer = require('multer');
 const path = require('path');
 
@@ -26,6 +27,10 @@ const upload = multer({
 });
 
 router.post('/login', adminController.login);
+
+// Toutes les routes suivantes nécessitent un JWT valide
+router.use(auth);
+
 router.get('/dashboard-stats', adminController.getDashboardStats);
 router.get('/requests', adminController.getRequests);
 router.get('/history', adminController.getHistory);
