@@ -3,6 +3,10 @@
 @tailwind utilities;
 
 @layer base {
+    :root {
+        color-scheme: light;
+    }
+
     body {
         @apply bg-gray-50 text-gray-900;
         font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
@@ -11,23 +15,64 @@
     * {
         @apply antialiased;
     }
+
+    ::selection {
+        background: rgba(14, 165, 233, 0.25);
+    }
 }
 
 @layer components {
+    .bg-hero {
+        background:
+            radial-gradient(1000px circle at 20% 10%, rgba(56, 189, 248, 0.32), transparent 55%),
+            radial-gradient(900px circle at 85% 25%, rgba(14, 165, 233, 0.22), transparent 60%),
+            radial-gradient(850px circle at 70% 95%, rgba(249, 115, 22, 0.14), transparent 60%),
+            radial-gradient(1100px circle at 40% 85%, rgba(7, 89, 133, 0.14), transparent 55%),
+            linear-gradient(180deg, #f8fafc 0%, #f1f5f9 45%, #f8fafc 100%);
+    }
+
+    .surface {
+        @apply bg-white/75 backdrop-blur-xl border border-white/60 shadow-[0_12px_40px_-20px_rgba(2,132,199,0.55)];
+    }
+
+    .surface-solid {
+        @apply bg-white border border-gray-200 shadow-sm;
+    }
+
+    .ring-soft {
+        @apply ring-1 ring-white/50;
+    }
+
+    .title-gradient {
+        @apply bg-gradient-to-br from-gray-900 via-gray-900 to-primary-700 bg-clip-text text-transparent;
+    }
+
     .btn-primary {
-        @apply bg-primary-600 hover:bg-primary-700 text-white font-medium py-3 px-6 rounded-lg transition-all shadow-lg shadow-primary-500/30 disabled:opacity-50 disabled:shadow-none disabled:cursor-not-allowed;
+        @apply bg-gradient-to-b from-primary-500 to-primary-700 hover:from-primary-500 hover:to-primary-800 text-white font-semibold py-3 px-6 rounded-xl transition-all shadow-lg shadow-primary-500/25 ring-1 ring-white/25 hover:shadow-primary-500/35 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-400 disabled:opacity-50 disabled:shadow-none disabled:cursor-not-allowed;
     }
     
     .btn-secondary {
-        @apply bg-white border-2 border-primary-600 text-primary-600 hover:bg-primary-50 font-medium py-3 px-6 rounded-lg transition-all shadow-sm;
+        @apply bg-white/70 border border-white/70 text-primary-800 hover:text-primary-900 hover:bg-white font-semibold py-3 px-6 rounded-xl transition-all shadow-sm ring-1 ring-gray-900/5 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-400;
+    }
+
+    .btn-danger {
+        @apply bg-gradient-to-b from-red-500 to-red-600 hover:from-red-500 hover:to-red-600 text-white font-semibold py-3 px-6 rounded-xl transition-all shadow-lg shadow-red-500/20 ring-1 ring-white/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-300 disabled:opacity-50 disabled:shadow-none disabled:cursor-not-allowed;
     }
     
     .input-field {
-        @apply w-full px-4 py-3 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors;
+        @apply w-full px-4 py-3 rounded-xl outline-none transition-all bg-white/70 border border-white/70 ring-1 ring-gray-900/5 focus:ring-2 focus:ring-primary-400 focus:border-transparent placeholder:text-gray-400;
     }
     
     .card {
         @apply bg-white rounded-xl shadow-sm border border-gray-200 p-6 transition-all hover:shadow-md;
+    }
+
+    .card-glass {
+        @apply surface ring-soft rounded-2xl p-8;
+    }
+
+    .card-glass-tight {
+        @apply surface ring-soft rounded-2xl p-6;
     }
     
     .badge {
@@ -48,6 +93,10 @@
     
     .badge-info {
         @apply badge bg-blue-100 text-blue-800 border border-blue-200;
+    }
+
+    .badge-accent {
+        @apply badge bg-orange-100 text-orange-800 border border-orange-200;
     }
     
     .page-title {

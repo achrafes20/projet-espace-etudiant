@@ -24,7 +24,7 @@ const ComplaintForm = () => {
             await createComplaint(formData);
             setSuccess(true);
         } catch (err) {
-            setError(err.response?.data?.message || 'Submission failed');
+            setError(err.userMessage || err.response?.data?.message || 'Échec de l’envoi. Réessayez.');
         } finally {
             setLoading(false);
         }
@@ -32,12 +32,12 @@ const ComplaintForm = () => {
 
     if (success) {
         return (
-            <div className="min-h-screen flex flex-col bg-gray-50">
+            <div className="min-h-screen flex flex-col bg-hero">
                 <Header />
                 <main className="flex-1 max-w-2xl mx-auto px-4 py-12 w-full flex items-center justify-center">
-                    <div className="bg-white rounded-2xl shadow-xl p-12 text-center w-full">
-                        <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                            <ExclamationTriangleIcon className="h-10 w-10 text-green-600" />
+                    <div className="card-glass text-center w-full">
+                        <div className="w-20 h-20 bg-gradient-to-br from-success-500 to-primary-700 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-primary-500/20 ring-1 ring-white/40">
+                            <ExclamationTriangleIcon className="h-10 w-10 text-white" />
                         </div>
                         <h2 className="text-2xl font-bold text-gray-900 mb-4">Réclamation envoyée</h2>
                         <p className="text-gray-600 mb-8">Votre réclamation a été reçue et sera examinée dans les plus brefs délais.</p>
@@ -51,17 +51,17 @@ const ComplaintForm = () => {
     }
 
     return (
-        <div className="min-h-screen flex flex-col bg-gray-50">
+        <div className="min-h-screen flex flex-col bg-hero">
             <Header />
             <main className="flex-1 max-w-2xl mx-auto px-4 py-12 w-full">
-                <button onClick={() => navigate('/')} className="text-primary-600 hover:text-primary-700 font-medium mb-8 flex items-center transition-colors">
-                    <ArrowLeftIcon className="h-5 w-5 mr-2" /> Cancel & Back
+                <button onClick={() => navigate('/')} className="text-primary-800 hover:text-primary-900 font-semibold mb-8 flex items-center transition-colors">
+                    <ArrowLeftIcon className="h-5 w-5 mr-2" /> Retour au portail
                 </button>
 
-                <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-10">
-                        <div className="flex items-center space-x-4 mb-8">
-                        <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center border-2 border-red-200">
-                            <ExclamationTriangleIcon className="h-6 w-6 text-red-600" />
+                <div className="card-glass">
+                    <div className="flex items-center space-x-4 mb-8">
+                        <div className="w-12 h-12 bg-gradient-to-br from-accent-500 to-red-600 rounded-xl flex items-center justify-center shadow-lg shadow-red-500/15 ring-1 ring-white/35">
+                            <ExclamationTriangleIcon className="h-6 w-6 text-white" />
                         </div>
                         <div>
                             <h1 className="text-2xl font-bold text-gray-900">Déposer une réclamation</h1>
@@ -121,10 +121,14 @@ const ComplaintForm = () => {
                             ></textarea>
                         </div>
 
-                        {error && <div className="text-red-500 text-sm bg-red-50 p-4 rounded-lg">{error}</div>}
+                        {error && (
+                            <div className="text-red-600 text-sm bg-red-50/70 border border-red-100 p-4 rounded-xl">
+                                {error}
+                            </div>
+                        )}
 
                         <div className="flex justify-end pt-4">
-                            <button type="submit" disabled={loading} className="bg-red-600 hover:bg-red-700 text-white font-medium py-3 px-8 rounded-lg transition-colors shadow-lg shadow-red-500/30 disabled:opacity-50 disabled:cursor-not-allowed">
+                            <button type="submit" disabled={loading} className="btn-danger px-8">
                                 {loading ? 'Envoi en cours...' : 'Envoyer la réclamation'}
                             </button>
                         </div>

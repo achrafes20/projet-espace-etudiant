@@ -19,24 +19,24 @@ const AdminLogin = () => {
             localStorage.setItem('admin', JSON.stringify(res.data.admin));
             navigate('/admin/dashboard');
         } catch (err) {
-            setError('Invalid credentials');
+            setError(err.userMessage || 'Identifiants invalides');
         } finally {
             setLoading(false);
         }
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+        <div className="min-h-screen flex items-center justify-center bg-hero py-12 px-4 sm:px-6 lg:px-8">
             <div className="max-w-md w-full space-y-8">
                 <div className="text-center">
-                    <div className="mx-auto h-16 w-16 bg-gradient-to-br from-primary-600 to-primary-800 rounded-xl flex items-center justify-center shadow-lg">
+                    <div className="mx-auto h-16 w-16 bg-gradient-to-br from-primary-600 to-accent-500 rounded-2xl flex items-center justify-center shadow-lg shadow-primary-500/20 ring-1 ring-white/40">
                         <UserIcon className="h-8 w-8 text-white" />
                     </div>
-                    <h2 className="mt-6 text-3xl font-extrabold text-gray-900">Admin Portal</h2>
-                    <p className="mt-2 text-sm text-gray-600">Sign in to manage requests</p>
+                    <h2 className="mt-6 text-3xl font-extrabold title-gradient">Admin Portal</h2>
+                    <p className="mt-2 text-sm text-gray-600">Connectez-vous pour gérer les demandes</p>
                 </div>
 
-                <div className="bg-white py-8 px-10 shadow-2xl rounded-2xl border border-gray-100">
+                <div className="card-glass-tight shadow-glow">
                     <form className="space-y-6" onSubmit={handleSubmit}>
                         <div>
                             <label className="block text-sm font-medium text-gray-700">Email address</label>
@@ -47,7 +47,7 @@ const AdminLogin = () => {
                                 <input
                                     type="email"
                                     required
-                                    className="focus:ring-primary-500 focus:border-primary-500 block w-full pl-10 sm:text-sm border-gray-300 rounded-lg py-3"
+                                    className="input-field pl-10"
                                     placeholder="admin@university.edu"
                                     value={formData.email}
                                     onChange={e => setFormData({ ...formData, email: e.target.value })}
@@ -64,7 +64,7 @@ const AdminLogin = () => {
                                 <input
                                     type="password"
                                     required
-                                    className="focus:ring-primary-500 focus:border-primary-500 block w-full pl-10 sm:text-sm border-gray-300 rounded-lg py-3"
+                                    className="input-field pl-10"
                                     placeholder="Password"
                                     value={formData.password}
                                     onChange={e => setFormData({ ...formData, password: e.target.value })}
@@ -72,21 +72,25 @@ const AdminLogin = () => {
                             </div>
                         </div>
 
-                        {error && <div className="text-red-500 text-sm text-center font-medium bg-red-50 p-2 rounded-lg">{error}</div>}
+                        {error && (
+                            <div className="text-red-600 text-sm text-center font-semibold bg-red-50/70 border border-red-100 p-3 rounded-xl">
+                                {error}
+                            </div>
+                        )}
 
                         <div>
                             <button
                                 type="submit"
                                 disabled={loading}
-                                className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-lg text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors disabled:opacity-50"
+                                className="w-full btn-primary"
                             >
                                 {loading ? 'Signing in...' : 'Sign in'}
                             </button>
                         </div>
 
                         <div className="text-center">
-                            <button type="button" onClick={() => navigate('/')} className="text-sm font-medium text-gray-600 hover:text-gray-500">
-                                Back to Student Portal
+                            <button type="button" onClick={() => navigate('/')} className="text-sm font-semibold text-gray-700 hover:text-gray-900">
+                                Retour au portail étudiant
                             </button>
                         </div>
                     </form>

@@ -251,7 +251,7 @@ const RequestForm = () => {
             }
         } catch (err) {
             console.error(err);
-            setSubmitError('Une erreur est survenue, merci de réessayer sans recharger la page.');
+            setSubmitError(err.userMessage || 'Une erreur est survenue, merci de réessayer sans recharger la page.');
         } finally {
             setLoading(false);
         }
@@ -491,10 +491,10 @@ const RequestForm = () => {
         }
     };
     return (
-        <div className="min-h-screen flex flex-col bg-gray-50">
+        <div className="min-h-screen flex flex-col bg-hero">
             <Header />
             <main className="flex-1 max-w-4xl mx-auto px-4 py-12 w-full">
-                <button onClick={() => navigate('/')} className="text-primary-600 hover:text-primary-700 font-medium mb-8 flex items-center transition-colors">
+                <button onClick={() => navigate('/')} className="text-primary-800 hover:text-primary-900 font-semibold mb-8 flex items-center transition-colors">
                     <ArrowLeftIcon className="h-5 w-5 mr-2" /> Retour au Portail
                 </button>
 
@@ -502,7 +502,7 @@ const RequestForm = () => {
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 space-y-8"
+                        className="card-glass space-y-8"
                     >
                         <div className="space-y-6">
                             <h2 className="text-2xl font-bold text-gray-900 border-b pb-2">1. Identification</h2>
@@ -512,7 +512,7 @@ const RequestForm = () => {
                                 <div className="relative">
                                     <input
                                         type="email"
-                                        className={`w-full px-4 py-3 border rounded-lg outline-none focus:ring-2 transition-colors ${fieldStatus.email === 'invalid' ? 'border-red-300 focus:ring-red-200' : 'border-gray-300 focus:ring-primary-500'}`}
+                                        className={`input-field pr-12 ${fieldStatus.email === 'invalid' ? 'ring-2 ring-red-200 border-red-200' : ''}`}
                                         value={formData.email}
                                         onChange={e => setFormData({ ...formData, email: e.target.value })}
                                         onBlur={() => handleBlur('email')}
@@ -522,7 +522,7 @@ const RequestForm = () => {
                                         {getIcon(fieldStatus.email)}
                                     </div>
                                 </div>
-                                {fieldStatus.email === 'invalid' && <p className="text-red-500 text-sm mt-1">Email introuvable.</p>}
+                                {fieldStatus.email === 'invalid' && <p className="text-red-600 text-sm mt-2">Email introuvable.</p>}
                             </div>
 
                             <div className="grid md:grid-cols-2 gap-6">
@@ -531,7 +531,7 @@ const RequestForm = () => {
                                     <div className="relative">
                                         <input
                                             type="text"
-                                            className={`w-full px-4 py-3 border rounded-lg outline-none focus:ring-2 transition-colors ${fieldStatus.apogee_number === 'invalid' ? 'border-red-300 focus:ring-red-200' : 'border-gray-300 focus:ring-primary-500'}`}
+                                            className={`input-field pr-12 ${fieldStatus.apogee_number === 'invalid' ? 'ring-2 ring-red-200 border-red-200' : ''}`}
                                             value={formData.apogee_number}
                                             onChange={e => setFormData({ ...formData, apogee_number: e.target.value })}
                                             onBlur={() => handleBlur('apogee_number')}
@@ -541,14 +541,14 @@ const RequestForm = () => {
                                             {getIcon(fieldStatus.apogee_number)}
                                         </div>
                                     </div>
-                                    {fieldStatus.apogee_number === 'invalid' && <p className="text-red-500 text-sm mt-1">Code incorrect.</p>}
+                                    {fieldStatus.apogee_number === 'invalid' && <p className="text-red-600 text-sm mt-2">Code incorrect.</p>}
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-2">CNE / CIN</label>
                                     <div className="relative">
                                         <input
                                             type="text"
-                                            className={`w-full px-4 py-3 border rounded-lg outline-none focus:ring-2 transition-colors ${fieldStatus.cin_cne === 'invalid' ? 'border-red-300 focus:ring-red-200' : 'border-gray-300 focus:ring-primary-500'}`}
+                                            className={`input-field pr-12 ${fieldStatus.cin_cne === 'invalid' ? 'ring-2 ring-red-200 border-red-200' : ''}`}
                                             value={formData.cin || formData.cne}
                                             onChange={e => {
                                                 const value = e.target.value;
@@ -566,18 +566,18 @@ const RequestForm = () => {
                                             {getIcon(fieldStatus.cin_cne)}
                                         </div>
                                     </div>
-                                    {fieldStatus.cin_cne === 'invalid' && <p className="text-red-500 text-sm mt-1">CNE ou CIN incorrect.</p>}
+                                    {fieldStatus.cin_cne === 'invalid' && <p className="text-red-600 text-sm mt-2">CNE ou CIN incorrect.</p>}
                                 </div>
                             </div>
 
                             {identityError && (
-                                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+                                <div className="bg-red-50/70 border border-red-100 text-red-700 px-4 py-3 rounded-xl font-semibold">
                                     {identityError}
                                 </div>
                             )}
 
                             {student && !identityError && (
-                                <div className="bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg flex items-center">
+                                <div className="bg-green-50/70 border border-green-100 text-green-800 px-4 py-3 rounded-xl flex items-center">
                                     <CheckCircleIcon className="h-5 w-5 mr-2" />
                                     Bonjour, <strong className="ml-1">{student.first_name} {student.last_name}</strong>. Identité vérifiée.
                                 </div>
@@ -592,7 +592,7 @@ const RequestForm = () => {
                                 <select
                                     value={selection}
                                     onChange={(e) => setSelection(e.target.value)}
-                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none bg-white font-medium text-gray-800"
+                                    className="input-field bg-white/70 font-semibold text-gray-800"
                                 >
                                     <option value="">Choisissez une option...</option>
                                     <option value="school-certificate">Attestation de scolarité</option>
@@ -607,15 +607,15 @@ const RequestForm = () => {
 
                             <div className="flex justify-end pt-4">
                                 {validationError && (
-                                    <div className="text-red-600 text-sm font-medium mr-4">{validationError}</div>
+                                    <div className="text-red-700 text-sm font-semibold mr-4">{validationError}</div>
                                 )}
                                 {submitError && (
-                                    <div className="text-red-600 text-sm font-medium mr-4">{submitError}</div>
+                                    <div className="text-red-700 text-sm font-semibold mr-4">{submitError}</div>
                                 )}
                                 <button
                                     onClick={handleSubmit}
                                     disabled={!selection || loading || !student}
-                                    className="bg-primary-600 hover:bg-primary-700 text-white font-medium py-3 px-8 rounded-lg transition-colors shadow-lg shadow-primary-500/30 disabled:opacity-50 disabled:shadow-none"
+                                    className="btn-primary px-8 disabled:opacity-50 disabled:shadow-none"
                                 >
                                     {loading ? 'Traitement...' : selection === 'reclamation' ? 'Envoyer la réclamation' : 'Soumettre la demande'}
                                 </button>
@@ -626,18 +626,18 @@ const RequestForm = () => {
                     <motion.div
                         initial={{ opacity: 0, scale: 0.95 }}
                         animate={{ opacity: 1, scale: 1 }}
-                        className="bg-white rounded-2xl shadow-sm border border-gray-200 p-12 text-center"
+                        className="card-glass text-center"
                     >
-                        <div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                            <CheckCircleIcon className="h-12 w-12 text-green-600" />
+                        <div className="w-24 h-24 bg-gradient-to-br from-success-500 to-primary-700 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-primary-500/20 ring-1 ring-white/40">
+                            <CheckCircleIcon className="h-12 w-12 text-white" />
                         </div>
 
                         {successData.type === 'complaint' ? (
                             <>
                                 <h2 className="text-3xl font-bold text-gray-900 mb-2">Réclamation envoyée</h2>
                                 <p className="text-gray-600 mb-8">Nous avons bien reçu votre réclamation concernant la demande {formData.request_reference}.</p>
-                                <div className="bg-yellow-50 border border-yellow-100 rounded-xl p-6 mb-8 max-w-md mx-auto">
-                                    <p className="text-lg text-yellow-800 font-medium mb-2">Vérifiez votre email</p>
+                                <div className="bg-orange-50/70 border border-orange-100 rounded-2xl p-6 mb-8 max-w-md mx-auto">
+                                    <p className="text-lg text-orange-800 font-semibold mb-2">Vérifiez votre email</p>
                                     <p className="text-gray-600">
                                         Nous avons envoyé un email de confirmation à <b>{formData.email}</b> contenant le numéro de réclamation.
                                     </p>
@@ -647,15 +647,15 @@ const RequestForm = () => {
                             <>
                                 <h2 className="text-3xl font-bold text-gray-900 mb-2">Demande envoyée !</h2>
                                 <p className="text-gray-600 mb-8">Référence envoyée par email. Un document provisoire a été généré automatiquement.</p>
-                                <div className="bg-primary-50 border border-primary-100 rounded-xl p-6 mb-8 max-w-md mx-auto">
-                                    <p className="text-lg text-primary-800 font-medium mb-2">Vérifiez votre email</p>
+                                <div className="bg-primary-50/70 border border-primary-100 rounded-2xl p-6 mb-8 max-w-md mx-auto">
+                                    <p className="text-lg text-primary-800 font-semibold mb-2">Vérifiez votre email</p>
                                     <p className="text-gray-600">
                                         Nous avons envoyé un email à <b>{student?.email}</b> contenant votre <b>référence</b>.
                                     </p>
                                 </div>
                             </>
                         )}
-                        <button onClick={() => navigate('/')} className="bg-gray-900 hover:bg-gray-800 text-white font-medium py-3 px-8 rounded-lg transition-colors">
+                        <button onClick={() => navigate('/')} className="btn-secondary">
                             Retour au Portail
                         </button>
                     </motion.div>

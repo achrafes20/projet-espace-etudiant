@@ -1,9 +1,11 @@
 import axios from 'axios';
 
-const API_URL = 'http://localhost:5000/api';
+// Prefer relative /api (proxied by Vite in dev) for simpler CORS-free setup.
+const API_URL = import.meta.env.VITE_API_URL || '/api';
 
 const api = axios.create({
     baseURL: API_URL,
+    timeout: 20000,
 });
 
 // Add a request interceptor to include the token in headers
@@ -16,6 +18,21 @@ api.interceptors.request.use(
         return config;
     },
     (error) => {
+        return Promise.reject(error);
+    }
+);
+
+// Normalize common errors (network / timeout) for better UX at call sites.
+api.interceptors.response.use(
+    (res) => res,
+    (error) => {
+        if (error?.code === 'ECONNABORTED') {
+            error.userMessage = 'Le serveur met trop de temps à répondre. Réessayez.';
+        } else if (!error?.response) {
+            error.userMessage = "Impossible de contacter le serveur. Vérifiez votre connexion.";
+        } else {
+            error.userMessage = error.response?.data?.message || 'Une erreur est survenue.';
+        }
         return Promise.reject(error);
     }
 );

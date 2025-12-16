@@ -6,7 +6,8 @@ const Header = () => {
     const navigate = useNavigate();
 
     return (
-        <header className="bg-white border-b border-gray-200 sticky top-0 z-50 bg-opacity-80 backdrop-blur-md">
+        <header className="sticky top-0 z-50">
+            <div className="bg-white/70 backdrop-blur-xl border-b border-white/60 shadow-[0_10px_30px_-25px_rgba(2,132,199,0.65)]">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-4 cursor-pointer" onClick={() => navigate('/')}>
@@ -20,12 +21,13 @@ const Header = () => {
                     </div>
                     <button
                         onClick={() => navigate('/admin/login')}
-                        className="flex items-center text-primary-600 hover:text-primary-700 font-medium transition-colors px-4 py-2 rounded-md hover:bg-primary-50"
+                        className="flex items-center text-primary-700 hover:text-primary-800 font-semibold transition-colors px-4 py-2 rounded-xl hover:bg-white/70 border border-transparent hover:border-white/70"
                     >
                         <UserIcon className="h-5 w-5 mr-2" />
                         Accès Admin
                     </button>
                 </div>
+            </div>
             </div>
         </header>
     );

@@ -197,8 +197,8 @@ const seedDatabase = async () => {
 
         // Students with transcript data
         const studentsData = [
-            { email: 'akram.mazari@etu.uae.ac.ma', apogee: '22789524', cin: 'EE9B785', cne: 'EE98965', fName: 'Akram', lName: 'Mazari', major: 'Genie Informatique', level: '1ere annee', birth_date: '2001-01-01', birth_place: 'Tetouan' },
-            { email: 'naima.ziatti@etu.uae.ac.ma', apogee: 'G131541390', cin: 'EE986532', cne: 'G131541390', fName: 'Naima', lName: 'Ziatti', major: 'Economie et Gestion', level: '2eme annee', birth_date: '2000-03-12', birth_place: 'Marrakech' },
+            { email: 'hariss.houssam@etu.uae.ac.ma', apogee: '22789524', cin: 'EE9B785', cne: 'EE98965', fName: 'Akram', lName: 'Mazari', major: 'Genie Informatique', level: '1ere annee', birth_date: '2001-01-01', birth_place: 'Tetouan' },
+            { email: 'houssamhariss25@gmail.com', apogee: 'G131541390', cin: 'EE986532', cne: 'G131541390', fName: 'Naima', lName: 'Ziatti', major: 'Economie et Gestion', level: '2eme annee', birth_date: '2000-03-12', birth_place: 'Marrakech' },
             { email: 'abdellah.benmoussa@etu.uae.ac.ma', apogee: '20003456', cin: 'R149077334', cne: 'R149077334', fName: 'Abdelilah', lName: 'Ben Moussa', major: 'Droit Public', level: '3eme annee', birth_date: '2000-03-15', birth_place: 'Casablanca' },
             { email: 'irene.thiombiano@etu.uae.ac.ma', apogee: '21004567', cin: 'A3139620', cne: 'A3139620', fName: 'Irene', lName: 'Thiombiano', major: 'Genie Informatique', level: '1ere annee', birth_date: '2002-05-04', birth_place: 'Settat' },
             { email: 'mohamed.alami@etu.uae.ac.ma', apogee: '22005678', cin: 'AB123456', cne: 'AB123456', fName: 'Mohamed', lName: 'Alami', major: 'Genie Informatique', level: '2eme annee', birth_date: '2001-06-20', birth_place: 'Rabat' },

@@ -47,7 +47,7 @@ const StatusCheck = () => {
             const res = await checkStatus(formData);
             setResult(res.data);
         } catch (err) {
-            setError(err.response?.data?.message || 'Statut introuvable ou email incorrect.');
+            setError(err.userMessage || err.response?.data?.message || 'Statut introuvable ou email incorrect.');
         } finally {
             setLoading(false);
         }
@@ -70,15 +70,15 @@ const StatusCheck = () => {
     const formatDocType = (type) => documentTypeLabels[type] || type;
 
     return (
-        <div className="min-h-screen flex flex-col bg-gray-50">
+        <div className="min-h-screen flex flex-col bg-hero">
             <Header />
             <main className="flex-1 max-w-2xl mx-auto px-4 py-12 w-full space-y-8">
-                <button onClick={() => navigate('/')} className="text-primary-600 hover:text-primary-700 font-medium flex items-center transition-colors">
+                <button onClick={() => navigate('/')} className="text-primary-800 hover:text-primary-900 font-semibold flex items-center transition-colors">
                     <ArrowLeftIcon className="h-5 w-5 mr-2" /> Retour au Portail
                 </button>
 
-                <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 space-y-6">
-                    <h2 className="text-3xl font-bold text-gray-900">Suivre ma Demande</h2>
+                <div className="card-glass space-y-6">
+                    <h2 className="text-3xl font-extrabold title-gradient">Suivre ma Demande</h2>
                     <form onSubmit={handleSubmit} className="space-y-6">
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">Référence de la Demande</label>
@@ -86,7 +86,7 @@ const StatusCheck = () => {
                                 <input
                                     required
                                     type="text"
-                                    className={`w-full px-4 py-3 border rounded-lg outline-none focus:ring-2 transition-colors ${fieldStatus.reference === 'invalid' ? 'border-red-300 focus:ring-red-200' : 'border-gray-300 focus:ring-primary-500'}`}
+                                    className={`input-field pr-12 ${fieldStatus.reference === 'invalid' ? 'ring-2 ring-red-200 border-red-200' : ''}`}
                                     placeholder="ex: AS-2025-001"
                                     value={formData.reference}
                                     onChange={e => setFormData({ ...formData, reference: e.target.value })}
@@ -104,7 +104,7 @@ const StatusCheck = () => {
                                 <input
                                     required
                                     type="email"
-                                    className={`w-full px-4 py-3 border rounded-lg outline-none focus:ring-2 transition-colors ${fieldStatus.email === 'invalid' ? 'border-red-300 focus:ring-red-200' : 'border-gray-300 focus:ring-primary-500'}`}
+                                    className={`input-field pr-12 ${fieldStatus.email === 'invalid' ? 'ring-2 ring-red-200 border-red-200' : ''}`}
                                     placeholder="etudiant@university.edu"
                                     value={formData.email}
                                     onChange={e => setFormData({ ...formData, email: e.target.value })}
@@ -119,7 +119,7 @@ const StatusCheck = () => {
                         <button
                             type="submit"
                             disabled={loading || fieldStatus.email === 'invalid' || fieldStatus.reference === 'invalid'}
-                            className="w-full bg-primary-600 hover:bg-primary-700 text-white font-semibold py-3 rounded-lg transition-all shadow-lg shadow-primary-500/30 flex items-center justify-center disabled:opacity-60 disabled:cursor-not-allowed disabled:shadow-none"
+                            className="w-full btn-primary flex items-center justify-center"
                         >
                             {loading ? 'Vérification...' : (
                                 <>
@@ -128,11 +128,15 @@ const StatusCheck = () => {
                             )}
                         </button>
                     </form>
-                    {error && <div className="text-red-600 text-sm bg-red-50 border border-red-100 p-3 rounded-lg">{error}</div>}
+                    {error && (
+                        <div className="text-red-600 text-sm bg-red-50/70 border border-red-100 p-4 rounded-xl">
+                            {error}
+                        </div>
+                    )}
                 </div>
 
                 {result && (
-                    <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 space-y-6">
+                    <div className="card-glass space-y-6">
                         <div className="flex items-center justify-between">
                             <div>
                                 <h3 className="text-xl font-bold text-gray-900">{formatDocType(result.document_type)}</h3>
