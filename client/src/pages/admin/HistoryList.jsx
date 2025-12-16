@@ -163,94 +163,99 @@ const HistoryList = () => {
                         <ArrowDownTrayIcon className="h-5 w-5 text-rose-600" />
                         Export PDF
                     </button>
-                    <button
-                        onClick={() => setShowFilters(!showFilters)}
-                        className="flex items-center px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
-                    >
-                        <FunnelIcon className="h-5 w-5 mr-2" />
-                        {showFilters ? 'Masquer les filtres' : 'Afficher les filtres'}
-                    </button>
                 </div>
             </div>
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
+                <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+                    <div className="flex items-center gap-2">
+                        <FunnelIcon className="h-5 w-5 text-gray-500" />
+                        <p className="text-sm text-gray-700">Filtres de l'historique</p>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                        <button
+                            onClick={() => setShowFilters(!showFilters)}
+                            className="px-3 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50"
+                        >
+                            {showFilters ? 'Masquer les filtres' : 'Afficher les filtres'}
+                        </button>
+                        <button
+                            onClick={resetFilters}
+                            className="px-3 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50"
+                        >
+                            Reinitialiser
+                        </button>
+                    </div>
+                </div>
 
-            {showFilters && (
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-6 p-6">
-                    <div className="grid md:grid-cols-2 lg:grid-cols-5 gap-4 mb-4">
-                        <div className="lg:col-span-2">
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Recherche</label>
-                            <div className="relative">
-                                <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-                                <input
-                                    type="text"
-                                    placeholder="Référence, nom, apogée..."
-                                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
-                                    value={filter.search}
-                                    onChange={e => setFilter({ ...filter, search: e.target.value })}
-                                />
+                {showFilters && (
+                    <div className="space-y-4 mt-4">
+                        <div className="grid md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                            <div className="lg:col-span-2 xl:col-span-2">
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Recherche</label>
+                                <div className="relative">
+                                    <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                                    <input
+                                        type="text"
+                                        placeholder="Reference, nom, apogee..."
+                                        className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
+                                        value={filter.search}
+                                        onChange={e => setFilter({ ...filter, search: e.target.value })}
+                                    />
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Type de document</label>
+                                <select
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
+                                    value={filter.type}
+                                    onChange={e => setFilter({ ...filter, type: e.target.value })}
+                                >
+                                    <option value="all">Tous les types</option>
+                                    <option value="school-certificate">Attestation de scolarite</option>
+                                    <option value="success-certificate">Attestation de reussite</option>
+                                    <option value="transcript">Releve de notes</option>
+                                    <option value="internship">Convention de stage</option>
+                                </select>
+                            </div>
+                            
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Statut</label>
+                                <select
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
+                                    value={filter.status}
+                                    onChange={e => setFilter({ ...filter, status: e.target.value })}
+                                >
+                                    <option value="all">Tous les statuts</option>
+                                    <option value="Accepté">Accepté</option>
+                                    <option value="Refusé">Refusé</option>
+                                </select>
                             </div>
                         </div>
                         
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Type de document</label>
-                            <select
-                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
-                                value={filter.type}
-                                onChange={e => setFilter({ ...filter, type: e.target.value })}
-                            >
-                                <option value="all">Tous les types</option>
-                                <option value="school-certificate">Attestation de scolarité</option>
-                                <option value="success-certificate">Attestation de réussite</option>
-                                <option value="transcript">Relevé de notes</option>
-                                <option value="internship">Convention de stage</option>
-                            </select>
-                        </div>
-                        
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Statut</label>
-                            <select
-                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
-                                value={filter.status}
-                                onChange={e => setFilter({ ...filter, status: e.target.value })}
-                            >
-                                <option value="all">Tous les statuts</option>
-                                <option value="Accepté">Accepté</option>
-                                <option value="Refusé">Refusé</option>
-                            </select>
-                        </div>
-                        
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Actions</label>
-                            <button
-                                onClick={resetFilters}
-                                className="w-full px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors text-sm font-medium"
-                            >
-                                Réinitialiser
-                            </button>
+                        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Date de debut</label>
+                                <input
+                                    type="date"
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
+                                    value={filter.dateFrom}
+                                    onChange={e => setFilter({ ...filter, dateFrom: e.target.value })}
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Date de fin</label>
+                                <input
+                                    type="date"
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
+                                    value={filter.dateTo}
+                                    onChange={e => setFilter({ ...filter, dateTo: e.target.value })}
+                                />
+                            </div>
                         </div>
                     </div>
-                    
-                    <div className="grid md:grid-cols-2 gap-4">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Date de début</label>
-                            <input
-                                type="date"
-                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
-                                value={filter.dateFrom}
-                                onChange={e => setFilter({ ...filter, dateFrom: e.target.value })}
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Date de fin</label>
-                            <input
-                                type="date"
-                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
-                                value={filter.dateTo}
-                                onChange={e => setFilter({ ...filter, dateTo: e.target.value })}
-                            />
-                        </div>
-                    </div>
-                </div>
-            )}
+                )}
+            </div>
 
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                 <div className="p-4 bg-gray-50 border-b border-gray-200">

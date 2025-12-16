@@ -941,13 +941,13 @@ const RequestsList = () => {
 
                 {showFilters && (
                     <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
-                        <div className="lg:col-span-2">
+                        <div className="md:col-span-2 lg:col-span-2">
                             <label className="block text-sm font-medium text-gray-700 mb-1">Recherche</label>
                             <div className="relative">
                                 <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
                                 <input
                                     type="text"
-                                    placeholder="Référence, nom, apogée..."
+                                    placeholder="Reference, nom, apogee..."
                                     className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
                                     value={filter.search}
                                     onChange={e => setFilter({ ...filter, search: e.target.value })}
@@ -962,29 +962,31 @@ const RequestsList = () => {
                                 onChange={e => setFilter({ ...filter, type: e.target.value })}
                             >
                                 <option value="all">Tous les types</option>
-                                <option value="school-certificate">Attestation de scolarité</option>
-                                <option value="success-certificate">Attestation de réussite</option>
-                                <option value="transcript">Relevé de notes</option>
+                                <option value="school-certificate">Attestation de scolarite</option>
+                                <option value="success-certificate">Attestation de reussite</option>
+                                <option value="transcript">Releve de notes</option>
                                 <option value="internship">Convention de stage</option>
                             </select>
                         </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Date de début</label>
-                            <input
-                                type="date"
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
-                                value={filter.dateFrom}
-                                onChange={e => setFilter({ ...filter, dateFrom: e.target.value })}
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Date de fin</label>
-                            <input
-                                type="date"
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
-                                value={filter.dateTo}
-                                onChange={e => setFilter({ ...filter, dateTo: e.target.value })}
-                            />
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Date de debut</label>
+                                <input
+                                    type="date"
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
+                                    value={filter.dateFrom}
+                                    onChange={e => setFilter({ ...filter, dateFrom: e.target.value })}
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Date de fin</label>
+                                <input
+                                    type="date"
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
+                                    value={filter.dateTo}
+                                    onChange={e => setFilter({ ...filter, dateTo: e.target.value })}
+                                />
+                            </div>
                         </div>
                     </div>
                 )}
