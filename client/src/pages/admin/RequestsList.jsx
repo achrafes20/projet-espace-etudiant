@@ -1,330 +1,98 @@
-
 import React, { useEffect, useState } from 'react';
-import { getRequests, updateRequestStatus, updateRequestDraft } from '../../services/api';
-import { CheckIcon, XMarkIcon, ArrowPathIcon, DocumentMagnifyingGlassIcon, XCircleIcon, MagnifyingGlassIcon, FunnelIcon } from '@heroicons/react/24/outline';
-
-const parseDetails = (raw) => {
-    if (!raw) return {};
-    try {
-        return typeof raw === 'string' ? JSON.parse(raw) : raw;
-    } catch (e) {
-        return {};
-    }
-};
+import { getRequests, updateRequestStatus } from '../../services/api';
+import { CheckIcon, XMarkIcon, DocumentMagnifyingGlassIcon, XCircleIcon, MagnifyingGlassIcon, FunnelIcon, DocumentTextIcon } from '@heroicons/react/24/outline';
 
 const DOC_TYPE_LABELS = {
     'school-certificate': 'Attestation de scolarité',
     'success-certificate': 'Attestation de réussite',
-    transcript: 'Relevé de notes',
-    internship: 'Convention de stage'
+    'transcript': 'Relevé de notes',
+    'internship': 'Convention de stage'
 };
 
 const formatDocType = (docType) => DOC_TYPE_LABELS[docType] || docType;
 
-// Fonction helper pour normaliser et comparer les statuts
-const normalizeStatus = (status) => {
-    if (!status) return '';
-    // Convertir en string, enlever les espaces multiples, normaliser les accents
-    return String(status)
-        .toLowerCase()
-        .trim()
-        .replace(/\s+/g, ' ') // Remplacer les espaces multiples par un seul
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, ''); // Supprimer les diacritiques (accents)
-};
-
 const getStatusColor = (status) => {
-    if (!status) return 'bg-gray-100 text-gray-800 border border-gray-200';
-    
-    const statusStr = String(status).trim();
-    const normalized = normalizeStatus(statusStr);
-    
-    // Vérifier "En attente" - toutes variantes possibles
-    if (normalized.includes('attente') || 
-        statusStr.toLowerCase().includes('attente') ||
-        statusStr === 'En attente' || 
-        statusStr === 'en attente' ||
-        statusStr === 'En Attente') {
-        return 'bg-yellow-100 text-yellow-800 border border-yellow-200';
-    }
-    
-    // Vérifier "Accepté" ou "Accept" - toutes variantes possibles
-    if (normalized.includes('accept') || 
-        statusStr.toLowerCase().includes('accept') ||
-        statusStr === 'Accepté' || 
-        statusStr === 'Accept' ||
-        statusStr === 'accepté' ||
-        statusStr === 'accept' ||
-        statusStr === 'ACCEPTÉ' ||
-        statusStr === 'ACCEPT') {
-        return 'bg-green-100 text-green-800 border border-green-200';
-    }
-    
-    // Refusé, Refus, ou tout autre statut
-    return 'bg-red-100 text-red-800 border border-red-200';
+    if (!status) return 'bg-slate-100 text-slate-800 border-slate-200';
+    const statusStr = String(status).trim().toLowerCase();
+    if (statusStr.includes('attente')) return 'bg-amber-50 text-amber-700 border-amber-200/50';
+    if (statusStr.includes('accept')) return 'bg-emerald-50 text-emerald-700 border-emerald-200/50';
+    return 'bg-rose-50 text-rose-700 border-rose-200/50';
 };
 
-const isAccepted = (status) => {
-    if (!status) return false;
-    const statusStr = String(status).trim();
-    const normalized = normalizeStatus(statusStr);
-    return normalized.includes('accept') || 
-           statusStr.toLowerCase().includes('accept') ||
-           statusStr === 'Accepté' || 
-           statusStr === 'Accept' ||
-           statusStr === 'accepté' ||
-           statusStr === 'accept';
-};
-
-const isPending = (status) => {
-    if (!status) return false;
-    const normalized = normalizeStatus(status);
-    return normalized.includes('attente') || normalized === 'en attente' || normalized === 'enattente';
-};
 const RequestsList = () => {
     const [requests, setRequests] = useState([]);
-    const defaultFilter = { type: 'all', search: '', dateFrom: '', dateTo: '' };
-    const [filter, setFilter] = useState(defaultFilter);
+    const [filteredRequests, setFilteredRequests] = useState([]);
+    const [activeTab, setActiveTab] = useState('all');
+    const [searchTerm, setSearchTerm] = useState('');
     const [selectedRequest, setSelectedRequest] = useState(null);
-    const [editableDetails, setEditableDetails] = useState({ modules: [] });
-    const [modalState, setModalState] = useState({ mode: '', reason: '' });
+    const [modalMode, setModalMode] = useState(''); // 'view', 'accept', 'reject'
+    const [refusalReason, setRefusalReason] = useState('');
     const [uploadFile, setUploadFile] = useState(null);
     const [loading, setLoading] = useState(false);
-    const [draftLoading, setDraftLoading] = useState(false);
-    const [transcriptData, setTranscriptData] = useState(null);
-    const [availableYears, setAvailableYears] = useState([]);
-    const [availableSessions, setAvailableSessions] = useState([]);
-    const [showFilters, setShowFilters] = useState(false);
-
-    useEffect(() => {
-        fetchRequests();
-    }, [filter]);
 
     const serverBase = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
+    useEffect(() => {
+        fetchRequests();
+    }, []);
+
+    useEffect(() => {
+        applyFilters();
+    }, [requests, activeTab, searchTerm]);
+
     const fetchRequests = async () => {
         try {
-            const res = await getRequests({ ...filter, status: 'En attente' });
+            const res = await getRequests({ status: 'En attente' });
             setRequests(res.data);
         } catch (err) {
             console.error(err);
         }
     };
 
-    const loadModulesForYearAndSession = (transcript, academicYear, session) => {
-        if (!transcript || !transcript.parcours) return;
-        
-        const yearData = transcript.parcours.find(p => p.academic_year === academicYear);
-        if (!yearData || !yearData.semesters) return;
-        
-        const semesterData = yearData.semesters.find(s => s.name === session);
-        if (semesterData && semesterData.modules) {
-            const modules = semesterData.modules.map(m => ({
-                name: m.name || m.module_name || '',
-                grade: m.grade || m.note || ''
-            }));
-            setEditableDetails(prev => ({ ...prev, modules }));
-        } else {
-            setEditableDetails(prev => ({ ...prev, modules: [] }));
+    const applyFilters = () => {
+        let filtered = [...requests];
+
+        // Filter by document type (tab)
+        if (activeTab !== 'all') {
+            filtered = filtered.filter(req => req.document_type === activeTab);
         }
+
+        // Filter by search
+        if (searchTerm) {
+            const searchLower = searchTerm.toLowerCase();
+            filtered = filtered.filter(req =>
+                req.reference?.toLowerCase().includes(searchLower) ||
+                req.first_name?.toLowerCase().includes(searchLower) ||
+                req.last_name?.toLowerCase().includes(searchLower) ||
+                req.apogee_number?.toLowerCase().includes(searchLower) ||
+                req.email?.toLowerCase().includes(searchLower)
+            );
+        }
+
+        setFilteredRequests(filtered);
     };
 
-    const loadMentionForYearAndSession = (transcript, academicYear, session) => {
-        if (!transcript || !transcript.parcours) return;
-        
-        const yearData = transcript.parcours.find(p => p.academic_year === academicYear);
-        if (!yearData || !yearData.semesters) return;
-        
-        const semesterData = yearData.semesters.find(s => s.name === session);
-        if (semesterData && semesterData.result) {
-            setEditableDetails(prev => ({ 
-                ...prev, 
-                mention: semesterData.result.mention || prev.mention || ''
-            }));
-        }
-    };
-
-    const selectRequest = (req) => {
+    const handleViewDocument = (req) => {
         setSelectedRequest(req);
-        const details = parseDetails(req?.specific_details) || {};
-        if (!details.modules) details.modules = [];
-        
-        // Initialiser les champs d'identification de l'étudiant pour tous les types de documents
-        details.cin = details.cin || req.cin || '';
-        details.cne = details.cne || req.cne || '';
-        details.apogee_number = details.apogee_number || req.apogee_number || '';
-        details.birth_place = details.birth_place || req.birth_place || '';
-        
-        // Initialiser les détails avec les données de l'étudiant si elles ne sont pas déjà présentes
-        // On force l'initialisation même si les valeurs existent mais sont vides
-        if (req.document_type === 'school-certificate') {
-            details.level = details.level || req.level || '';
-            details.program = details.program || req.filiere || req.major || '';
-            // Formater la date pour l'input date (YYYY-MM-DD)
-            if (!details.birth_date && req.birth_date) {
-                details.birth_date = req.birth_date.split('T')[0];
-            }
-        } else if (req.document_type === 'transcript') {
-            // Pour le relevé de notes, initialiser level et program si absents
-            details.level = details.level || req.level || '';
-            details.program = details.program || req.filiere || req.major || '';
-        } else if (req.document_type === 'success-certificate') {
-            // Formater la date pour l'input date (YYYY-MM-DD)
-            // Utiliser req.birth_date si elle existe et que details.birth_date est vide/null/undefined
-            if (req.birth_date) {
-                const existingDate = details.birth_date;
-                if (!existingDate || (typeof existingDate === 'string' && existingDate.trim() === '')) {
-                    // Si la date vient de la DB, elle est déjà au format YYYY-MM-DD
-                    details.birth_date = req.birth_date.split('T')[0]; // Enlever l'heure si présente
-                } else if (typeof existingDate === 'string') {
-                    // S'assurer que la date existante est au bon format
-                    details.birth_date = existingDate.split('T')[0];
-                }
-            } else if (details.birth_date && typeof details.birth_date === 'string') {
-                // S'assurer que la date existante est au bon format
-                details.birth_date = details.birth_date.split('T')[0];
-            }
-            details.filiere = details.filiere || req.filiere || req.major || '';
-            // La mention sera chargée depuis le transcript
-        } else if (req.document_type === 'internship') {
-            details.major = details.major || req.filiere || req.major || '';
-            details.level = details.level || req.level || '';
-            if (req.birth_date) {
-                details.birth_date = req.birth_date.split('T')[0];
-            }
-        }
-        
-        setEditableDetails(details);
-        setModalState({ mode: '', reason: '' });
+        setModalMode('view');
+        setRefusalReason('');
         setUploadFile(null);
-        
-        // Charger les données de transcript de l'étudiant (pour tous les types de documents)
-        if (req.transcript_data) {
-            try {
-                const transcript = typeof req.transcript_data === 'string' 
-                    ? JSON.parse(req.transcript_data) 
-                    : req.transcript_data;
-                setTranscriptData(transcript);
-                
-                // Extraire les années disponibles
-                const years = (transcript.parcours || []).map(p => p.academic_year);
-                setAvailableYears(years);
-                
-                // Extraire les sessions pour l'année sélectionnée
-                const selectedYear = details.academic_year || years[0];
-                const yearData = transcript.parcours?.find(p => p.academic_year === selectedYear);
-                const sessions = yearData?.semesters?.map(s => s.name) || [];
-                setAvailableSessions(sessions);
-                
-                // Initialiser l'année académique si elle n'est pas définie
-                if (!details.academic_year && years[0]) {
-                    details.academic_year = years[0];
-                }
-                
-                // Pour le relevé de notes: charger les modules
-                if (req.document_type === 'transcript') {
-                    if (selectedYear && details.session) {
-                        loadModulesForYearAndSession(transcript, selectedYear, details.session);
-                    } else if (selectedYear && sessions[0]) {
-                        loadModulesForYearAndSession(transcript, selectedYear, sessions[0]);
-                        details.session = sessions[0];
-                    }
-                }
-                // Pour l'attestation de réussite: charger la mention si année/session sont sélectionnées
-                else if (req.document_type === 'success-certificate') {
-                    if (selectedYear && details.session) {
-                        loadMentionForYearAndSession(transcript, selectedYear, details.session);
-                    } else if (selectedYear && sessions[0]) {
-                        details.session = sessions[0];
-                        loadMentionForYearAndSession(transcript, selectedYear, sessions[0]);
-                    }
-                }
-            } catch (e) {
-                console.error('Error parsing transcript data:', e);
-                setTranscriptData(null);
-                setAvailableYears([]);
-                setAvailableSessions([]);
-            }
-        } else {
-            setTranscriptData(null);
-            setAvailableYears([]);
-            setAvailableSessions([]);
-        }
-    };
-    
-    const handleYearChange = (year) => {
-        updateDetailField('academic_year', year);
-        
-        if (transcriptData) {
-            const yearData = transcriptData.parcours?.find(p => p.academic_year === year);
-            const sessions = yearData?.semesters?.map(s => s.name) || [];
-            setAvailableSessions(sessions);
-            
-            if (selectedRequest?.document_type === 'transcript') {
-                // Pour le relevé de notes: charger les modules
-                if (sessions[0]) {
-                    updateDetailField('session', sessions[0]);
-                    loadModulesForYearAndSession(transcriptData, year, sessions[0]);
-                } else {
-                    updateDetailField('session', '');
-                    setEditableDetails(prev => ({ ...prev, modules: [] }));
-                }
-            } else if (selectedRequest?.document_type === 'success-certificate') {
-                // Pour l'attestation de réussite: charger la mention
-                if (sessions[0]) {
-                    updateDetailField('session', sessions[0]);
-                    loadMentionForYearAndSession(transcriptData, year, sessions[0]);
-                } else {
-                    updateDetailField('session', '');
-                }
-            } else if (sessions[0]) {
-                updateDetailField('session', sessions[0]);
-            } else {
-                updateDetailField('session', '');
-            }
-        }
-    };
-    
-    const handleSessionChange = (session) => {
-        updateDetailField('session', session);
-        
-        if (transcriptData && editableDetails.academic_year) {
-            if (selectedRequest?.document_type === 'transcript') {
-                loadModulesForYearAndSession(transcriptData, editableDetails.academic_year, session);
-            } else if (selectedRequest?.document_type === 'success-certificate') {
-                loadMentionForYearAndSession(transcriptData, editableDetails.academic_year, session);
-            }
-        }
-    };
-    const handleSaveDraft = async () => {
-        if (!selectedRequest) return;
-        setDraftLoading(true);
-        try {
-            await updateRequestDraft(selectedRequest.id, { template_overrides: editableDetails });
-            await fetchRequests();
-        } catch (err) {
-            alert('Impossible de régénérer le brouillon');
-            console.error(err);
-        } finally {
-            setDraftLoading(false);
-        }
     };
 
-    const handleApprove = async () => {
+    const handleAccept = async () => {
         if (!selectedRequest) return;
         setLoading(true);
         const admin = JSON.parse(localStorage.getItem('admin'));
         const formData = new FormData();
         formData.append('status', 'Accepté');
         formData.append('admin_id', admin?.id || '');
-        formData.append('template_overrides', JSON.stringify(editableDetails));
+        formData.append('template_overrides', JSON.stringify({}));
         if (uploadFile) formData.append('document', uploadFile);
 
         try {
             await updateRequestStatus(selectedRequest.id, formData);
             await fetchRequests();
-            setModalState({ mode: '', reason: '' });
-            setSelectedRequest(null);
+            closeModal();
         } catch (err) {
             alert('Validation impossible');
         } finally {
@@ -333,19 +101,19 @@ const RequestsList = () => {
     };
 
     const handleReject = async () => {
-        if (!selectedRequest || !modalState.reason) return;
+        if (!selectedRequest || !refusalReason) return;
         setLoading(true);
         const admin = JSON.parse(localStorage.getItem('admin'));
         const formData = new FormData();
         formData.append('status', 'Refusé');
-        formData.append('refusal_reason', modalState.reason);
+        formData.append('refusal_reason', refusalReason);
         formData.append('admin_id', admin?.id || '');
-        formData.append('template_overrides', JSON.stringify(editableDetails));
+        formData.append('template_overrides', JSON.stringify({}));
+
         try {
             await updateRequestStatus(selectedRequest.id, formData);
             await fetchRequests();
-            setModalState({ mode: '', reason: '' });
-            setSelectedRequest(null);
+            closeModal();
         } catch (err) {
             alert('Refus impossible');
         } finally {
@@ -355,688 +123,237 @@ const RequestsList = () => {
 
     const closeModal = () => {
         setSelectedRequest(null);
-        setModalState({ mode: '', reason: '' });
+        setModalMode('');
+        setRefusalReason('');
         setUploadFile(null);
     };
 
-    const updateDetailField = (key, value) => {
-        setEditableDetails(prev => ({ ...prev, [key]: value }));
+    const parseDetails = (raw) => {
+        if (!raw) return {};
+        try {
+            return typeof raw === 'string' ? JSON.parse(raw) : raw;
+        } catch (e) {
+            return {};
+        }
     };
 
-    const updateModule = (index, key, value) => {
-        const modules = editableDetails.modules ? [...editableDetails.modules] : [];
-        modules[index] = { ...modules[index], [key]: value };
-        updateDetailField('modules', modules);
-    };
-
-    const addModule = () => {
-        const modules = editableDetails.modules ? [...editableDetails.modules] : [];
-        modules.push({ name: `Module ${modules.length + 1}`, grade: '' });
-        updateDetailField('modules', modules);
-    };
-    const renderEditableFields = () => {
+    const renderDetailsView = () => {
         if (!selectedRequest) return null;
+        const details = parseDetails(selectedRequest.specific_details);
         const docType = selectedRequest.document_type;
 
-        if (docType === 'transcript') {
-            return (
-                <div className="space-y-4">
-                    <div className="bg-yellow-50 border border-yellow-100 p-3 rounded-lg text-xs text-yellow-800">
-                        Les informations de l'étudiant sont chargées automatiquement. Vous pouvez les modifier si nécessaire.
+        return (
+            <div className="space-y-4">
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <h4 className="font-semibold text-blue-900 mb-2">Informations de l'étudiant</h4>
+                    <div className="grid md:grid-cols-2 gap-3 text-sm">
+                        <div><span className="font-medium text-gray-700">Nom complet:</span> <span className="text-gray-900">{selectedRequest.first_name} {selectedRequest.last_name}</span></div>
+                        <div><span className="font-medium text-gray-700">Email:</span> <span className="text-gray-900">{selectedRequest.email}</span></div>
+                        <div><span className="font-medium text-gray-700">Apogée:</span> <span className="text-gray-900">{selectedRequest.apogee_number}</span></div>
+                        <div><span className="font-medium text-gray-700">CIN:</span> <span className="text-gray-900">{selectedRequest.cin || details.cin || 'N/A'}</span></div>
+                        {selectedRequest.birth_date && (
+                            <div><span className="font-medium text-gray-700">Date de naissance:</span> <span className="text-gray-900">{new Date(selectedRequest.birth_date).toLocaleDateString('fr-FR')}</span></div>
+                        )}
+                        {selectedRequest.birth_place && (
+                            <div><span className="font-medium text-gray-700">Lieu de naissance:</span> <span className="text-gray-900">{selectedRequest.birth_place}</span></div>
+                        )}
                     </div>
-                    <div className="grid md:grid-cols-2 gap-3">
-                        <div>
-                            <label className="block text-xs font-semibold text-gray-700 mb-2">Année universitaire *</label>
-                            <select 
-                                value={editableDetails.academic_year || ''} 
-                                onChange={e => handleYearChange(e.target.value)}
-                                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
-                            >
-                                <option value="">Sélectionner une année</option>
-                                {availableYears.map(year => (
-                                    <option key={year} value={year}>{year}</option>
-                                ))}
-                            </select>
-                        </div>
-                        <div>
-                            <label className="block text-xs font-semibold text-gray-700 mb-2">Session *</label>
-                            <select 
-                                value={editableDetails.session || ''} 
-                                onChange={e => handleSessionChange(e.target.value)}
-                                disabled={!editableDetails.academic_year || availableSessions.length === 0}
-                                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none disabled:bg-gray-100 disabled:cursor-not-allowed"
-                            >
-                                <option value="">Sélectionner une session</option>
-                                {availableSessions.map(session => (
-                                    <option key={session} value={session}>{session}</option>
-                                ))}
-                            </select>
-                        </div>
-                    </div>
-                    
-                    <div className="border-t border-gray-200 pt-3">
-                        <h4 className="text-xs font-bold text-gray-700 mb-3">Informations de l'étudiant</h4>
-                        <div className="grid md:grid-cols-2 gap-3 mb-3">
-                            <div>
-                                <label className="block text-xs font-semibold text-gray-700 mb-2">CIN</label>
-                                <input 
-                                    value={editableDetails.cin || selectedRequest?.cin || ''} 
-                                    onChange={e => updateDetailField('cin', e.target.value)} 
-                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" 
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-xs font-semibold text-gray-700 mb-2">CNE</label>
-                                <input 
-                                    value={editableDetails.cne || selectedRequest?.cne || selectedRequest?.apogee_number || ''} 
-                                    onChange={e => updateDetailField('cne', e.target.value)} 
-                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" 
-                                />
-                            </div>
-                        </div>
-                        <div className="grid md:grid-cols-2 gap-3 mb-3">
-                            <div>
-                                <label className="block text-xs font-semibold text-gray-700 mb-2">Code Apogée</label>
-                                <input 
-                                    value={editableDetails.apogee_number || selectedRequest?.apogee_number || ''} 
-                                    onChange={e => updateDetailField('apogee_number', e.target.value)} 
-                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" 
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-xs font-semibold text-gray-700 mb-2">Date de naissance</label>
-                                <input 
-                                    type="date" 
-                                    value={editableDetails.birth_date || (selectedRequest?.birth_date ? selectedRequest.birth_date.split('T')[0] : '') || ''} 
-                                    onChange={e => updateDetailField('birth_date', e.target.value)} 
-                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" 
-                                />
-                            </div>
-                        </div>
-                        <div className="grid md:grid-cols-2 gap-3 mb-3">
-                            <div>
-                                <label className="block text-xs font-semibold text-gray-700 mb-2">Lieu de naissance</label>
-                                <input 
-                                    value={editableDetails.birth_place || selectedRequest?.birth_place || ''} 
-                                    onChange={e => updateDetailField('birth_place', e.target.value)} 
-                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" 
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-xs font-semibold text-gray-700 mb-2">Niveau</label>
-                                <input 
-                                    value={editableDetails.level || selectedRequest?.level || ''} 
-                                    onChange={e => updateDetailField('level', e.target.value)} 
-                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" 
-                                />
-                            </div>
-                        </div>
-                        <div className="mb-3">
-                            <label className="block text-xs font-semibold text-gray-700 mb-2">Programme / Filière</label>
-                            <input 
-                                value={editableDetails.program || selectedRequest?.filiere || selectedRequest?.major || ''} 
-                                onChange={e => updateDetailField('program', e.target.value)} 
-                                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" 
-                            />
-                        </div>
-                    </div>
-                    
-                    <div className="border-t border-gray-200 pt-3">
-                        <div className="flex items-center justify-between mb-3">
-                            <p className="text-sm font-semibold text-gray-700">Modules</p>
-                            <button 
-                                type="button" 
-                                onClick={addModule} 
-                                className="px-3 py-1 bg-primary-50 hover:bg-primary-100 text-primary-600 text-xs font-semibold rounded-lg transition-colors"
-                            >
-                                + Ajouter un module
-                            </button>
-                        </div>
-                        <div className="space-y-2 max-h-64 overflow-y-auto">
-                            {(editableDetails.modules || []).length === 0 ? (
-                                <p className="text-xs text-gray-500 italic">Aucun module. Sélectionnez une année et une session pour charger les modules, ou ajoutez-en manuellement.</p>
-                            ) : (
-                                (editableDetails.modules || []).map((m, idx) => (
-                                    <div key={idx} className="grid grid-cols-3 gap-2 items-center p-2 bg-gray-50 rounded-lg">
-                                        <input 
-                                            value={m.name || ''} 
-                                            onChange={e => updateModule(idx, 'name', e.target.value)} 
-                                            className="col-span-2 border border-gray-300 rounded px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" 
-                                            placeholder="Nom du module"
-                                        />
-                                        <div className="flex gap-1">
-                                            <input 
-                                                type="number"
-                                                step="0.01"
-                                                min="0"
-                                                max="20"
-                                                value={m.grade || ''} 
-                                                onChange={e => updateModule(idx, 'grade', e.target.value)} 
-                                                className="flex-1 border border-gray-300 rounded px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" 
-                                                placeholder="Note"
-                                            />
-                                            <button
-                                                type="button"
-                                                onClick={() => {
-                                                    const modules = editableDetails.modules.filter((_, i) => i !== idx);
-                                                    updateDetailField('modules', modules);
-                                                }}
-                                                className="px-2 py-1 text-red-600 hover:bg-red-50 rounded text-xs"
-                                            >
-                                                ×
-                                            </button>
+                </div>
+
+                <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                    <h4 className="font-semibold text-gray-900 mb-2">Détails de la demande</h4>
+                    <div className="grid md:grid-cols-2 gap-3 text-sm">
+                        {/* ... (existing fields) */}
+                        {docType === 'school-certificate' && (
+                            <>
+                                <div><span className="font-medium text-gray-700">Année universitaire:</span> <span className="text-gray-900">{details.academic_year || 'N/A'}</span></div>
+                                <div><span className="font-medium text-gray-700">Niveau:</span> <span className="text-gray-900">{details.level || selectedRequest.level || 'N/A'}</span></div>
+                                <div><span className="font-medium text-gray-700">Programme:</span> <span className="text-gray-900">{details.program || selectedRequest.major || 'N/A'}</span></div>
+                            </>
+                        )}
+                        {docType === 'success-certificate' && (
+                            <>
+                                <div><span className="font-medium text-gray-700">Année universitaire:</span> <span className="text-gray-900">{details.academic_year || 'N/A'}</span></div>
+                                <div><span className="font-medium text-gray-700">Session:</span> <span className="text-gray-900">{details.session || 'N/A'}</span></div>
+                                <div><span className="font-medium text-gray-700">Filière:</span> <span className="text-gray-900">{details.filiere || selectedRequest.major || 'N/A'}</span></div>
+                                <div><span className="font-medium text-gray-700">Mention:</span> <span className="text-gray-900">{details.mention || 'N/A'}</span></div>
+                            </>
+                        )}
+                        {docType === 'transcript' && (
+                            <>
+                                <div><span className="font-medium text-gray-700">Année universitaire:</span> <span className="text-gray-900">{details.academic_year || 'N/A'}</span></div>
+                                <div><span className="font-medium text-gray-700">Session:</span> <span className="text-gray-900">{details.session || 'N/A'}</span></div>
+                                <div><span className="font-medium text-gray-700">Niveau:</span> <span className="text-gray-900">{details.level || selectedRequest.level || 'N/A'}</span></div>
+                                <div><span className="font-medium text-gray-700">Programme:</span> <span className="text-gray-900">{details.program || selectedRequest.major || 'N/A'}</span></div>
+                                {details.modules && details.modules.length > 0 && (
+                                    <div className="md:col-span-2">
+                                        <span className="font-medium text-gray-700">Modules:</span>
+                                        <div className="mt-2 space-y-1">
+                                            {details.modules.map((m, idx) => (
+                                                <div key={idx} className="text-sm text-gray-900 bg-white px-3 py-1 rounded border border-gray-200">
+                                                    {m.name}: <span className="font-semibold">{m.grade}</span>
+                                                </div>
+                                            ))}
                                         </div>
                                     </div>
-                                ))
-                            )}
-                        </div>
+                                )}
+                            </>
+                        )}
+                        {docType === 'internship' && (
+                            <>
+                                <div className="md:col-span-2"><span className="font-medium text-gray-700">Entreprise:</span> <span className="text-gray-900">{details.company_legal_name || details.company_name || 'N/A'}</span></div>
+                                <div><span className="font-medium text-gray-700">Adresse:</span> <span className="text-gray-900">{details.company_address || 'N/A'}</span></div>
+                                <div><span className="font-medium text-gray-700">Ville:</span> <span className="text-gray-900">{details.company_city || 'N/A'}</span></div>
+                                <div><span className="font-medium text-gray-700">Secteur:</span> <span className="text-gray-900">{details.company_sector || 'N/A'}</span></div>
+                                <div><span className="font-medium text-gray-700">Sujet:</span> <span className="text-gray-900">{details.internship_subject || details.internship_title || 'N/A'}</span></div>
+                                <div><span className="font-medium text-gray-700">Période:</span> <span className="text-gray-900">{details.start_date && details.end_date ? `${new Date(details.start_date).toLocaleDateString('fr-FR')} - ${new Date(details.end_date).toLocaleDateString('fr-FR')}` : 'N/A'}</span></div>
+                                <div><span className="font-medium text-gray-700">Encadrant entreprise:</span> <span className="text-gray-900">{details.supervisor_name || 'N/A'}</span></div>
+                                <div><span className="font-medium text-gray-700">Encadrant ENSA:</span> <span className="text-gray-900">{details.ensa_supervisor_name || 'N/A'}</span></div>
+                            </>
+                        )}
                     </div>
-                </div>
-            );
-        }
-
-        if (docType === 'success-certificate') {
-            return (
-                <div className="space-y-4">
-                    <div className="bg-green-50 border border-green-100 p-3 rounded-lg text-xs text-green-800">
-                        Les informations de l'étudiant sont chargées automatiquement. Vous pouvez les modifier si nécessaire.
-                    </div>
-                    <div className="grid md:grid-cols-2 gap-3">
-                        <div>
-                            <label className="block text-xs font-semibold text-gray-700 mb-2">Année universitaire *</label>
-                            <select 
-                                value={editableDetails.academic_year || ''} 
-                                onChange={e => handleYearChange(e.target.value)}
-                                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
-                            >
-                                <option value="">Sélectionner une année</option>
-                                {availableYears.map(year => (
-                                    <option key={year} value={year}>{year}</option>
-                                ))}
-                            </select>
-                        </div>
-                        <div>
-                            <label className="block text-xs font-semibold text-gray-700 mb-2">Session *</label>
-                            <select 
-                                value={editableDetails.session || ''} 
-                                onChange={e => handleSessionChange(e.target.value)}
-                                disabled={!editableDetails.academic_year || availableSessions.length === 0}
-                                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none disabled:bg-gray-100 disabled:cursor-not-allowed"
-                            >
-                                <option value="">Sélectionner une session</option>
-                                {availableSessions.map(session => (
-                                    <option key={session} value={session}>{session}</option>
-                                ))}
-                            </select>
-                        </div>
-                    </div>
-                    <div className="border-t border-gray-200 pt-3">
-                        <h4 className="text-xs font-bold text-gray-700 mb-3">Informations de l'étudiant</h4>
-                        <div className="grid md:grid-cols-2 gap-3">
-                            <div>
-                                <label className="block text-xs font-semibold text-gray-700 mb-2">CIN</label>
-                                <input 
-                                    value={editableDetails.cin || selectedRequest?.cin || ''} 
-                                    onChange={e => updateDetailField('cin', e.target.value)} 
-                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" 
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-xs font-semibold text-gray-700 mb-2">CNE</label>
-                                <input 
-                                    value={editableDetails.cne || selectedRequest?.cne || ''} 
-                                    onChange={e => updateDetailField('cne', e.target.value)} 
-                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" 
-                                />
-                            </div>
-                        </div>
-                        <div className="grid md:grid-cols-2 gap-3 mt-3">
-                            <div>
-                                <label className="block text-xs font-semibold text-gray-700 mb-2">Date de naissance</label>
-                                <input 
-                                    type="date" 
-                                    value={editableDetails.birth_date || (selectedRequest?.birth_date ? selectedRequest.birth_date.split('T')[0] : '') || ''} 
-                                    onChange={e => updateDetailField('birth_date', e.target.value)} 
-                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" 
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-xs font-semibold text-gray-700 mb-2">Lieu de naissance</label>
-                                <input 
-                                    value={editableDetails.birth_place || selectedRequest?.birth_place || ''} 
-                                    onChange={e => updateDetailField('birth_place', e.target.value)} 
-                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" 
-                                />
-                            </div>
-                        </div>
-                        <div className="grid md:grid-cols-2 gap-3 mt-3">
-                            <div>
-                                <label className="block text-xs font-semibold text-gray-700 mb-2">Lieu de naissance</label>
-                                <input 
-                                    value={editableDetails.birth_place || selectedRequest?.birth_place || ''} 
-                                    onChange={e => updateDetailField('birth_place', e.target.value)} 
-                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" 
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-xs font-semibold text-gray-700 mb-2">Filière</label>
-                                <input 
-                                    value={editableDetails.filiere || selectedRequest?.filiere || selectedRequest?.major || ''} 
-                                    onChange={e => updateDetailField('filiere', e.target.value)} 
-                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" 
-                                />
-                            </div>
-                        </div>
-                        <div className="mt-3">
-                            <label className="block text-xs font-semibold text-gray-700 mb-2">Mention</label>
-                            <input 
-                                value={editableDetails.mention || ''} 
-                                onChange={e => updateDetailField('mention', e.target.value)} 
-                                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none bg-green-50" 
-                                placeholder="Chargée automatiquement depuis le relevé"
-                            />
-                        </div>
-                    </div>
-                </div>
-            );
-        }
-
-        if (docType === 'internship') {
-            return (
-                <div className="space-y-3">
-                    <div className="bg-blue-50 border border-blue-100 p-3 rounded-lg text-xs text-blue-800 mb-3">
-                        Les informations de l'étudiant sont chargées automatiquement. Vous pouvez les modifier si nécessaire.
-                    </div>
-                    
-                    <div className="border-t border-gray-200 pt-3 mb-3">
-                        <h4 className="text-xs font-bold text-gray-700 mb-3">Informations de l'étudiant</h4>
-                        <div className="grid md:grid-cols-2 gap-3">
-                            <div>
-                                <label className="block text-xs font-semibold text-gray-600 mb-2">CIN</label>
-                                <input 
-                                    value={editableDetails.cin || selectedRequest?.cin || ''} 
-                                    onChange={e => updateDetailField('cin', e.target.value)} 
-                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" 
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-xs font-semibold text-gray-600 mb-2">Code Apogée</label>
-                                <input 
-                                    value={editableDetails.apogee_number || selectedRequest?.apogee_number || ''} 
-                                    onChange={e => updateDetailField('apogee_number', e.target.value)} 
-                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" 
-                                />
-                            </div>
-                        </div>
-                        <div className="grid md:grid-cols-2 gap-3 mt-3">
-                            <div>
-                                <label className="block text-xs font-semibold text-gray-600 mb-2">Date de naissance</label>
-                                <input 
-                                    type="date" 
-                                    value={editableDetails.birth_date || (selectedRequest?.birth_date ? selectedRequest.birth_date.split('T')[0] : '') || ''} 
-                                    onChange={e => updateDetailField('birth_date', e.target.value)} 
-                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" 
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-xs font-semibold text-gray-600 mb-2">Lieu de naissance</label>
-                                <input 
-                                    value={editableDetails.birth_place || selectedRequest?.birth_place || ''} 
-                                    onChange={e => updateDetailField('birth_place', e.target.value)} 
-                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" 
-                                />
-                            </div>
-                        </div>
-                        <div className="grid md:grid-cols-2 gap-3 mt-3">
-                            <div>
-                                <label className="block text-xs font-semibold text-gray-600 mb-2">Filière</label>
-                                <input 
-                                    value={editableDetails.major || selectedRequest?.filiere || selectedRequest?.major || ''} 
-                                    onChange={e => updateDetailField('major', e.target.value)} 
-                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" 
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-xs font-semibold text-gray-600 mb-2">Niveau</label>
-                                <input 
-                                    value={editableDetails.level || selectedRequest?.level || ''} 
-                                    onChange={e => updateDetailField('level', e.target.value)} 
-                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" 
-                                />
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div className="text-xs font-bold text-gray-700 mt-4 mb-2">Informations entreprise</div>
-                    <div>
-                        <label className="block text-xs font-semibold text-gray-600 mb-2">Raison sociale *</label>
-                        <input value={editableDetails.company_legal_name || editableDetails.company_name || ''} onChange={e => updateDetailField('company_legal_name', e.target.value)} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" />
-                    </div>
-                    <div>
-                        <label className="block text-xs font-semibold text-gray-600 mb-2">Adresse *</label>
-                        <input value={editableDetails.company_address || ''} onChange={e => updateDetailField('company_address', e.target.value)} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" />
-                    </div>
-                    <div className="grid md:grid-cols-2 gap-3">
-                        <div>
-                            <label className="block text-xs font-semibold text-gray-600 mb-2">Ville *</label>
-                            <input value={editableDetails.company_city || ''} onChange={e => updateDetailField('company_city', e.target.value)} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" />
-                        </div>
-                        <div>
-                            <label className="block text-xs font-semibold text-gray-600 mb-2">Téléphone *</label>
-                            <input value={editableDetails.company_phone || ''} onChange={e => updateDetailField('company_phone', e.target.value)} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" />
-                        </div>
-                    </div>
-                    <div className="grid md:grid-cols-2 gap-3">
-                        <div>
-                            <label className="block text-xs font-semibold text-gray-600 mb-2">Email *</label>
-                            <input value={editableDetails.company_email || ''} onChange={e => updateDetailField('company_email', e.target.value)} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" />
-                        </div>
-                        <div>
-                            <label className="block text-xs font-semibold text-gray-600 mb-2">Secteur *</label>
-                            <input value={editableDetails.company_sector || ''} onChange={e => updateDetailField('company_sector', e.target.value)} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" />
-                        </div>
-                    </div>
-                    
-                    <div className="text-xs font-bold text-gray-700 mt-4 mb-2">Représentant entreprise</div>
-                    <div className="grid md:grid-cols-2 gap-3">
-                        <div>
-                            <label className="block text-xs font-semibold text-gray-600 mb-2">Nom *</label>
-                            <input value={editableDetails.company_representative_name || ''} onChange={e => updateDetailField('company_representative_name', e.target.value)} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" />
-                        </div>
-                        <div>
-                            <label className="block text-xs font-semibold text-gray-600 mb-2">Fonction *</label>
-                            <input value={editableDetails.company_representative_function || ''} onChange={e => updateDetailField('company_representative_function', e.target.value)} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" />
-                        </div>
-                    </div>
-                    
-                    <div className="text-xs font-bold text-gray-700 mt-4 mb-2">Encadrant entreprise</div>
-                    <div className="grid md:grid-cols-2 gap-3">
-                        <div>
-                            <label className="block text-xs font-semibold text-gray-600 mb-2">Nom *</label>
-                            <input value={editableDetails.supervisor_name || ''} onChange={e => updateDetailField('supervisor_name', e.target.value)} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" />
-                        </div>
-                        <div>
-                            <label className="block text-xs font-semibold text-gray-600 mb-2">Fonction *</label>
-                            <input value={editableDetails.supervisor_role || ''} onChange={e => updateDetailField('supervisor_role', e.target.value)} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" />
-                        </div>
-                    </div>
-                    <div className="grid md:grid-cols-2 gap-3">
-                        <div>
-                            <label className="block text-xs font-semibold text-gray-600 mb-2">Téléphone *</label>
-                            <input value={editableDetails.supervisor_phone || ''} onChange={e => updateDetailField('supervisor_phone', e.target.value)} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" />
-                        </div>
-                        <div>
-                            <label className="block text-xs font-semibold text-gray-600 mb-2">Email *</label>
-                            <input value={editableDetails.supervisor_email || ''} onChange={e => updateDetailField('supervisor_email', e.target.value)} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" />
-                        </div>
-                    </div>
-                    
-                    <div className="text-xs font-bold text-gray-700 mt-4 mb-2">Encadrant ENSA</div>
-                    <div>
-                        <label className="block text-xs font-semibold text-gray-600 mb-2">Nom *</label>
-                        <input value={editableDetails.ensa_supervisor_name || ''} onChange={e => updateDetailField('ensa_supervisor_name', e.target.value)} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" />
-                    </div>
-                    
-                    <div className="text-xs font-bold text-gray-700 mt-4 mb-2">Informations stage</div>
-                    <div>
-                        <label className="block text-xs font-semibold text-gray-600 mb-2">Sujet *</label>
-                        <input value={editableDetails.internship_subject || editableDetails.internship_title || ''} onChange={e => {
-                            updateDetailField('internship_subject', e.target.value);
-                            updateDetailField('internship_title', e.target.value);
-                        }} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" />
-                    </div>
-                    <div className="grid md:grid-cols-2 gap-3">
-                        <div>
-                            <label className="block text-xs font-semibold text-gray-600 mb-2">Stage du *</label>
-                            <input type="date" value={editableDetails.start_date || ''} onChange={e => updateDetailField('start_date', e.target.value)} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" />
-                        </div>
-                        <div>
-                            <label className="block text-xs font-semibold text-gray-600 mb-2">Stage au *</label>
-                            <input type="date" value={editableDetails.end_date || ''} onChange={e => updateDetailField('end_date', e.target.value)} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" />
-                        </div>
-                    </div>
-                </div>
-            );
-        }
-
-        // Par défaut (school-certificate et autres)
-        if (docType === 'school-certificate') {
-            return (
-                <div className="space-y-4">
-                    <div className="bg-blue-50 border border-blue-100 p-3 rounded-lg text-xs text-blue-800">
-                        Les informations de l'étudiant sont chargées automatiquement. Vous pouvez les modifier si nécessaire.
-                    </div>
-                    <div className="grid md:grid-cols-2 gap-3">
-                        <div>
-                            <label className="block text-xs font-semibold text-gray-700 mb-2">Année universitaire *</label>
-                            <select 
-                                value={editableDetails.academic_year || ''} 
-                                onChange={e => handleYearChange(e.target.value)}
-                                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
-                            >
-                                <option value="">Sélectionner une année</option>
-                                {availableYears.map(year => (
-                                    <option key={year} value={year}>{year}</option>
-                                ))}
-                            </select>
-                        </div>
-                    </div>
-                    <div className="border-t border-gray-200 pt-3">
-                        <h4 className="text-xs font-bold text-gray-700 mb-3">Informations de l'étudiant</h4>
-                        <div className="grid md:grid-cols-2 gap-3">
-                            <div>
-                                <label className="block text-xs font-semibold text-gray-700 mb-2">CIN</label>
-                                <input 
-                                    value={editableDetails.cin || selectedRequest?.cin || ''} 
-                                    onChange={e => updateDetailField('cin', e.target.value)} 
-                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" 
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-xs font-semibold text-gray-700 mb-2">Code Apogée</label>
-                                <input 
-                                    value={editableDetails.apogee_number || selectedRequest?.apogee_number || ''} 
-                                    onChange={e => updateDetailField('apogee_number', e.target.value)} 
-                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" 
-                                />
-                            </div>
-                        </div>
-                        <div className="grid md:grid-cols-2 gap-3 mt-3">
-                            <div>
-                                <label className="block text-xs font-semibold text-gray-700 mb-2">CNE</label>
-                                <input 
-                                    value={editableDetails.cne || selectedRequest?.cne || ''} 
-                                    onChange={e => updateDetailField('cne', e.target.value)} 
-                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" 
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-xs font-semibold text-gray-700 mb-2">Date de naissance</label>
-                                <input 
-                                    type="date" 
-                                    value={editableDetails.birth_date || (selectedRequest?.birth_date ? selectedRequest.birth_date.split('T')[0] : '') || ''} 
-                                    onChange={e => updateDetailField('birth_date', e.target.value)} 
-                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" 
-                                />
-                            </div>
-                        </div>
-                        <div className="grid md:grid-cols-2 gap-3 mt-3">
-                            <div>
-                                <label className="block text-xs font-semibold text-gray-700 mb-2">Lieu de naissance</label>
-                                <input 
-                                    value={editableDetails.birth_place || selectedRequest?.birth_place || ''} 
-                                    onChange={e => updateDetailField('birth_place', e.target.value)} 
-                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" 
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-xs font-semibold text-gray-700 mb-2">Niveau</label>
-                                <input 
-                                    value={editableDetails.level || selectedRequest?.level || ''} 
-                                    onChange={e => updateDetailField('level', e.target.value)} 
-                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" 
-                                />
-                            </div>
-                        </div>
-                        <div className="mt-3">
-                            <label className="block text-xs font-semibold text-gray-700 mb-2">Programme / Filière</label>
-                            <input 
-                                value={editableDetails.program || selectedRequest?.filiere || selectedRequest?.major || ''} 
-                                onChange={e => updateDetailField('program', e.target.value)} 
-                                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" 
-                            />
-                        </div>
-                    </div>
-                </div>
-            );
-        }
-
-        return (
-            <div className="space-y-3">
-                <div className="grid md:grid-cols-2 gap-3">
-                    <div>
-                        <label className="block text-xs font-semibold text-gray-600">Année</label>
-                        <input value={editableDetails.academic_year || ''} onChange={e => updateDetailField('academic_year', e.target.value)} className="w-full border rounded px-3 py-2" />
-                    </div>
-                    <div>
-                        <label className="block text-xs font-semibold text-gray-600">Niveau</label>
-                        <input value={editableDetails.level || ''} onChange={e => updateDetailField('level', e.target.value)} className="w-full border rounded px-3 py-2" />
-                    </div>
-                </div>
-                <div>
-                    <label className="block text-xs font-semibold text-gray-600">Programme</label>
-                    <input value={editableDetails.program || ''} onChange={e => updateDetailField('program', e.target.value)} className="w-full border rounded px-3 py-2" />
                 </div>
             </div>
         );
     };
+
+    const tabs = [
+        { id: 'all', label: 'Toutes les demandes', icon: DocumentTextIcon },
+        { id: 'school-certificate', label: 'Attestations de scolarité', icon: DocumentTextIcon },
+        { id: 'success-certificate', label: 'Attestations de réussite', icon: DocumentTextIcon },
+        { id: 'transcript', label: 'Relevés de notes', icon: DocumentTextIcon },
+        { id: 'internship', label: 'Conventions de stage', icon: DocumentTextIcon },
+    ];
+
+    const getTabCount = (tabId) => {
+        if (tabId === 'all') return requests.length;
+        return requests.filter(req => req.document_type === tabId).length;
+    };
+
     return (
         <div>
-            <div className="mb-8 flex flex-col gap-2">
-                <h1 className="page-title">Gestion des demandes</h1>
-                <p className="page-subtitle">Vérifier, modifier les brouillons et valider ou refuser les demandes</p>
+            <div className="mb-8">
+                <h1 className="text-3xl font-bold text-gray-900">Gestion des demandes</h1>
             </div>
 
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
-                <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
-                    <div className="flex items-center gap-2">
-                        <FunnelIcon className="h-5 w-5 text-gray-500" />
-                        <p className="text-sm text-gray-700">Filtres des demandes</p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <button
-                            onClick={() => setShowFilters(!showFilters)}
-                            className="px-3 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50"
-                        >
-                            {showFilters ? 'Masquer les filtres' : 'Afficher les filtres'}
-                        </button>
-                        <button
-                            onClick={() => setFilter({ ...defaultFilter })}
-                            className="px-3 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50"
-                        >
-                            Réinitialiser
-                        </button>
-                    </div>
+            {/* Global Search */}
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-3 mb-8">
+                <div className="relative group">
+                    <MagnifyingGlassIcon className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
+                    <input
+                        type="text"
+                        placeholder="Rechercher par référence, nom, ou numéro apogée..."
+                        className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-100 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5 rounded-lg outline-none transition-all text-sm text-slate-900 placeholder-slate-400"
+                        value={searchTerm}
+                        onChange={e => setSearchTerm(e.target.value)}
+                    />
+                </div>
+            </div>
+
+            {/* Tabs */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-6 overflow-hidden">
+                <div className="border-b border-gray-200 overflow-x-auto scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+                    <nav className="flex -mb-px">
+                        {tabs.map((tab) => (
+                            <button
+                                key={tab.id}
+                                onClick={() => setActiveTab(tab.id)}
+                                className={`
+                                    flex items-center gap-2 px-5 py-4 text-sm font-semibold border-b-2 transition-all whitespace-nowrap
+                                    ${activeTab === tab.id
+                                        ? 'border-blue-600 text-blue-600 bg-blue-50/50'
+                                        : 'border-transparent text-slate-500 hover:text-slate-900 hover:bg-slate-50'
+                                    }
+                                `}
+                            >
+                                <tab.icon className="h-4 w-4" />
+                                {tab.label}
+                                <span className={`ml-2 px-2 py-0.5 rounded-md text-[10px] font-bold ${activeTab === tab.id ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-500'}`}>
+                                    {getTabCount(tab.id)}
+                                </span>
+                            </button>
+                        ))}
+                    </nav>
                 </div>
 
-                {showFilters && (
-                    <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
-                        <div className="md:col-span-2 lg:col-span-2">
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Recherche</label>
-                            <div className="relative">
-                                <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-                                <input
-                                    type="text"
-                                    placeholder="Reference, nom, apogee..."
-                                    className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
-                                    value={filter.search}
-                                    onChange={e => setFilter({ ...filter, search: e.target.value })}
-                                />
-                            </div>
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Type de document</label>
-                            <select
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
-                                value={filter.type}
-                                onChange={e => setFilter({ ...filter, type: e.target.value })}
-                            >
-                                <option value="all">Tous les types</option>
-                                <option value="school-certificate">Attestation de scolarite</option>
-                                <option value="success-certificate">Attestation de reussite</option>
-                                <option value="transcript">Releve de notes</option>
-                                <option value="internship">Convention de stage</option>
-                            </select>
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Date de debut</label>
-                                <input
-                                    type="date"
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
-                                    value={filter.dateFrom}
-                                    onChange={e => setFilter({ ...filter, dateFrom: e.target.value })}
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Date de fin</label>
-                                <input
-                                    type="date"
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
-                                    value={filter.dateTo}
-                                    onChange={e => setFilter({ ...filter, dateTo: e.target.value })}
-                                />
-                            </div>
-                        </div>
-                    </div>
-                )}
-            </div>
-
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                <table className="w-full text-left">
-                    <thead className="bg-gray-50 border-b border-gray-200">
-                        <tr>
-                            <th className="px-6 py-4 text-xs font-semibold text-gray-600 uppercase">Référence</th>
-                            <th className="px-6 py-4 text-xs font-semibold text-gray-600 uppercase">Etudiant</th>
-                            <th className="px-6 py-4 text-xs font-semibold text-gray-600 uppercase">Type</th>
-                            <th className="px-6 py-4 text-xs font-semibold text-gray-600 uppercase">Statut</th>
-                            <th className="px-6 py-4 text-xs font-semibold text-gray-600 uppercase">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-200">
-                        {requests.map((req) => (
-                            <tr key={req.id} className="hover:bg-gray-50 transition-colors">
-                                <td className="px-6 py-4 text-sm font-medium text-primary-600">{req.reference}</td>
-                                <td className="px-6 py-4 text-sm text-gray-900">
-                                    {req.first_name} {req.last_name}
-                                    <div className="text-xs text-gray-500">Apogée: {req.apogee_number}</div>
-                                </td>
-                                <td className="px-6 py-4 text-sm text-gray-600 capitalize">{formatDocType(req.document_type)}</td>
-                                <td className="px-6 py-4">
-                                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(req.status)}`}>
-                                        {req.status}
-                                    </span>
-                                </td>
-                                <td className="px-6 py-4 text-sm">
-                                    <button 
-                                        onClick={() => selectRequest(req)} 
-                                        className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors flex items-center gap-2 text-sm font-medium"
-                                        title="Consulter"
-                                    >
-                                        <DocumentMagnifyingGlassIcon className="h-4 w-4" />
-                                        Consulter
-                                    </button>
-                                </td>
+                {/* Table */}
+                <div className="overflow-x-auto overflow-y-hidden">
+                    <table className="w-full text-left">
+                        <thead className="bg-gray-50 border-b border-gray-200">
+                            <tr>
+                                <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em]">Référence</th>
+                                <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em]">Étudiant</th>
+                                <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em]">Document</th>
+                                <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em]">Date</th>
+                                <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em]">Statut</th>
+                                <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em] text-center">Actions</th>
                             </tr>
-                        ))}
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody className="divide-y divide-gray-200">
+                            {filteredRequests.length === 0 ? (
+                                <tr>
+                                    <td colSpan="6" className="px-6 py-12 text-center text-gray-500">
+                                        Aucune demande trouvée
+                                    </td>
+                                </tr>
+                            ) : (
+                                filteredRequests.map((req) => (
+                                    <tr key={req.id} className="hover:bg-gray-50 transition-colors">
+                                        <td className="px-6 py-4 text-sm font-bold text-blue-600">{req.reference}</td>
+                                        <td className="px-6 py-4">
+                                            <div className="text-sm font-semibold text-slate-900">{req.first_name} {req.last_name}</div>
+                                            <div className="text-[11px] font-medium text-slate-400">Apogée: {req.apogee_number}</div>
+                                        </td>
+                                        <td className="px-6 py-4 text-sm font-medium text-slate-600">{formatDocType(req.document_type)}</td>
+                                        <td className="px-6 py-4 text-sm font-medium text-slate-500">
+                                            {new Date(req.submission_date).toLocaleDateString('fr-FR')}
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-[11px] font-bold border ${getStatusColor(req.status)}`}>
+                                                <span className="w-1.5 h-1.5 rounded-full bg-current mr-1.5 opacity-60"></span>
+                                                {req.status}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <div className="flex items-center gap-2">
+                                                <button
+                                                    onClick={() => handleViewDocument(req)}
+                                                    className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-medium transition-colors flex items-center gap-1"
+                                                    title="Voir détails"
+                                                >
+                                                    <DocumentMagnifyingGlassIcon className="h-4 w-4" />
+                                                    Détails
+                                                </button>
+                                                <button
+                                                    onClick={() => { setSelectedRequest(req); setModalMode('accept'); }}
+                                                    className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded-lg text-xs font-medium transition-colors flex items-center gap-1"
+                                                    title="Accepter"
+                                                >
+                                                    <CheckIcon className="h-4 w-4" />
+                                                    Accepter
+                                                </button>
+                                                <button
+                                                    onClick={() => { setSelectedRequest(req); setModalMode('reject'); }}
+                                                    className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-medium transition-colors flex items-center gap-1"
+                                                    title="Refuser"
+                                                >
+                                                    <XMarkIcon className="h-4 w-4" />
+                                                    Refuser
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))
+                            )}
+                        </tbody>
+                    </table>
+                </div>
             </div>
 
             {/* Modal */}
             {selectedRequest && (
                 <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50" onClick={closeModal}>
-                    <div 
+                    <div
                         className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto"
                         onClick={(e) => e.stopPropagation()}
                     >
@@ -1066,115 +383,79 @@ const RequestsList = () => {
 
                         {/* Modal Body */}
                         <div className="p-6 space-y-6">
-                            {/* Informations étudiant */}
-                            <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
-                                <h3 className="text-sm font-bold text-gray-900 mb-3">Informations étudiant</h3>
-                                <div className="grid md:grid-cols-2 gap-3 text-sm">
-                                    <div>
-                                        <span className="font-semibold text-gray-700">Email :</span>
-                                        <span className="ml-2 text-gray-600">{selectedRequest.email}</span>
-                                    </div>
-                                    <div>
-                                        <span className="font-semibold text-gray-700">Apogée :</span>
-                                        <span className="ml-2 text-gray-600">{selectedRequest.apogee_number}</span>
-                                    </div>
-                                    <div>
-                                        <span className="font-semibold text-gray-700">Type de document :</span>
-                                        <span className="ml-2 text-gray-600 capitalize">{formatDocType(selectedRequest.document_type)}</span>
-                                    </div>
-                                </div>
-                                <div className="mt-4 flex gap-3">
-                                    {selectedRequest.generated_document_path && (
-                                        <a
-                                            href={`${serverBase}${selectedRequest.generated_document_path}`}
-                                            target="_blank"
-                                            rel="noreferrer"
-                                            className="inline-flex items-center gap-2 px-4 py-2 bg-primary-50 hover:bg-primary-100 text-primary-700 rounded-lg text-sm font-medium transition-colors"
-                                        >
-                                            <ArrowPathIcon className="h-4 w-4" />
-                                            Voir le brouillon généré
-                                        </a>
-                                    )}
-                                    {selectedRequest.document_path && isAccepted(selectedRequest.status) && (
-                                        <a
-                                            href={`${serverBase}${selectedRequest.document_path}`}
-                                            target="_blank"
-                                            rel="noreferrer"
-                                            className="inline-flex items-center gap-2 px-4 py-2 bg-green-50 hover:bg-green-100 text-green-700 rounded-lg text-sm font-medium transition-colors"
-                                        >
-                                            Document final envoyé
-                                        </a>
-                                    )}
-                                </div>
-                            </div>
+                            {modalMode === 'view' && renderDetailsView()}
 
-                            {/* Champs éditables */}
-                            <div className="border-2 border-gray-200 rounded-xl p-5 bg-white">
-                                <div className="flex items-center justify-between mb-4">
-                                    <h3 className="text-lg font-bold text-gray-900">Champs éditables</h3>
-                                    <button 
-                                        onClick={handleSaveDraft} 
-                                        disabled={draftLoading} 
-                                        className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg text-sm font-medium flex items-center gap-2 disabled:opacity-50 transition-colors"
-                                    >
-                                        {draftLoading && <ArrowPathIcon className="h-4 w-4 animate-spin" />}
-                                        Sauvegarder le brouillon
-                                    </button>
-                                </div>
-                                <div className="bg-gray-50 rounded-lg p-4">
-                                    {renderEditableFields()}
-                                </div>
-                            </div>
+                            {modalMode === 'accept' && (
+                                <div className="space-y-4">
+                                    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                                        <h4 className="font-semibold text-green-900 mb-2">Accepter la demande</h4>
+                                        <p className="text-sm text-green-800">Le document généré sera envoyé automatiquement à l'étudiant par email.</p>
+                                    </div>
 
-                            {/* Upload PDF */}
-                            <div className="border-2 border-dashed border-gray-300 rounded-xl p-5 bg-gray-50">
-                                <label className="block text-sm font-semibold text-gray-700 mb-3">Remplacer le PDF (optionnel)</label>
-                                <input 
-                                    type="file" 
-                                    accept="application/pdf" 
-                                    onChange={e => setUploadFile(e.target.files[0])}
-                                    className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100 cursor-pointer"
-                                />
-                                {uploadFile && (
-                                    <p className="mt-2 text-sm text-green-600 font-medium">✓ Fichier sélectionné : {uploadFile.name}</p>
-                                )}
-                            </div>
-
-                            {/* Actions */}
-                            {isPending(selectedRequest.status) && (
-                                <div className="flex flex-col gap-3 pt-4 border-t border-gray-200">
-                                    <button 
-                                        onClick={handleApprove} 
-                                        disabled={loading} 
-                                        className="w-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white py-3 rounded-xl flex items-center justify-center font-semibold shadow-lg shadow-green-500/30 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                                    >
-                                        {loading ? (
-                                            <>
-                                                <ArrowPathIcon className="h-5 w-5 mr-2 animate-spin" />
-                                                Traitement...
-                                            </>
-                                        ) : (
-                                            <>
-                                                <CheckIcon className="h-5 w-5 mr-2" />
-                                                Valider et envoyer
-                                            </>
+                                    <div className="border-2 border-dashed border-gray-300 rounded-xl p-5 bg-gray-50">
+                                        <label className="block text-sm font-semibold text-gray-700 mb-3">Remplacer le PDF (optionnel)</label>
+                                        <div className="flex flex-col md:flex-row gap-4 items-start">
+                                            <input
+                                                type="file"
+                                                accept="application/pdf"
+                                                onChange={e => setUploadFile(e.target.files[0])}
+                                                className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100 cursor-pointer"
+                                            />
+                                        </div>
+                                        {uploadFile && (
+                                            <p className="mt-2 text-sm text-green-600 font-medium">✓ Fichier sélectionné : {uploadFile.name}</p>
                                         )}
-                                    </button>
-                                    <div className="space-y-3">
-                                        <textarea
-                                            rows="3"
-                                            placeholder="Motif du refus (obligatoire)"
-                                            className="w-full border-2 border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-colors"
-                                            value={modalState.reason}
-                                            onChange={e => setModalState({ ...modalState, reason: e.target.value })}
-                                        ></textarea>
-                                        <button 
-                                            onClick={handleReject} 
-                                            disabled={!modalState.reason || loading} 
-                                            className="w-full bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white py-3 rounded-xl flex items-center justify-center font-semibold shadow-lg shadow-red-500/30 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                                    </div>
+
+                                    <div className="flex gap-3">
+                                        <button
+                                            onClick={handleAccept}
+                                            disabled={loading}
+                                            className="flex-1 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white py-3 rounded-xl font-semibold shadow-lg disabled:opacity-50 transition-all"
                                         >
-                                            <XMarkIcon className="h-5 w-5 mr-2" />
-                                            Refuser
+                                            {loading ? 'Traitement...' : 'Confirmer l\'acceptation'}
+                                        </button>
+                                        <button
+                                            onClick={closeModal}
+                                            className="px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-xl font-semibold hover:bg-gray-50 transition-colors"
+                                        >
+                                            Annuler
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+
+                            {modalMode === 'reject' && (
+                                <div className="space-y-4">
+                                    <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                                        <h4 className="font-semibold text-red-900 mb-2">Refuser la demande</h4>
+                                        <p className="text-sm text-red-800">Veuillez indiquer le motif du refus. L'étudiant recevra un email avec cette information.</p>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-semibold text-gray-700 mb-2">Motif du refus *</label>
+                                        <textarea
+                                            rows="4"
+                                            placeholder="Expliquez la raison du refus..."
+                                            className="w-full border-2 border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-colors"
+                                            value={refusalReason}
+                                            onChange={e => setRefusalReason(e.target.value)}
+                                        />
+                                    </div>
+
+                                    <div className="flex gap-3">
+                                        <button
+                                            onClick={handleReject}
+                                            disabled={!refusalReason || loading}
+                                            className="flex-1 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white py-3 rounded-xl font-semibold shadow-lg disabled:opacity-50 transition-all"
+                                        >
+                                            {loading ? 'Traitement...' : 'Confirmer le refus'}
+                                        </button>
+                                        <button
+                                            onClick={closeModal}
+                                            className="px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-xl font-semibold hover:bg-gray-50 transition-colors"
+                                        >
+                                            Annuler
                                         </button>
                                     </div>
                                 </div>

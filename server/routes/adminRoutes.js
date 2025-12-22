@@ -33,6 +33,7 @@ router.get('/history/export', adminController.exportHistory);
 router.get('/requests/:id', adminController.getRequestById);
 router.put('/requests/:id/draft', adminController.updateDraft);
 router.put('/requests/:id', upload.single('document'), adminController.updateRequestStatus);
+router.post('/requests/:id/resend', adminController.resendDocument);
 router.get('/complaints', adminController.getComplaints);
 router.put('/complaints/:id/respond', upload.single('document'), adminController.respondToComplaint);
 

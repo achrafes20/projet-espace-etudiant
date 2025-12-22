@@ -46,5 +46,6 @@ export const respondToComplaint = (id, data) => {
     }
     return api.put(`/admin/complaints/${id}/respond`, data);
 };
+export const resendDocument = (id) => api.post(`/admin/requests/${id}/resend`);
 
 export default api;

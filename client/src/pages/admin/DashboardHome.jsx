@@ -7,59 +7,46 @@ import {
     CategoryScale,
     LinearScale,
     BarElement,
-    Title
+    Title,
+    LineElement,
+    PointElement
 } from 'chart.js';
-import { Pie, Bar } from 'react-chartjs-2';
-import { ClockIcon, CheckCircleIcon, XCircleIcon, DocumentDuplicateIcon, ExclamationCircleIcon, ChartBarIcon, CalendarIcon, FunnelIcon } from '@heroicons/react/24/outline';
+import { Pie, Bar, Doughnut } from 'react-chartjs-2';
+import { DocumentDuplicateIcon, ExclamationCircleIcon, ChartBarIcon, AcademicCapIcon } from '@heroicons/react/24/outline';
 import { getDashboardStats } from '../../services/api';
 
-ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title);
+ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title, LineElement, PointElement);
 
 const DashboardHome = () => {
-    const [stats, setStats] = useState({ 
-        pending: 0, 
-        accepted: 0, 
-        rejected: 0, 
+    const [stats, setStats] = useState({
+        pending: 0,
+        accepted: 0,
+        rejected: 0,
         total: 0,
         byType: {},
         byStatusType: [],
         recent: 0,
         pendingComplaints: 0,
-        processingRate: 0
+        resolvedComplaints: 0,
+        totalComplaints: 0,
+        processingRate: 0,
+        avgProcessingTime: 0,
+        byTypeAndStatus: {}
     });
-    const [filters, setFilters] = useState({
-        status: 'all',
-        type: 'all',
-        dateFrom: '',
-        dateTo: ''
-    });
-    const [showFilters, setShowFilters] = useState(false);
 
     useEffect(() => {
         fetchStats();
-        const interval = setInterval(fetchStats, 30000); // Refresh every 30 seconds
+        const interval = setInterval(fetchStats, 30000);
         return () => clearInterval(interval);
-    }, [filters]);
+    }, []);
 
     const fetchStats = async () => {
         try {
-            const res = await getDashboardStats(filters);
+            const res = await getDashboardStats({});
             setStats(res.data);
         } catch (err) {
             console.error(err);
         }
-    };
-
-    const pieData = {
-        labels: ['Acceptées', 'Refusées', 'En attente'],
-        datasets: [
-            {
-                data: [stats.accepted, stats.rejected, stats.pending],
-                backgroundColor: ['#22c55e', '#ef4444', '#eab308'],
-                borderWidth: 2,
-                borderColor: '#ffffff',
-            },
-        ],
     };
 
     const documentTypeLabels = {
@@ -69,201 +56,204 @@ const DashboardHome = () => {
         'internship': 'Convention de stage'
     };
 
-    const barData = {
-        labels: Object.keys(stats.byType || {}).map(key => documentTypeLabels[key] || key),
-        datasets: [
-            {
-                label: 'Nombre de demandes',
-                data: Object.values(stats.byType || {}),
-                backgroundColor: '#3b82f6',
-                borderColor: '#2563eb',
-                borderWidth: 1,
+    const barOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: { display: false },
+            tooltip: {
+                backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                padding: 12,
+                cornerRadius: 8,
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: { stepSize: 1, color: '#64748b' },
+                grid: { color: '#f1f5f9' }
             },
-        ],
+            x: {
+                ticks: { color: '#64748b' },
+                grid: { display: false }
+            }
+        }
     };
 
-    const cards = [
-        { title: 'En attente', value: stats.pending, icon: ClockIcon, color: 'text-yellow-600', bg: 'bg-yellow-100', border: 'border-yellow-200' },
-        { title: 'Acceptées', value: stats.accepted, icon: CheckCircleIcon, color: 'text-green-600', bg: 'bg-green-100', border: 'border-green-200' },
-        { title: 'Refusées', value: stats.rejected, icon: XCircleIcon, color: 'text-red-600', bg: 'bg-red-100', border: 'border-red-200' },
-        { title: 'Total demandes', value: stats.total, icon: DocumentDuplicateIcon, color: 'text-blue-600', bg: 'bg-blue-100', border: 'border-blue-200' },
-        { title: 'Réclamations en attente', value: stats.pendingComplaints || 0, icon: ExclamationCircleIcon, color: 'text-orange-600', bg: 'bg-orange-100', border: 'border-orange-200' },
-        { title: 'Demandes (7 derniers jours)', value: stats.recent || 0, icon: CalendarIcon, color: 'text-purple-600', bg: 'bg-purple-100', border: 'border-purple-200' },
-    ];
+    const doughnutOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'bottom',
+                labels: {
+                    usePointStyle: true,
+                    padding: 24,
+                    font: { size: 14, weight: '500' },
+                    color: '#475569'
+                }
+            }
+        },
+        cutout: '75%',
+    };
+
+    const barData = {
+        labels: Object.keys(stats.byType || {}).map(key => documentTypeLabels[key] || key),
+        datasets: [{
+            label: 'Nombre de demandes',
+            data: Object.values(stats.byType || {}),
+            backgroundColor: 'rgba(59, 130, 246, 0.8)',
+            borderRadius: 12,
+            hoverBackgroundColor: 'rgba(37, 99, 235, 1)',
+        }]
+    };
+
+    const complaintsDoughnutData = {
+        labels: ['En attente', 'Résolues'],
+        datasets: [{
+            data: [
+                parseInt(stats.pendingComplaints || 0, 10),
+                parseInt(stats.resolvedComplaints || 0, 10)
+            ],
+            backgroundColor: [
+                'rgba(245, 158, 11, 0.8)',
+                'rgba(16, 185, 129, 0.8)'
+            ],
+            borderWidth: 0,
+            hoverOffset: 15
+        }]
+    };
+
+    const totalComplaints = (parseInt(stats.pendingComplaints || 0, 10)) + (parseInt(stats.resolvedComplaints || 0, 10));
 
     return (
-        <div>
-            <div className="mb-8">
-                <h1 className="text-3xl font-bold text-gray-900 mb-2">Tableau de bord</h1>
-                <p className="text-gray-600">Vue d'ensemble et statistiques des services étudiants</p>
+        <div className="p-6 lg:p-10 bg-slate-50/50 min-h-screen animate-in fade-in duration-700">
+            <div className="mb-10 flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+                <div>
+                    <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Tableau de bord</h1>
+                    <p className="text-slate-500 mt-1 font-medium">Gestion et suivi des services académiques</p>
+                </div>
+                <div className="flex items-center gap-2 text-sm font-medium text-slate-500 bg-white px-4 py-2 rounded-lg border border-slate-200 shadow-sm">
+                    <span className="relative flex h-2 w-2">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                    </span>
+                    Mise à jour en temps réel
+                </div>
             </div>
 
-
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
-                <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
-                    <div className="flex items-center gap-2">
-                        <FunnelIcon className="h-5 w-5 text-gray-500" />
-                        <p className="text-sm text-gray-700">Filtres appliqués sur les statistiques</p>
+            {/* Summary Stats Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 hover:shadow-md transition-all duration-300 group">
+                    <div className="flex items-center justify-between mb-4">
+                        <div className="bg-blue-50 p-2.5 rounded-xl text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                            <ChartBarIcon className="h-5 w-5" />
+                        </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                        <button
-                            onClick={() => setShowFilters(!showFilters)}
-                            className="px-3 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50"
-                        >
-                            {showFilters ? 'Masquer les filtres' : 'Afficher les filtres'}
-                        </button>
-                        <button
-                            onClick={() => setFilters({ status: 'all', type: 'all', dateFrom: '', dateTo: '' })}
-                            className="px-3 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50"
-                        >
-                            Réinitialiser
-                        </button>
+                    <div>
+                        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Total Demandes</p>
+                        <div className="flex items-baseline gap-2">
+                            <h3 className="text-3xl font-bold text-slate-900">{stats.total}</h3>
+                            <span className="text-xs font-medium text-slate-400">depuis l'ouverture</span>
+                        </div>
                     </div>
                 </div>
 
-                {showFilters && (
-                    <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Statut</label>
-                            <select
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                                value={filters.status}
-                                onChange={e => setFilters({ ...filters, status: e.target.value })}
-                            >
-                                <option value="all">Tous</option>
-                                <option value="En attente">En attente</option>
-                                <option value="Accepté">Accepté</option>
-                                <option value="Refusé">Refusé</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
-                            <select
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                                value={filters.type}
-                                onChange={e => setFilters({ ...filters, type: e.target.value })}
-                            >
-                                <option value="all">Tous les types</option>
-                                <option value="school-certificate">Attestation de scolarité</option>
-                                <option value="success-certificate">Attestation de réussite</option>
-                                <option value="transcript">Relevé de notes</option>
-                                <option value="internship">Convention de stage</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Date de début</label>
-                            <input
-                                type="date"
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                                value={filters.dateFrom}
-                                onChange={e => setFilters({ ...filters, dateFrom: e.target.value })}
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Date de fin</label>
-                            <input
-                                type="date"
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                                value={filters.dateTo}
-                                onChange={e => setFilters({ ...filters, dateTo: e.target.value })}
-                            />
-                        </div>
-                    </div>
-                )}
-            </div>            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-                {cards.map((card, idx) => (
-                    <div key={idx} className="bg-white rounded-xl shadow-sm border-2 border-gray-100 p-6 transition-all hover:shadow-lg hover:scale-105">
-                        <div className="flex items-center justify-between mb-4">
-                            <div className={`w-14 h-14 ${card.bg} rounded-xl flex items-center justify-center border-2 ${card.border}`}>
-                                <card.icon className={`h-7 w-7 ${card.color}`} />
-                            </div>
-                            {idx === 5 && (
-                                <div className="text-right">
-                                    <div className="text-2xl font-bold text-gray-900">{stats.processingRate}%</div>
-                                    <div className="text-xs text-gray-500">Taux de traitement</div>
-                                </div>
-                            )}
-                        </div>
-                        <h3 className="text-3xl font-bold text-gray-900 mb-1">{card.value}</h3>
-                        <p className="text-sm font-medium text-gray-600">{card.title}</p>
-                    </div>
-                ))}
-            </div>
-
-            <div className="grid lg:grid-cols-2 gap-6 mb-6">
-                <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 hover:shadow-md transition-all duration-300 group">
                     <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-lg font-bold text-gray-900">Répartition par statut</h3>
-                        <ChartBarIcon className="h-6 w-6 text-gray-400" />
+                        <div className="bg-amber-50 p-2.5 rounded-xl text-amber-600 group-hover:bg-amber-600 group-hover:text-white transition-colors">
+                            <AcademicCapIcon className="h-5 w-5" />
+                        </div>
                     </div>
-                    <div className="h-64 flex justify-center items-center">
-                        <Pie 
-                            data={pieData} 
-                            options={{
-                                responsive: true,
-                                maintainAspectRatio: false,
-                                plugins: {
-                                    legend: {
-                                        position: 'bottom',
-                                    },
-                                },
-                            }}
-                        />
+                    <div>
+                        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">En Attente</p>
+                        <div className="flex items-baseline gap-2">
+                            <h3 className="text-3xl font-bold text-amber-600">{stats.pending}</h3>
+                            <span className="text-xs font-medium text-slate-400">à traiter</span>
+                        </div>
                     </div>
                 </div>
-                
-                <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 hover:shadow-md transition-all duration-300 group">
                     <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-lg font-bold text-gray-900">Demandes par type de document</h3>
-                        <DocumentDuplicateIcon className="h-6 w-6 text-gray-400" />
+                        <div className="bg-emerald-50 p-2.5 rounded-xl text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white transition-colors">
+                            <DocumentDuplicateIcon className="h-5 w-5" />
+                        </div>
                     </div>
-                    <div className="h-64 flex justify-center items-center">
+                    <div>
+                        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Dossiers Traités</p>
+                        <div className="flex items-baseline gap-2">
+                            <h3 className="text-3xl font-bold text-emerald-600">{stats.accepted + stats.rejected}</h3>
+                            <span className="text-xs font-medium text-slate-400">clôturés</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 hover:shadow-md transition-all duration-300 group">
+                    <div className="flex items-center justify-between mb-4">
+                        <div className="bg-indigo-50 p-2.5 rounded-xl text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white transition-colors">
+                            <ExclamationCircleIcon className="h-5 w-5" />
+                        </div>
+                    </div>
+                    <div>
+                        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Efficacité</p>
+                        <div className="flex items-baseline gap-2">
+                            <h3 className="text-3xl font-bold text-indigo-600">{stats.processingRate}%</h3>
+                            <span className="text-xs font-medium text-slate-400">de complétion</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div className="grid lg:grid-cols-5 gap-8 items-stretch">
+                {/* Requests by Type */}
+                <div className="lg:col-span-3 bg-white rounded-2xl shadow-sm border border-slate-200 p-8 flex flex-col">
+                    <div className="flex items-center justify-between mb-8">
+                        <div>
+                            <h3 className="text-lg font-bold text-slate-900">Volume par catégorie</h3>
+                            <p className="text-sm text-slate-500">Demandes réparties par type de document</p>
+                        </div>
+                        <div className="p-2 bg-slate-50 rounded-lg">
+                            <ChartBarIcon className="h-5 w-5 text-slate-400" />
+                        </div>
+                    </div>
+                    <div className="flex-1 min-h-[350px]">
                         {Object.keys(stats.byType || {}).length > 0 ? (
-                            <Bar 
-                                data={barData} 
-                                options={{
-                                    responsive: true,
-                                    maintainAspectRatio: false,
-                                    plugins: {
-                                        legend: {
-                                            display: false,
-                                        },
-                                    },
-                                    scales: {
-                                        y: {
-                                            beginAtZero: true,
-                                            ticks: {
-                                                stepSize: 1,
-                                            },
-                                        },
-                                    },
-                                }}
-                            />
+                            <Bar data={barData} options={barOptions} />
                         ) : (
-                            <p className="text-gray-400">Aucune donnée disponible</p>
+                            <div className="h-full flex items-center justify-center text-slate-300 text-sm font-medium italic">Données indisponibles</div>
                         )}
                     </div>
                 </div>
-            </div>
 
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                <h3 className="text-lg font-bold text-gray-900 mb-4">Résumé des statistiques</h3>
-                <div className="grid md:grid-cols-4 gap-4">
-                    <div className="bg-gradient-to-br from-green-50 to-green-100 p-4 rounded-lg border border-green-200">
-                        <div className="text-2xl font-bold text-green-700">{stats.accepted}</div>
-                        <div className="text-sm text-green-600 font-medium">Demandes acceptées</div>
+                {/* Complaints by Status */}
+                <div className="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-slate-200 p-8 flex flex-col">
+                    <div className="flex items-center justify-between mb-8">
+                        <div>
+                            <h3 className="text-lg font-bold text-slate-900">État des réclamations</h3>
+                            <p className="text-sm text-slate-500">Suivi du traitement des plaintes</p>
+                        </div>
+                        <div className="p-2 bg-slate-50 rounded-lg">
+                            <ExclamationCircleIcon className="h-5 w-5 text-slate-400" />
+                        </div>
                     </div>
-                    <div className="bg-gradient-to-br from-red-50 to-red-100 p-4 rounded-lg border border-red-200">
-                        <div className="text-2xl font-bold text-red-700">{stats.rejected}</div>
-                        <div className="text-sm text-red-600 font-medium">Demandes refusées</div>
-                    </div>
-                    <div className="bg-gradient-to-br from-yellow-50 to-yellow-100 p-4 rounded-lg border border-yellow-200">
-                        <div className="text-2xl font-bold text-yellow-700">{stats.pending}</div>
-                        <div className="text-sm text-yellow-600 font-medium">En attente de traitement</div>
-                    </div>
-                    <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-4 rounded-lg border border-blue-200">
-                        <div className="text-2xl font-bold text-blue-700">{stats.processingRate}%</div>
-                        <div className="text-sm text-blue-600 font-medium">Taux de traitement</div>
+                    <div className="flex-1 min-h-[350px] flex items-center justify-center">
+                        {totalComplaints > 0 ? (
+                            <div className="w-full h-full relative flex items-center justify-center">
+                                <Doughnut data={complaintsDoughnutData} options={doughnutOptions} />
+                                <div className="absolute flex flex-col items-center justify-center pointer-events-none mb-10">
+                                    <span className="text-3xl font-bold text-slate-800">{totalComplaints}</span>
+                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Total</span>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="text-center">
+                                <div className="bg-slate-50 p-6 rounded-2xl mb-4 inline-block">
+                                    <ExclamationCircleIcon className="h-10 w-10 text-slate-200" />
+                                </div>
+                                <p className="text-slate-400 text-sm font-medium italic">Aucune réclamation</p>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
@@ -272,4 +262,3 @@ const DashboardHome = () => {
 };
 
 export default DashboardHome;
-
