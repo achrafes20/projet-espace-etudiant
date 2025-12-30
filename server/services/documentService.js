@@ -12,6 +12,7 @@ const DOC_LABELS = {
     transcript: 'Relevé de notes',
     internship: 'Convention de stage'
 };
+const ARABIC_FONT_PATH = 'C:\\Windows\\Fonts\\tahoma.ttf';
 
 const ensureDirectory = (dir) => {
     if (!fs.existsSync(dir)) {
@@ -101,17 +102,8 @@ const addHeader = (doc) => {
     doc.moveDown(2);
 };
 
-const addFooterNote = (doc, text) => {
-    const pageHeight = doc.page.height;
-    const footerY = pageHeight - 60;
+const addFooterNote = (doc, text) => {};
 
-    doc.fontSize(8).fillColor('#000000').font('Helvetica-Oblique');
-    doc.text(text, 50, footerY, {
-        align: 'center',
-        width: doc.page.width - 100,
-        lineGap: 2
-    });
-};
 
 const buildSchoolCertificate = (doc, payload) => {
     addHeader(doc);
@@ -226,96 +218,123 @@ const buildSuccessCertificate = (doc, payload) => {
 };
 
 const buildTranscript = (doc, payload) => {
-    addHeader(doc);
+    const pageWidth = doc.page.width;
+    const left = 40;
+    const right = pageWidth - 40;
+    const contentWidth = right - left;
+    const academicYear = payload.details.academic_year || '2024/2025';
+    const sessionLabel = payload.details.session || 'Session 1';
+    const yearParts = academicYear.split('/');
+    const shortYear = yearParts.length === 2 ? `${yearParts[0]}/${yearParts[1].slice(-2)}` : academicYear;
+    const sessionCode = sessionLabel.toLowerCase().includes('2') ? 'S2' : 'S1';
+    const sessionShort = `${sessionCode} ${shortYear}`;
+    const sessionNumber = sessionCode === 'S2' ? '2' : '1';
 
-    doc.moveDown(1);
-    doc.fontSize(16).font('Helvetica-Bold');
-    doc.text('RELEVÉ DE NOTES', { align: 'center' });
+    doc.registerFont('Arabic', ARABIC_FONT_PATH);
 
-    doc.fontSize(10).font('Helvetica');
-    doc.text(`Année Universitaire : ${payload.details.academic_year || '---'} | Session : ${payload.details.session || '1'}`, { align: 'center' });
+    // Header block
+    doc.lineWidth(1).rect(left, 35, contentWidth, 42).stroke();
+    doc.font('Helvetica-Bold').fontSize(9);
+    doc.text('Universite Abdelmalek Essaadi', left + 8, 45);
+    doc.font('Arabic').fontSize(9);
+    doc.text('جامعة عبد المالك السعدي', left, 45, { width: contentWidth - 10, align: 'right' });
+    doc.font('Helvetica').fontSize(9);
+    doc.text(`Annee universitaire  ${academicYear}`, left + 180, 55);
+    doc.font('Arabic').fontSize(9);
+    doc.text('السنة الجامعية', left, 55, { width: contentWidth - 10, align: 'right' });
+    doc.font('Helvetica-Bold').fontSize(9);
+    doc.text('Page : 1 / 1', right - 70, 120);
 
-    doc.moveDown(2);
+    // School line
+    doc.font('Helvetica').fontSize(10);
+    doc.text('Ecole Nationale des Sciences Appliquees Tetouan', left, 95);
+    doc.font('Arabic').fontSize(9);
+    doc.text('المدرسة الوطنية للعلوم التطبيقية بتطوان', left, 95, { width: contentWidth - 10, align: 'right' });
 
-    // Student Info Panel - Simplified
-    const startY = doc.y;
-    doc.rect(50, startY, doc.page.width - 100, 70).strokeColor('#000000').lineWidth(0.5).stroke();
+    // Title block
+    doc.lineWidth(0.8).rect(left + 120, 105, contentWidth - 240, 20).stroke();
+    doc.font('Helvetica-Bold').fontSize(11);
+    doc.text('RELEVE DE NOTES ET RESULTATS', left + 125, 110, { width: contentWidth - 250, align: 'center' });
+    doc.lineWidth(0.8).rect(left + 220, 130, contentWidth - 440, 16).stroke();
+    doc.font('Helvetica-Bold').fontSize(10);
+    doc.text(sessionLabel, left + 220, 132, { width: contentWidth - 440, align: 'center' });
 
-    let infoY = startY + 12;
-    const col1 = 70;
-    const col2 = 320;
-
-    doc.fontSize(9).font('Helvetica-Bold');
-    doc.text(`Nom et Prénom :`, col1, infoY);
-    doc.font('Helvetica').text(formatName(payload.student), col1 + 90, infoY);
-
-    doc.font('Helvetica-Bold').text(`CNE :`, col2, infoY);
-    doc.font('Helvetica').text(payload.details.cne || payload.student.cne || '---', col2 + 40, infoY);
-
-    infoY += 18;
-    doc.font('Helvetica-Bold').text(`Né(e) le :`, col1, infoY);
+    // Student identity block
+    let y = 155;
+    const colA = left;
+    const colB = left + 230;
+    doc.font('Helvetica-Bold').fontSize(9);
+    doc.text(`${payload.student.last_name || ''} ${payload.student.first_name || ''}`.trim(), colA, y);
+    y += 18;
+    doc.font('Helvetica').fontSize(9);
+    doc.text(`N Etudiant : ${payload.details.apogee_number || payload.student.apogee_number || '---'}`, colA, y);
+    doc.text(`CNE : ${payload.details.cne || payload.student.cne || '---'}`, colB, y);
+    y += 16;
     const birthDate = (payload.details.birth_date || payload.student.birth_date)
         ? new Date(payload.details.birth_date || payload.student.birth_date).toLocaleDateString('fr-FR')
         : '---';
-    doc.font('Helvetica').text(birthDate, col1 + 90, infoY);
+    doc.text(`Ne le : ${birthDate}`, colA, y);
+    doc.text(`a : ${payload.details.birth_place || payload.student.birth_place || '---'}`, colB, y);
+    y += 18;
+    doc.text(`inscrit en ${payload.details.level || payload.student.level || '---'} du Cycle Ingenieur : ${payload.details.program || payload.student.major || '---'}`, colA, y);
+    y += 14;
+    doc.text('a obtenu les notes suivantes :', colA, y);
 
-    doc.font('Helvetica-Bold').text(`CIN :`, col2, infoY);
-    doc.font('Helvetica').text(payload.details.cin || payload.student.cin || '---', col2 + 40, infoY);
+    // Table header
+    y += 12;
+    const tableTop = y;
+    const colModule = left + 6;
+    const colNote = left + 270;
+    const colResult = left + 350;
+    const colSession = left + 420;
+    const colJury = left + 470;
+    const rowHeight = 16;
 
-    infoY += 18;
-    doc.font('Helvetica-Bold').text(`Filière :`, col1, infoY);
-    doc.font('Helvetica').text(`${payload.details.program || '---'}`, col1 + 90, infoY);
+    doc.rect(left, tableTop, contentWidth, rowHeight).stroke();
+    doc.font('Helvetica-Bold').fontSize(9);
+    doc.text('Libelle du Module', colModule, tableTop + 4);
+    doc.text('Note/Bareme', colNote, tableTop + 4);
+    doc.text('Resultat', colResult, tableTop + 4);
+    doc.text('Session', colSession, tableTop + 4);
+    doc.text('Pts jury', colJury, tableTop + 4, { width: 40 });
 
-    doc.y = startY + 90;
-
-    // Table Header
-    const tableTop = doc.y;
-    const colModule = 70;
-    const colNote = 460;
-
-    doc.font('Helvetica-Bold').fontSize(10);
-    doc.text('Libellé du Module', colModule, tableTop);
-    doc.text('Note / 20', colNote, tableTop);
-
-    doc.moveTo(50, tableTop + 12).lineTo(doc.page.width - 50, tableTop + 12).lineWidth(1).stroke();
-
-    let y = tableTop + 22;
+    // Table rows
     const modules = Array.isArray(payload.details.modules) ? payload.details.modules : [];
+    let currentY = tableTop + rowHeight;
     let total = 0;
+    doc.font('Helvetica').fontSize(8.5);
 
-    doc.font('Helvetica').fontSize(9);
     modules.forEach((m, i) => {
         const grade = Number(m.grade || 0);
         total += grade;
-
-        doc.text(`${i + 1}. ${m.name || 'Module ' + (i + 1)}`, colModule, y, { width: 350 });
-        doc.text(grade.toFixed(2), colNote, y);
-        y += 18;
+        doc.rect(left, currentY, contentWidth, rowHeight).stroke();
+        doc.text(m.name || `Module ${i + 1}`, colModule, currentY + 4, { width: 250 });
+        doc.text(`${grade.toFixed(2)} / 20`, colNote, currentY + 4);
+        doc.text(grade >= 10 ? 'Valide' : 'Non valide', colResult, currentY + 4);
+        doc.text(sessionShort, colSession, currentY + 4);
+        currentY += rowHeight;
     });
 
-    doc.moveTo(50, y).lineTo(doc.page.width - 50, y).lineWidth(0.5).stroke();
-    y += 12;
-
-    const average = modules.length > 0 ? (total / modules.length).toFixed(2) : '0.00';
+    // Result line
+    currentY += 10;
+    const average = modules.length > 0 ? (total / modules.length).toFixed(3) : '0.000';
     const isAdmitted = parseFloat(average) >= 10;
+    doc.font('Helvetica-Bold').fontSize(9);
+    doc.text(`Resultat d'admission session ${sessionNumber} :`, left + 5, currentY);
+    doc.text(`${average} / 20`, left + 260, currentY);
+    doc.text(isAdmitted ? 'Admis' : 'Ajourne', left + 360, currentY);
 
-    doc.font('Helvetica-Bold').fontSize(10);
-    doc.text('MOYENNE GÉNÉRALE', colModule, y);
-    doc.text(`${average} / 20`, colNote, y);
+    // Signature block (stamp/signature images can be added here if provided)
+    currentY += 55;
+    doc.font('Helvetica').fontSize(8);
+    doc.text(`Fait a TETOUAN, le ${payload.issuedAt}`, left + 160, currentY);
+    currentY += 12;
+    doc.text('Le Directeur de l\'Ecole Nationale des Sciences Appliquees de Tetouan', left + 90, currentY);
+    currentY += 16;
+    doc.text('Le Directeur', left + 260, currentY);
 
-    y += 18;
-    doc.text('RÉSULTAT', colModule, y);
-    doc.text(isAdmitted ? 'ADMIS(E)' : 'AJOURNÉ(E)', colNote, y);
-
-    doc.moveDown(4);
-    doc.fontSize(10).font('Helvetica');
-    doc.text(`Fait à Tétouan, le ${payload.issuedAt}`, { align: 'right' });
-
-    doc.moveDown(3);
-    doc.font('Helvetica-Bold');
-    doc.text('Le Directeur', { align: 'right' });
-
-    addFooterNote(doc, 'Note : Seul un exemplaire original est délivré. Aucune rature ou surcharge n\'est acceptée.');
+    // Footer note
+    addFooterNote(doc, 'Avis important : Il ne peut etre delivre qu\'un seul exemplaire du present releve de note. Aucun duplicata ne sera fourni.');
 };
 
 const buildInternship = (doc, payload) => {
@@ -459,3 +478,13 @@ module.exports = {
     generateDocument,
     DOC_LABELS
 };
+
+
+
+
+
+
+
+
+
+

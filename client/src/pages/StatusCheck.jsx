@@ -6,14 +6,13 @@ import Header from '../components/Header';
 
 const StatusCheck = () => {
     const navigate = useNavigate();
-    const [formData, setFormData] = useState({ reference: '', email: '' });
+    const [formData, setFormData] = useState({ reference: '' });
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [result, setResult] = useState(null);
 
     const [fieldStatus, setFieldStatus] = useState({
-        reference: 'neutral',
-        email: 'neutral'
+        reference: 'neutral'
     });
 
     const handleBlur = async (field) => {
@@ -47,7 +46,7 @@ const StatusCheck = () => {
             const res = await checkStatus(formData);
             setResult(res.data);
         } catch (err) {
-            setError(err.response?.data?.message || 'Statut introuvable ou email incorrect.');
+            setError(err.response?.data?.message || 'Statut introuvable.');
         } finally {
             setLoading(false);
         }
@@ -98,27 +97,9 @@ const StatusCheck = () => {
                             </div>
                             {fieldStatus.reference === 'invalid' && <p className="text-red-600 text-sm mt-2">Référence introuvable.</p>}
                         </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Adresse Email</label>
-                            <div className="relative">
-                                <input
-                                    required
-                                    type="email"
-                                    className={`w-full px-4 py-3 border rounded-lg outline-none focus:ring-2 transition-colors ${fieldStatus.email === 'invalid' ? 'border-red-300 focus:ring-red-200' : 'border-gray-300 focus:ring-primary-500'}`}
-                                    placeholder="etudiant@university.edu"
-                                    value={formData.email}
-                                    onChange={e => setFormData({ ...formData, email: e.target.value })}
-                                    onBlur={() => handleBlur('email')}
-                                />
-                                <div className="absolute right-3 top-3">
-                                    {getIcon(fieldStatus.email)}
-                                </div>
-                            </div>
-                            {fieldStatus.email === 'invalid' && <p className="text-red-600 text-sm mt-2">Email introuvable.</p>}
-                        </div>
                         <button
                             type="submit"
-                            disabled={loading || fieldStatus.email === 'invalid' || fieldStatus.reference === 'invalid'}
+                            disabled={loading || fieldStatus.reference === 'invalid'}
                             className="w-full bg-primary-600 hover:bg-primary-700 text-white font-semibold py-3 rounded-lg transition-all shadow-lg shadow-primary-500/30 flex items-center justify-center disabled:opacity-60 disabled:cursor-not-allowed disabled:shadow-none"
                         >
                             {loading ? 'Vérification...' : (

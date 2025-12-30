@@ -226,15 +226,15 @@ exports.createComplaint = async (req, res) => {
 };
 
 exports.getRequestStatus = async (req, res) => {
-    const { reference, email } = req.body;
+    const { reference } = req.body;
 
     try {
         const [rows] = await db.query(
             `SELECT r.*, s.first_name, s.last_name 
              FROM requests r 
              JOIN students s ON r.student_id = s.id 
-             WHERE r.reference = ? AND s.email = ?`,
-            [reference, email]
+             WHERE r.reference = ?`,
+            [reference]
         );
 
         if (rows.length > 0) {
@@ -246,8 +246,8 @@ exports.getRequestStatus = async (req, res) => {
              FROM complaints c
              JOIN students s ON c.student_id = s.id
              JOIN requests r ON c.request_id = r.id
-             WHERE c.complaint_number = ? AND s.email = ?`,
-            [reference, email]
+             WHERE c.complaint_number = ?`,
+            [reference]
         );
 
         if (compRows.length > 0) {
@@ -261,7 +261,7 @@ exports.getRequestStatus = async (req, res) => {
             });
         }
 
-        res.status(404).json({ message: 'Introuvable. Vérifiez la référence et l\'email.' });
+        res.status(404).json({ message: 'Introuvable. Vérifiez la référence.' });
 
     } catch (error) {
         res.status(500).json({ error: error.message });
