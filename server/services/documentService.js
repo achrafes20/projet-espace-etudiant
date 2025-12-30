@@ -82,7 +82,36 @@ const resolveDetails = (docType, incoming = {}) => {
 
     return { ...base, ...incoming };
 };
+const addHeader = (doc) => {
+    doc.fontSize(12).font('Helvetica-Bold').fillColor('#000000');
+    doc.text('ROYAUME DU MAROC', { align: 'center' });
+    doc.moveDown(0.1);
+    doc.fontSize(9).font('Helvetica');
+    doc.text('Ministère de l\'Enseignement Supérieur, de la Recherche Scientifique', { align: 'center' });
+    doc.text('et de l\'Innovation', { align: 'center' });
+    doc.moveDown(0.3);
+    doc.fontSize(10).font('Helvetica-Bold');
+    doc.text('Université Abdelmalek Essaâdi', { align: 'center' });
+    doc.text('École Nationale des Sciences Appliquées - Tétouan', { align: 'center' });
 
+    // Thick separator line
+    doc.moveDown(0.5);
+    const y = doc.y;
+    doc.moveTo(70, y).lineTo(doc.page.width - 70, y).strokeColor('#000000').lineWidth(1.5).stroke();
+    doc.moveDown(2);
+};
+
+const addFooterNote = (doc, text) => {
+    const pageHeight = doc.page.height;
+    const footerY = pageHeight - 60;
+
+    doc.fontSize(8).fillColor('#000000').font('Helvetica-Oblique');
+    doc.text(text, 50, footerY, {
+        align: 'center',
+        width: doc.page.width - 100,
+        lineGap: 2
+    });
+};
 const addHeaderWithLogo = (doc) => {
     const pageWidth = doc.page.width;
     const margin = 50;
@@ -92,35 +121,49 @@ const addHeaderWithLogo = (doc) => {
     doc.fontSize(9).font('Helvetica-Bold');
     doc.text('ROYAUME DU MAROC', margin, headerTop, { width: 180, align: 'left' });
     doc.fontSize(8).font('Helvetica');
-    doc.text('Université Abdelmalek Essaâdi', margin, headerTop + 15, { width: 180, align: 'left' });
-    doc.text('Ecole Nationale des Sciences', margin, headerTop + 28, { width: 180, align: 'left' });
-    doc.text('Appliquées', margin, headerTop + 41, { width: 180, align: 'left' });
-    doc.text('Tétouan', margin, headerTop + 54, { width: 180, align: 'left' });
+    doc.text('Université Abdelmalek Essaâdi', margin, headerTop + 13, { width: 180, align: 'left' });
+    doc.text('Ecole Nationale des Sciences', margin, headerTop + 25, { width: 180, align: 'left' });
+    doc.text('Appliquées', margin, headerTop + 37, { width: 180, align: 'left' });
+    doc.text('Tétouan', margin, headerTop + 49, { width: 180, align: 'left' });
     doc.fontSize(7.5);
-    doc.text('Service des Affaires Etudiantes', margin, headerTop + 70, { width: 180, align: 'left' });
+    doc.text('Service des Affaires Etudiantes', margin, headerTop + 63, { width: 180, align: 'left' });
     
-    // Logo au centre (placeholder - vous devrez ajouter votre propre logo)
-    // Si vous avez un fichier logo, utilisez: doc.image('path/to/logo.png', centerX, headerTop, { width: 80 });
+    // Logo au centre
     const centerX = (pageWidth / 2) - 40;
-    doc.fontSize(8).font('Helvetica');
-    doc.text('[LOGO]', centerX, headerTop + 30, { width: 80, align: 'center' });
+    const logoPath = path.join(__dirname, '..', '..', 'client', 'public', 'logo.png');
     
+    // Vérifier si le logo existe avant de l'ajouter
+    if (fs.existsSync(logoPath)) {
+        try {
+            doc.image(logoPath, centerX, headerTop + 10, { width: 80, height: 80, fit: [80, 80] });
+        } catch (error) {
+            // Si l'image ne peut pas être chargée, afficher un placeholder
+            console.error('Erreur lors du chargement du logo:', error);
+            doc.fontSize(8).font('Helvetica');
+            doc.text('[LOGO]', centerX, headerTop + 25, { width: 80, align: 'center' });
+        }
+    } else {
+        // Si le logo n'existe pas, afficher un placeholder
+        doc.fontSize(8).font('Helvetica');
+        doc.text('[LOGO]', centerX, headerTop + 25, { width: 80, align: 'center' });
+    }
     
-    // Ligne de séparation
-    doc.moveDown(6);
-    const lineY = doc.y;
+    // Ligne de séparation - position fixe
+    const lineY = headerTop + 85;
     doc.moveTo(margin, lineY).lineTo(pageWidth - margin, lineY).lineWidth(1.5).strokeColor('#000000').stroke();
-    doc.moveDown(1.5);
+    
+    // Définir la position Y après le header avec plus d'espace
+    doc.y = lineY + 20;
 };
 
 const addFooterWithAddress = (doc, payload) => {
     const pageHeight = doc.page.height;
     const pageWidth = doc.page.width;
     const margin = 50;
-    const footerY = pageHeight - 100;
+    const footerY = pageHeight - 140;
     
     // Ligne de séparation avant le footer
-    doc.moveTo(margin, footerY - 27).lineTo(pageWidth - margin, footerY - 20).lineWidth(0.5).strokeColor('#000000').stroke();
+    doc.moveTo(margin, footerY - 27).lineTo(pageWidth - margin, footerY - 27).lineWidth(0.5).strokeColor('#000000').stroke();
     
     // Adresse (gauche et arabe à droite)
     doc.fontSize(7).font('Helvetica');
@@ -147,28 +190,36 @@ const addFooterWithAddress = (doc, payload) => {
 };
 
 const buildSchoolCertificate = (doc, payload) => {
+    const pageWidth = doc.page.width;
+    const pageHeight = doc.page.height;
+    const margin = 50;
+    const leftMargin = 80;
+    
+    // Header
     addHeaderWithLogo(doc);
-
-    // Titre principal
+    
+    // Calculer la position de départ après le header (header se termine à ~155)
+    let startY = 160;
+    
+    // Titre principal - centré au milieu
     doc.fontSize(14).font('Helvetica-Bold');
-    doc.text('ATTESTATION DE SCOLARITE', { align: 'center', underline: true });
-    doc.moveDown(2);
+    doc.text('ATTESTATION DE SCOLARITE', margin, startY, { width: pageWidth - 2 * margin, align: 'center', underline: true });
+    startY += 32;
 
-    // Texte d'introduction
+    // Texte d'introduction - aligné à droite
     doc.fontSize(10).font('Helvetica');
-    doc.text(
-        'Le Directeur de l\'Ecole Nationale des Sciences Appliquées de Tétouan atteste que l\'étudiant(e) :',
-        { align: 'left' }
-    );
-    doc.moveDown(1.5);
+    const introText = 'Le Directeur de l\'Ecole Nationale des Sciences Appliquées de Tétouan atteste que l\'étudiant(e) :';
+    const textWidth = pageWidth - 2 * margin;
+    // Aligner le texte à droite en utilisant align: 'right'
+    doc.text(introText, margin, startY, { width: textWidth, align: 'right' });
+    startY += 28;
 
     // Informations de l'étudiant
-    const leftMargin = 80;
-    let currentY = doc.y;
+    let currentY = startY;
 
     doc.fontSize(10).font('Helvetica-Bold');
     doc.text(formatName(payload.student), leftMargin, currentY);
-    currentY += 25;
+    currentY += 22;
 
     // CIN
     doc.font('Helvetica');
@@ -192,7 +243,7 @@ const buildSchoolCertificate = (doc, payload) => {
     
     doc.font('Helvetica');
     doc.text(`née le ${birthDate} à ${birthPlace.toUpperCase()} ( MAROC )`, leftMargin, currentY);
-    currentY += 25;
+    currentY += 22;
 
     // Inscription
     doc.font('Helvetica');
@@ -201,9 +252,9 @@ const buildSchoolCertificate = (doc, payload) => {
         leftMargin,
         currentY
     );
-    currentY += 15;
+    currentY += 16;
     doc.text(`universitaire ${payload.details.academic_year || '2024/2025'}.`, leftMargin, currentY);
-    currentY += 25;
+    currentY += 22;
 
     // Diplôme
     doc.font('Helvetica');
@@ -227,38 +278,38 @@ const buildSchoolCertificate = (doc, payload) => {
     doc.font('Helvetica-Bold');
     const level = payload.details.level || payload.student.level || '___________';
     doc.text(`     ${level}`);
-    currentY += 40;
+    currentY += 30;
 
-    // Date et lieu
+    // Date et lieu - aligné à droite
     doc.fontSize(9).font('Helvetica');
     doc.text(
         `Fait à TETOUAN, le ${payload.issuedAt}`,
-        doc.page.width - 250,
+        pageWidth - 250,
         currentY,
         { width: 200, align: 'left' }
     );
-    currentY += 30;
+    currentY += 22;
 
     // Signature avec cachet
     doc.fontSize(9).font('Helvetica');
-    doc.text('Le Directeur', doc.page.width - 250, currentY, { width: 200, align: 'center' });
+    doc.text('Le Directeur', pageWidth - 250, currentY, { width: 200, align: 'center' });
     currentY += 15;
     
     // Espace pour cachet et signature
     doc.fontSize(8).font('Helvetica-Oblique');
-    doc.text('[Cachet et Signature]', doc.page.width - 250, currentY, { width: 200, align: 'center' });
-    currentY += 30;
+    doc.text('[Cachet et Signature]', pageWidth - 250, currentY, { width: 200, align: 'center' });
+    currentY += 22;
     
     // Numéro d'étudiant en bas à droite
     doc.fontSize(8).font('Helvetica');
     doc.text(
         `N°étudiant :    ${payload.details.apogee_number || payload.student.apogee_number || '___________'}`,
-        doc.page.width - 250,
+        pageWidth - 250,
         currentY,
         { width: 200, align: 'left' }
     );
 
-    // Footer avec adresse
+    // Footer avec adresse (positionné en bas de page)
     addFooterWithAddress(doc, payload);
 };
 
@@ -342,6 +393,20 @@ const buildTranscript = (doc, payload) => {
 
     // Header block
     doc.lineWidth(1).rect(left, 35, contentWidth, 42).stroke();
+    
+    // Logo à droite dans le header
+    const logoPath = path.join(__dirname, '..', '..', 'client', 'public', 'logo.png');
+    if (fs.existsSync(logoPath)) {
+        try {
+            const logoSize = 50;
+            const logoX = right - logoSize - 10;
+            const logoY = 40;
+            doc.image(logoPath, logoX, logoY, { width: logoSize, height: logoSize, fit: [logoSize, logoSize] });
+        } catch (error) {
+            console.error('Erreur lors du chargement du logo:', error);
+        }
+    }
+    
     doc.font('Helvetica-Bold').fontSize(9);
     doc.text('Universite Abdelmalek Essaadi', left + 8, 45);
     doc.font('Helvetica').fontSize(9);
@@ -352,53 +417,53 @@ const buildTranscript = (doc, payload) => {
     // School line
     doc.font('Helvetica').fontSize(10);
     doc.text('Ecole Nationale des Sciences Appliquees Tetouan', left, 95);
-    doc.moveDown(2);
+    doc.moveDown(2.5);
     // Title block
-    doc.lineWidth(0.8).rect(left + 120, 105, contentWidth - 240, 20).stroke();
+    doc.lineWidth(0.8).rect(left + 120, 110, contentWidth - 240, 22).stroke();
     doc.font('Helvetica-Bold').fontSize(11);
-    doc.text('RELEVE DE NOTES ET RESULTATS', left + 125, 110, { width: contentWidth - 250, align: 'center' });
-    doc.lineWidth(0.8).rect(left + 220, 130, contentWidth - 440, 16).stroke();
+    doc.text('RELEVE DE NOTES ET RESULTATS', left + 125, 115, { width: contentWidth - 250, align: 'center' });
+    doc.lineWidth(0.8).rect(left + 220, 137, contentWidth - 440, 18).stroke();
     doc.font('Helvetica-Bold').fontSize(10);
-    doc.text(sessionLabel, left + 220, 132, { width: contentWidth - 440, align: 'center' });
-    doc.moveDown(2);
+    doc.text(sessionLabel, left + 220, 140, { width: contentWidth - 440, align: 'center' });
+    doc.moveDown(2.5);
     // Student identity block
-    let y = 155;
+    let y = 165;
     const colA = left;
     const colB = left + 230;
     doc.font('Helvetica-Bold').fontSize(9);
     doc.text(`${payload.student.last_name || ''} ${payload.student.first_name || ''}`.trim(), colA, y);
-    y += 18;
+    y += 22;
     doc.font('Helvetica').fontSize(9);
     doc.text(`N Etudiant : ${payload.details.apogee_number || payload.student.apogee_number || '---'}`, colA, y);
     doc.text(`CNE : ${payload.details.cne || payload.student.cne || '---'}`, colB, y);
-    y += 16;
+    y += 20;
     const birthDate = (payload.details.birth_date || payload.student.birth_date)
         ? new Date(payload.details.birth_date || payload.student.birth_date).toLocaleDateString('fr-FR')
         : '---';
     doc.text(`Ne le : ${birthDate}`, colA, y);
     doc.text(`a : ${payload.details.birth_place || payload.student.birth_place || '---'}`, colB, y);
-    y += 18;
+    y += 20;
     doc.text(`inscrit en ${payload.details.level || payload.student.level || '---'} du Cycle Ingenieur : ${payload.details.program || payload.student.major || '---'}`, colA, y);
-    y += 14;
+    y += 18;
     doc.text('a obtenu les notes suivantes :', colA, y);
 
     // Table header
-    y += 12;
+    y += 16;
     const tableTop = y;
     const colModule = left + 6;
     const colNote = left + 270;
     const colResult = left + 350;
     const colSession = left + 420;
     const colJury = left + 470;
-    const rowHeight = 16;
+    const rowHeight = 20;
 
     doc.rect(left, tableTop, contentWidth, rowHeight).stroke();
     doc.font('Helvetica-Bold').fontSize(9);
-    doc.text('Libelle du Module', colModule, tableTop + 4);
-    doc.text('Note/Bareme', colNote, tableTop + 4);
-    doc.text('Resultat', colResult, tableTop + 4);
-    doc.text('Session', colSession, tableTop + 4);
-    doc.text('Pts jury', colJury, tableTop + 4, { width: 40 });
+    doc.text('Libelle du Module', colModule, tableTop + 6);
+    doc.text('Note/Bareme', colNote, tableTop + 6);
+    doc.text('Resultat', colResult, tableTop + 6);
+    doc.text('Session', colSession, tableTop + 6);
+    doc.text('Pts jury', colJury, tableTop + 6, { width: 40 });
 
     // Table rows
     const modules = Array.isArray(payload.details.modules) ? payload.details.modules : [];
@@ -410,15 +475,15 @@ const buildTranscript = (doc, payload) => {
         const grade = Number(m.grade || 0);
         total += grade;
         doc.rect(left, currentY, contentWidth, rowHeight).stroke();
-        doc.text(m.name || `Module ${i + 1}`, colModule, currentY + 4, { width: 250 });
-        doc.text(`${grade.toFixed(2)} / 20`, colNote, currentY + 4);
-        doc.text(grade >= 10 ? 'Valide' : 'Non valide', colResult, currentY + 4);
-        doc.text(getModuleSessionShort(m), colSession, currentY + 4);
+        doc.text(m.name || `Module ${i + 1}`, colModule, currentY + 6, { width: 250 });
+        doc.text(`${grade.toFixed(2)} / 20`, colNote, currentY + 6);
+        doc.text(grade >= 10 ? 'Valide' : 'Non valide', colResult, currentY + 6);
+        doc.text(getModuleSessionShort(m), colSession, currentY + 6);
         currentY += rowHeight;
     });
 
     // Result line
-    currentY += 10;
+    currentY += 16;
     const average = modules.length > 0 ? (total / modules.length).toFixed(3) : '0.000';
     const isAdmitted = parseFloat(average) >= 10;
     doc.font('Helvetica-Bold').fontSize(9);
@@ -427,12 +492,12 @@ const buildTranscript = (doc, payload) => {
     doc.text(isAdmitted ? 'Admis' : 'Ajourne', left + 360, currentY);
 
     // Signature block (stamp/signature images can be added here if provided)
-    currentY += 55;
+    currentY += 60;
     doc.font('Helvetica').fontSize(8);
     doc.text(`Fait a TETOUAN, le ${payload.issuedAt}`, left + 160, currentY);
-    currentY += 12;
-    doc.text('Le Directeur de l\'Ecole Nationale des Sciences Appliquees de Tetouan', left + 90, currentY);
     currentY += 16;
+    doc.text('Le Directeur de l\'Ecole Nationale des Sciences Appliquees de Tetouan', left + 90, currentY);
+    currentY += 20;
     doc.text('Le Directeur', left + 260, currentY);
 
     // Footer note
@@ -450,6 +515,19 @@ const buildInternship = (doc, payload) => {
     doc.text('Université Abdelmalek Essaâdi', margin, headerY);
     doc.text('Ecole Nationale des Sciences Appliquées', margin, headerY + 15);
     doc.text('Tétouan', margin, headerY + 30);
+    
+    // Logo en haut à droite
+    const logoPath = path.join(__dirname, '..', '..', 'client', 'public', 'logo.png');
+    if (fs.existsSync(logoPath)) {
+        try {
+            const logoSize = 50;
+            const logoX = doc.page.width - margin - logoSize;
+            const logoY = headerY;
+            doc.image(logoPath, logoX, logoY, { width: logoSize, height: logoSize, fit: [logoSize, logoSize] });
+        } catch (error) {
+            console.error('Erreur lors du chargement du logo:', error);
+        }
+    }
     
     // Titre principal
     doc.moveDown(4);
