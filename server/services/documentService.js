@@ -230,26 +230,18 @@ const buildTranscript = (doc, payload) => {
     const sessionShort = `${sessionCode} ${shortYear}`;
     const sessionNumber = sessionCode === 'S2' ? '2' : '1';
 
-    doc.registerFont('Arabic', ARABIC_FONT_PATH);
-
     // Header block
     doc.lineWidth(1).rect(left, 35, contentWidth, 42).stroke();
     doc.font('Helvetica-Bold').fontSize(9);
     doc.text('Universite Abdelmalek Essaadi', left + 8, 45);
-    doc.font('Arabic').fontSize(9);
-    doc.text('جامعة عبد المالك السعدي', left, 45, { width: contentWidth - 10, align: 'right' });
     doc.font('Helvetica').fontSize(9);
     doc.text(`Annee universitaire  ${academicYear}`, left + 180, 55);
-    doc.font('Arabic').fontSize(9);
-    doc.text('السنة الجامعية', left, 55, { width: contentWidth - 10, align: 'right' });
     doc.font('Helvetica-Bold').fontSize(9);
     doc.text('Page : 1 / 1', right - 70, 120);
 
     // School line
     doc.font('Helvetica').fontSize(10);
     doc.text('Ecole Nationale des Sciences Appliquees Tetouan', left, 95);
-    doc.font('Arabic').fontSize(9);
-    doc.text('المدرسة الوطنية للعلوم التطبيقية بتطوان', left, 95, { width: contentWidth - 10, align: 'right' });
 
     // Title block
     doc.lineWidth(0.8).rect(left + 120, 105, contentWidth - 240, 20).stroke();
