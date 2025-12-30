@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import api, { exportHistory, getHistory } from '../../services/api';
-import { MagnifyingGlassIcon, FunnelIcon, DocumentMagnifyingGlassIcon, ArrowDownTrayIcon, ArrowTopRightOnSquareIcon } from '@heroicons/react/24/outline';
+import api, { exportHistory, getHistory, resendDocument } from '../../services/api';
+import { MagnifyingGlassIcon, FunnelIcon, DocumentMagnifyingGlassIcon, ArrowDownTrayIcon, ArrowTopRightOnSquareIcon, PaperAirplaneIcon, CheckCircleIcon, XCircleIcon, ClockIcon, ArchiveBoxIcon } from '@heroicons/react/24/outline';
 
 const parseDetails = (raw) => {
     if (!raw) return {};
@@ -44,36 +44,52 @@ const formatDetailValue = (value) => {
     return value ?? '';
 };
 
+const renderModulesDetails = (modules) => {
+    if (!Array.isArray(modules) || modules.length === 0) return '-';
+    return (
+        <div className="mt-2 space-y-1">
+            {modules.map((m, idx) => (
+                <div key={idx} className="text-sm text-gray-900 bg-white px-3 py-1 rounded border border-gray-200">
+                    {m.name || `Module ${idx + 1}`}: <span className="font-semibold">{m.grade ?? '-'}</span>
+                </div>
+            ))}
+        </div>
+    );
+};
+
 const HistoryList = () => {
     const [requests, setRequests] = useState([]);
-    const [filter, setFilter] = useState({
-        status: 'all',
-        type: 'all',
-        search: '',
-        dateFrom: '',
-        dateTo: ''
-    });
-    const [showFilters, setShowFilters] = useState(false);
+    const [activeTab, setActiveTab] = useState('all');
+    const [searchTerm, setSearchTerm] = useState('');
     const [selectedRequest, setSelectedRequest] = useState(null);
     const [isExporting, setIsExporting] = useState(false);
+    const [resendingId, setResendingId] = useState(null);
 
     const fileBaseUrl = useMemo(() => {
         const base = api.defaults?.baseURL || '';
         return base.replace(/\/api$/, '');
     }, []);
 
+    const tabs = [
+        { id: 'all', label: 'Toutes les demandes', icon: ArchiveBoxIcon },
+        { id: 'accepted', label: 'Acceptées', icon: CheckCircleIcon },
+        { id: 'rejected', label: 'Refusées', icon: XCircleIcon },
+    ];
+
     useEffect(() => {
         fetchHistory();
-    }, [filter]);
+    }, [activeTab, searchTerm]);
 
     const fetchHistory = async () => {
         try {
+            // Map active tab to status filter
+            let statusFilter = 'all';
+            if (activeTab === 'accepted') statusFilter = 'Accepté';
+            if (activeTab === 'rejected') statusFilter = 'Refusé';
+
             const res = await getHistory({
-                status: filter.status,
-                type: filter.type,
-                search: filter.search,
-                dateFrom: filter.dateFrom,
-                dateTo: filter.dateTo
+                status: statusFilter,
+                search: searchTerm
             });
             setRequests(res.data || []);
         } catch (err) {
@@ -82,18 +98,19 @@ const HistoryList = () => {
     };
 
     const resetFilters = () => {
-        setFilter({ status: 'all', type: 'all', search: '', dateFrom: '', dateTo: '' });
+        setSearchTerm('');
     };
 
     const handleExport = async (format) => {
         setIsExporting(true);
         try {
+            let statusFilter = 'all';
+            if (activeTab === 'accepted') statusFilter = 'Accepté';
+            if (activeTab === 'rejected') statusFilter = 'Refusé';
+
             const res = await exportHistory({
-                status: filter.status,
-                type: filter.type,
-                search: filter.search,
-                dateFrom: filter.dateFrom,
-                dateTo: filter.dateTo,
+                status: statusFilter,
+                search: searchTerm,
                 format
             });
 
@@ -114,20 +131,46 @@ const HistoryList = () => {
         }
     };
 
+    const handleResendDocument = async (requestId) => {
+        if (!confirm('Êtes-vous sûr de vouloir renvoyer ce document à l\'étudiant ?')) return;
+
+        setResendingId(requestId);
+        try {
+            await resendDocument(requestId);
+            alert('Document renvoyé avec succès !');
+        } catch (err) {
+            alert('Erreur lors du renvoi du document');
+            console.error(err);
+        } finally {
+            setResendingId(null);
+        }
+    };
+
+    const isAccepted = (status) => {
+        return status === 'Accepté' || status === 'Accepté' || status.toLowerCase().includes('accept');
+    };
+
     const detailEntries = selectedRequest ? Object.entries(parseDetails(selectedRequest.specific_details || {})) : [];
 
-    const documentLinks = selectedRequest ? [
-        { label: 'Document final', path: selectedRequest.document_path },
-        { label: 'Document généré', path: selectedRequest.generated_document_path }
-    ].filter(doc => !!doc.path) : [];
+    const documentLinks = useMemo(() => {
+        if (!selectedRequest) return [];
+        if (selectedRequest.document_path) {
+            return [{ label: 'Voir le document', path: selectedRequest.document_path }];
+        }
+        if (selectedRequest.generated_document_path) {
+            return [{ label: 'Voir le document', path: selectedRequest.generated_document_path }];
+        }
+        return [];
+    }, [selectedRequest]);
 
     const statusBadge = (status) => {
-        const accepted = status === 'Accepté' || status === 'AcceptÇ¸' || status === 'AcceptǸ';
+        const accepted = isAccepted(status);
         const classes = accepted
-            ? 'bg-green-100 text-green-800 border border-green-200'
-            : 'bg-red-100 text-red-800 border border-red-200';
+            ? 'bg-emerald-50 text-emerald-700 border-emerald-200/50'
+            : 'bg-rose-50 text-rose-700 border-rose-200/50';
         return (
-            <span className={`px-3 py-1 rounded-full text-xs font-medium ${classes}`}>
+            <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-[11px] font-bold border ${classes}`}>
+                <span className="w-1.5 h-1.5 rounded-full bg-current mr-1.5 opacity-60"></span>
                 {status}
             </span>
         );
@@ -144,7 +187,6 @@ const HistoryList = () => {
             <div className="mb-8 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                 <div>
                     <h1 className="text-3xl font-bold text-gray-900 mb-1">Historique des demandes</h1>
-                    <p className="text-gray-600">Téléchargez les historiques filtrés et consultez les détails complets.</p>
                 </div>
                 <div className="flex items-center gap-2">
                     <button
@@ -165,94 +207,47 @@ const HistoryList = () => {
                     </button>
                 </div>
             </div>
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
-                <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
-                    <div className="flex items-center gap-2">
-                        <FunnelIcon className="h-5 w-5 text-gray-500" />
-                        <p className="text-sm text-gray-700">Filtres de l'historique</p>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-2">
-                        <button
-                            onClick={() => setShowFilters(!showFilters)}
-                            className="px-3 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50"
-                        >
-                            {showFilters ? 'Masquer les filtres' : 'Afficher les filtres'}
-                        </button>
-                        <button
-                            onClick={resetFilters}
-                            className="px-3 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50"
-                        >
-                            Reinitialiser
-                        </button>
-                    </div>
+
+            {/* Filters */}
+            {/* Global Search */}
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-3 mb-8">
+                <div className="relative group">
+                    <MagnifyingGlassIcon className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
+                    <input
+                        type="text"
+                        placeholder="Rechercher dans l'historique par référence, étudiant ou apogée..."
+                        className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-100 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5 rounded-lg outline-none transition-all text-sm text-slate-900 placeholder-slate-400"
+                        value={searchTerm}
+                        onChange={e => setSearchTerm(e.target.value)}
+                    />
                 </div>
-
-                {showFilters && (
-                    <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
-                        <div className="md:col-span-2 lg:col-span-2">
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Recherche</label>
-                            <div className="relative">
-                                <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-                                <input
-                                    type="text"
-                                    placeholder="Reference, nom, apogee..."
-                                    className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
-                                    value={filter.search}
-                                    onChange={e => setFilter({ ...filter, search: e.target.value })}
-                                />
-                            </div>
-                        </div>
-                        
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Type de document</label>
-                            <select
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
-                                value={filter.type}
-                                onChange={e => setFilter({ ...filter, type: e.target.value })}
-                            >
-                                <option value="all">Tous les types</option>
-                                <option value="school-certificate">Attestation de scolarite</option>
-                                <option value="success-certificate">Attestation de reussite</option>
-                                <option value="transcript">Releve de notes</option>
-                                <option value="internship">Convention de stage</option>
-                            </select>
-                        </div>
-                        
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Statut</label>
-                            <select
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
-                                value={filter.status}
-                                onChange={e => setFilter({ ...filter, status: e.target.value })}
-                            >
-                                <option value="all">Tous les statuts</option>
-                                <option value="Accepté">Accepté</option>
-                                <option value="Refusé">Refusé</option>
-                            </select>
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Date de debut</label>
-                            <input
-                                type="date"
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
-                                value={filter.dateFrom}
-                                onChange={e => setFilter({ ...filter, dateFrom: e.target.value })}
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Date de fin</label>
-                            <input
-                                type="date"
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
-                                value={filter.dateTo}
-                                onChange={e => setFilter({ ...filter, dateTo: e.target.value })}
-                            />
-                        </div>
-                    </div>
-                )}
             </div>
 
+            {/* Tabs */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-0 rounded-b-none overflow-hidden border-b-0">
+                <div className="overflow-x-auto scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+                    <nav className="flex -mb-px">
+                        {tabs.map((tab) => (
+                            <button
+                                key={tab.id}
+                                onClick={() => setActiveTab(tab.id)}
+                                className={`
+                                    flex items-center gap-2 px-6 py-4 text-sm font-semibold border-b-2 transition-all whitespace-nowrap
+                                    ${activeTab === tab.id
+                                        ? 'border-blue-600 text-blue-600 bg-blue-50/50'
+                                        : 'border-transparent text-slate-500 hover:text-slate-900 hover:bg-slate-50'
+                                    }
+                                `}
+                            >
+                                <tab.icon className="h-5 w-5" />
+                                {tab.label}
+                            </button>
+                        ))}
+                    </nav>
+                </div>
+            </div>
+
+            {/* Table */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                 <div className="p-4 bg-gray-50 border-b border-gray-200">
                     <div className="flex items-center justify-between">
@@ -265,14 +260,14 @@ const HistoryList = () => {
                     <table className="w-full text-left">
                         <thead className="bg-gray-50 border-b border-gray-200">
                             <tr>
-                                <th className="px-6 py-4 text-xs font-semibold text-gray-600 uppercase">Référence</th>
-                                <th className="px-6 py-4 text-xs font-semibold text-gray-600 uppercase">Soumission</th>
-                                <th className="px-6 py-4 text-xs font-semibold text-gray-600 uppercase">Traitement</th>
-                                <th className="px-6 py-4 text-xs font-semibold text-gray-600 uppercase">Étudiant</th>
-                                <th className="px-6 py-4 text-xs font-semibold text-gray-600 uppercase">Type</th>
-                                <th className="px-6 py-4 text-xs font-semibold text-gray-600 uppercase">Statut</th>
-                                <th className="px-6 py-4 text-xs font-semibold text-gray-600 uppercase">Remarques</th>
-                                <th className="px-6 py-4 text-xs font-semibold text-gray-600 uppercase text-right">Actions</th>
+                                <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em]">Référence</th>
+                                <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em]">Soumission</th>
+                                <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em]">Traitement</th>
+                                <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em]">Étudiant</th>
+                                <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em]">Type</th>
+                                <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em]">Statut</th>
+                                <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em]">Remarques</th>
+                                <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em] text-right">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200">
@@ -286,28 +281,41 @@ const HistoryList = () => {
                             ) : (
                                 requests.map((req) => (
                                     <tr key={req.id} className="hover:bg-gray-50 transition-colors">
-                                        <td className="px-6 py-4 text-sm font-medium text-primary-600">{req.reference}</td>
-                                        <td className="px-6 py-4 text-sm text-gray-600">{formatDate(req.submission_date)}</td>
-                                        <td className="px-6 py-4 text-sm text-gray-600">{formatDate(req.processing_date)}</td>
-                                        <td className="px-6 py-4 text-sm text-gray-900">
-                                            {req.first_name} {req.last_name}
-                                            <div className="text-xs text-gray-500">Apogée: {req.apogee_number}</div>
+                                        <td className="px-6 py-4 text-sm font-bold text-blue-600">{req.reference}</td>
+                                        <td className="px-6 py-4 text-sm font-medium text-slate-500">{formatDate(req.submission_date)}</td>
+                                        <td className="px-6 py-4 text-sm font-medium text-slate-500">{formatDate(req.processing_date)}</td>
+                                        <td className="px-6 py-4">
+                                            <div className="text-sm font-semibold text-slate-900">{req.first_name} {req.last_name}</div>
+                                            <div className="text-[11px] font-medium text-slate-400">Apogée: {req.apogee_number}</div>
                                         </td>
-                                        <td className="px-6 py-4 text-sm text-gray-600">
+                                        <td className="px-6 py-4 text-sm font-medium text-slate-600">
                                             {documentTypeLabels[req.document_type] || req.document_type}
                                         </td>
                                         <td className="px-6 py-4">{statusBadge(req.status)}</td>
                                         <td className="px-6 py-4 text-sm text-gray-600 max-w-xs truncate">
-                                            {req.refusal_reason || (req.status === 'AcceptÇ¸' || req.status === 'Accepté' ? 'Document envoyé' : '-')}
+                                            {req.refusal_reason || (isAccepted(req.status) ? 'Document envoyé' : '-')}
                                         </td>
                                         <td className="px-6 py-4 text-right">
-                                            <button
-                                                onClick={() => setSelectedRequest(req)}
-                                                className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-primary-600 border border-primary-100 rounded-lg hover:bg-primary-50 transition"
-                                            >
-                                                <DocumentMagnifyingGlassIcon className="h-5 w-5" />
-                                                Détails
-                                            </button>
+                                            <div className="flex items-center justify-end gap-2">
+                                                <button
+                                                    onClick={() => setSelectedRequest(req)}
+                                                    className="inline-flex items-center gap-1 px-3 py-2 text-sm font-medium text-primary-600 border border-primary-100 rounded-lg hover:bg-primary-50 transition"
+                                                >
+                                                    <DocumentMagnifyingGlassIcon className="h-4 w-4" />
+                                                    Détails
+                                                </button>
+                                                {isAccepted(req.status) && req.document_path && activeTab !== 'rejected' && (
+                                                    <button
+                                                        onClick={() => handleResendDocument(req.id)}
+                                                        disabled={resendingId === req.id}
+                                                        className="inline-flex items-center gap-1 px-3 py-2 text-sm font-medium text-green-600 border border-green-100 rounded-lg hover:bg-green-50 transition disabled:opacity-50"
+                                                        title="Renvoyer le document par email"
+                                                    >
+                                                        <PaperAirplaneIcon className="h-4 w-4" />
+                                                        {resendingId === req.id ? 'Envoi...' : 'Renvoyer'}
+                                                    </button>
+                                                )}
+                                            </div>
                                         </td>
                                     </tr>
                                 ))
@@ -317,6 +325,7 @@ const HistoryList = () => {
                 </div>
             </div>
 
+            {/* Details Modal */}
             {selectedRequest && (
                 <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-start justify-center py-10 px-4 z-20">
                     <div className="bg-white rounded-2xl shadow-xl max-w-5xl w-full max-h-[90vh] overflow-y-auto p-6">
@@ -328,7 +337,7 @@ const HistoryList = () => {
                             </div>
                             <button
                                 onClick={() => setSelectedRequest(null)}
-                                className="text-gray-500 hover:text-gray-700"
+                                className="text-gray-500 hover:text-gray-700 font-medium"
                             >
                                 Fermer
                             </button>
@@ -376,7 +385,11 @@ const HistoryList = () => {
                                     {detailEntries.map(([key, value]) => (
                                         <div key={key} className="p-3 border border-gray-100 rounded-lg bg-gray-50">
                                             <p className="text-xs uppercase text-gray-500 mb-1">{key}</p>
-                                            <p className="text-sm text-gray-800 break-words">{formatDetailValue(value) || '-'}</p>
+                                            {key === 'modules' ? (
+                                                renderModulesDetails(value)
+                                            ) : (
+                                                <p className="text-sm text-gray-800 break-words">{formatDetailValue(value) || '-'}</p>
+                                            )}
                                         </div>
                                     ))}
                                 </div>
@@ -422,5 +435,3 @@ const HistoryList = () => {
 };
 
 export default HistoryList;
-
-

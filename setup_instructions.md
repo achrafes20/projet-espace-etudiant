@@ -12,6 +12,10 @@
 ## Backend Setup
 1. Navigate to the project root directory.
 
+   ```bash
+   cd projet-espace-etudiant
+   ```
+
 2. Install dependencies:
    ```bash
    npm install

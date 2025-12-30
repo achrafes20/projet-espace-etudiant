@@ -89,14 +89,14 @@ exports.login = async (req, res) => {
         const [admins] = await db.query('SELECT * FROM administrators WHERE email = ? AND active = TRUE', [email]);
 
         if (admins.length === 0) {
-            return res.status(401).json({ message: 'Invalid credentials' });
+            return res.status(401).json({ message: 'Identifiants invalides' });
         }
 
         const admin = admins[0];
         const isMatch = await bcrypt.compare(password, admin.password);
 
         if (!isMatch) {
-            return res.status(401).json({ message: 'Invalid credentials' });
+            return res.status(401).json({ message: 'Identifiants invalides' });
         }
 
         const token = jwt.sign({ id: admin.id, email: admin.email }, process.env.JWT_SECRET, { expiresIn: '1d' });
@@ -121,51 +121,94 @@ exports.getDashboardStats = async (req, res) => {
     };
 
     try {
-        const pendingQuery = withExtra('r.status = "En attente"');
+        const join = 'LEFT JOIN students s ON r.student_id = s.id';
+
+        const pendingQuery = withExtra('r.status LIKE "%attente%"');
         const [pending] = await db.query(
-            `SELECT COUNT(*) as count FROM requests r ${pendingQuery.where}`,
+            `SELECT COUNT(*) as count FROM requests r ${join} ${pendingQuery.where}`,
             pendingQuery.params
         );
 
-        const acceptedQuery = withExtra('r.status LIKE "Accept%"');
+        const acceptedQuery = withExtra('r.status LIKE "%accept%"');
         const [accepted] = await db.query(
-            `SELECT COUNT(*) as count FROM requests r ${acceptedQuery.where}`,
+            `SELECT COUNT(*) as count FROM requests r ${join} ${acceptedQuery.where}`,
             acceptedQuery.params
         );
 
-        const rejectedQuery = withExtra('r.status LIKE "Refus%"');
+        const rejectedQuery = withExtra('r.status LIKE "%refus%"');
         const [rejected] = await db.query(
-            `SELECT COUNT(*) as count FROM requests r ${rejectedQuery.where}`,
+            `SELECT COUNT(*) as count FROM requests r ${join} ${rejectedQuery.where}`,
             rejectedQuery.params
         );
 
         const [total] = await db.query(
-            `SELECT COUNT(*) as count FROM requests r ${filters.where}`,
+            `SELECT COUNT(*) as count FROM requests r ${join} ${filters.where}`,
             filters.params
         );
-        
+
         const [byType] = await db.query(
-            `SELECT document_type, COUNT(*) as count FROM requests r ${filters.where} GROUP BY document_type`,
+            `SELECT r.document_type, COUNT(*) as count FROM requests r ${join} ${filters.where} GROUP BY r.document_type`,
             filters.params
         );
-        
+
+        // Removed aliases to match working byType query format mostly
         const [byStatusType] = await db.query(
-            `SELECT document_type, status, COUNT(*) as count FROM requests r ${filters.where} GROUP BY document_type, status`,
+            `SELECT r.document_type, r.status, COUNT(*) as count FROM requests r ${join} ${filters.where} GROUP BY r.document_type, r.status`,
             filters.params
         );
-        
+
+        console.log('DEBUG STATS byStatusType:', JSON.stringify(byStatusType, null, 2));
+
         const recentFilters = withExtra('r.submission_date >= DATE_SUB(NOW(), INTERVAL 7 DAY)');
         const [recent] = await db.query(
-            `SELECT COUNT(*) as count FROM requests r ${recentFilters.where}`,
+            `SELECT COUNT(*) as count FROM requests r ${join} ${recentFilters.where}`,
             recentFilters.params
         );
-        
+
+        // Case insensitive matching via LOWER/LCASE usually standard
         const [pendingComplaints] = await db.query(
-            `SELECT COUNT(*) as count FROM complaints WHERE status = "En attente"`
+            `SELECT COUNT(*) as count FROM complaints WHERE LOWER(status) LIKE "%attente%" OR LOWER(status) LIKE "%pending%"`
         );
-        
+
+        const [resolvedComplaints] = await db.query(
+            `SELECT COUNT(*) as count FROM complaints WHERE LOWER(status) LIKE "%trait%" OR LOWER(status) LIKE "%resolu%" OR LOWER(status) LIKE "%fixed%"`
+        );
+
+        console.log('DEBUG STATS Complaints:', { pending: pendingComplaints[0].count, resolved: resolvedComplaints[0].count });
+
+        const [totalComplaints] = await db.query(
+            `SELECT COUNT(*) as count FROM complaints`
+        );
+
         const totalProcessed = accepted[0].count + rejected[0].count;
         const processingRate = total[0].count > 0 ? ((totalProcessed / total[0].count) * 100).toFixed(1) : 0;
+
+        // Build byTypeAndStatus object for stacked charts
+        const byTypeAndStatus = {};
+        byStatusType.forEach(item => {
+            // Handle potentially different column name casing/aliasing from driver
+            const dtype = item.document_type || item.DOCUMENT_TYPE || item.dtype;
+            if (!dtype) return;
+
+            if (!byTypeAndStatus[dtype]) {
+                byTypeAndStatus[dtype] = {
+                    pending: 0,
+                    accepted: 0,
+                    rejected: 0
+                };
+            }
+
+            const status = (item.status || item.STATUS || item.rstatus || '').toLowerCase();
+            const count = parseInt(item.count, 10) || 0;
+
+            if (status.includes('attente') || status.includes('pending')) {
+                byTypeAndStatus[dtype].pending += count;
+            } else if (status.includes('accept')) {
+                byTypeAndStatus[dtype].accepted += count;
+            } else if (status.includes('refus') || status.includes('reject')) {
+                byTypeAndStatus[dtype].rejected += count;
+            }
+        });
 
         res.json({
             pending: pending[0].count,
@@ -177,11 +220,15 @@ exports.getDashboardStats = async (req, res) => {
                 return acc;
             }, {}),
             byStatusType: byStatusType,
+            byTypeAndStatus: byTypeAndStatus,
             recent: recent[0].count,
             pendingComplaints: pendingComplaints[0].count,
+            resolvedComplaints: resolvedComplaints[0].count,
+            totalComplaints: totalComplaints[0].count,
             processingRate: parseFloat(processingRate)
         });
     } catch (error) {
+        console.error('DEBUG STATS ERROR:', error);
         res.status(500).json({ error: error.message });
     }
 };
@@ -290,7 +337,7 @@ exports.exportHistory = async (req, res) => {
     const { status, type, search, dateFrom, dateTo, format } = req.query;
 
     if (!['excel', 'pdf'].includes(format)) {
-        return res.status(400).json({ error: 'Format must be excel or pdf' });
+        return res.status(400).json({ error: 'Le format doit être excel ou pdf' });
     }
 
     const { query, params } = buildRequestQuery({
@@ -443,7 +490,7 @@ exports.updateRequestStatus = async (req, res) => {
         const { email, first_name, reference, document_type } = request;
         await emailService.sendRequestUpdate(email, first_name, reference, document_type, status, refusal_reason, finalDocumentPath);
 
-        res.json({ success: true, message: 'Request updated', document_path: finalDocumentPath, generated_document_path: generatedDocumentPath });
+        res.json({ success: true, message: 'Demande mise à jour', document_path: finalDocumentPath, generated_document_path: generatedDocumentPath });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
@@ -516,7 +563,7 @@ exports.respondToComplaint = async (req, res) => {
 
     try {
         let documentPath = null;
-        
+
         // Si on doit régénérer le document ou si un document est uploadé
         if (regenerate_document === 'true' || uploadedPath) {
             // Récupérer la demande associée
@@ -530,7 +577,7 @@ exports.respondToComplaint = async (req, res) => {
             if (complaintRows.length > 0) {
                 const complaint = complaintRows[0];
                 const requestId = complaint.request_id;
-                
+
                 // Récupérer les informations complÃ¨tes de la demande et de l'étudiant
                 const [requestRows] = await db.query(`
                     SELECT r.*, s.first_name, s.last_name, s.email, s.cin, s.cne, s.apogee_number, s.transcript_data, s.level, s.major, s.birth_date, s.birth_place
@@ -541,9 +588,9 @@ exports.respondToComplaint = async (req, res) => {
 
                 if (requestRows.length > 0) {
                     const request = requestRows[0];
-                    
+
                     // Fusionner les détails avec les overrides si fournis
-                    const mergedDetails = template_overrides 
+                    const mergedDetails = template_overrides
                         ? { ...parseDetails(request.specific_details), ...parseDetails(template_overrides) }
                         : parseDetails(request.specific_details);
 
@@ -560,7 +607,7 @@ exports.respondToComplaint = async (req, res) => {
                             variant: 'final'
                         });
                         documentPath = generated.publicPath;
-                        
+
                         // Mettre Ã  jour la demande avec le nouveau document
                         await db.query(
                             'UPDATE requests SET generated_document_path = ?, document_path = ?, specific_details = ?, template_data = ? WHERE id = ?',
@@ -588,7 +635,51 @@ exports.respondToComplaint = async (req, res) => {
             await emailService.sendComplaintResponse(email, first_name, complaint_number, response, documentPath);
         }
 
-        res.json({ success: true, message: 'Complaint responded successfully', document_path: documentPath });
+        res.json({ success: true, message: 'Réclamation traitée avec succès', document_path: documentPath });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+exports.resendDocument = async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        const [rows] = await db.query(`
+            SELECT r.*, s.first_name, s.last_name, s.email
+            FROM requests r
+            JOIN students s ON r.student_id = s.id
+            WHERE r.id = ?
+        `, [id]);
+
+        if (rows.length === 0) {
+            return res.status(404).json({ message: 'Demande introuvable' });
+        }
+
+        const request = rows[0];
+
+        // Check if request is accepted
+        if (!request.status || !request.status.toLowerCase().includes('accept')) {
+            return res.status(400).json({ message: 'Seules les demandes acceptées peuvent être renvoyées' });
+        }
+
+        // Check if document exists
+        if (!request.document_path) {
+            return res.status(400).json({ message: 'Aucun document à renvoyer' });
+        }
+
+        // Resend the email with the document
+        await emailService.sendRequestUpdate(
+            request.email,
+            request.first_name,
+            request.reference,
+            request.document_type,
+            'Accepté',
+            null,
+            request.document_path
+        );
+
+        res.json({ success: true, message: 'Document renvoyé avec succès' });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
