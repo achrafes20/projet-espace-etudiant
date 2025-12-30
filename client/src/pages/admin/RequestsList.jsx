@@ -320,7 +320,7 @@ const RequestsList = () => {
                                             <div className="flex items-center gap-2">
                                                 <button
                                                     onClick={() => handleViewDocument(req)}
-                                                    className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-medium transition-colors flex items-center gap-1"
+                                                    className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-primary-600 border border-primary-100 rounded-lg hover:bg-primary-50 transition"
                                                     title="Voir détails"
                                                 >
                                                     <DocumentMagnifyingGlassIcon className="h-4 w-4" />
@@ -331,7 +331,7 @@ const RequestsList = () => {
                                                         href={`${fileBaseUrl}${req.generated_document_path || req.document_path}`}
                                                         target="_blank"
                                                         rel="noopener noreferrer"
-                                                        className="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-xs font-medium transition-colors flex items-center gap-1"
+                                                        className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-slate-700 border border-slate-200 rounded-lg hover:bg-slate-50 transition"
                                                         title="Voir le document"
                                                     >
                                                         <EyeIcon className="h-4 w-4" />
@@ -340,7 +340,7 @@ const RequestsList = () => {
                                                 )}
                                                 <button
                                                     onClick={() => { setSelectedRequest(req); setModalMode('accept'); }}
-                                                    className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded-lg text-xs font-medium transition-colors flex items-center gap-1"
+                                                    className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-emerald-600 border border-emerald-100 rounded-lg hover:bg-emerald-50 transition"
                                                     title="Accepter"
                                                 >
                                                     <CheckIcon className="h-4 w-4" />
@@ -348,7 +348,7 @@ const RequestsList = () => {
                                                 </button>
                                                 <button
                                                     onClick={() => { setSelectedRequest(req); setModalMode('reject'); }}
-                                                    className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-medium transition-colors flex items-center gap-1"
+                                                    className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-rose-600 border border-rose-100 rounded-lg hover:bg-rose-50 transition"
                                                     title="Refuser"
                                                 >
                                                     <XMarkIcon className="h-4 w-4" />
@@ -483,3 +483,4 @@ const RequestsList = () => {
 };
 
 export default RequestsList;
+

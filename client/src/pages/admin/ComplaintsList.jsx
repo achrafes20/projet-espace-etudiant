@@ -186,7 +186,7 @@ const ComplaintsList = () => {
                                         <td className="px-6 py-4">
                                             <button
                                                 onClick={() => setSelectedComplaint(comp)}
-                                                className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg text-xs font-medium transition-colors flex items-center gap-1"
+                                                className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-primary-600 border border-primary-100 rounded-lg hover:bg-primary-50 transition"
                                             >
                                                 <ChatBubbleLeftRightIcon className="h-4 w-4" />
                                                 {comp.status === 'En attente' ? 'Répondre' : 'Voir'}
@@ -319,3 +319,4 @@ const ComplaintsList = () => {
 };
 
 export default ComplaintsList;
+

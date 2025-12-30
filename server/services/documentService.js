@@ -1,4 +1,4 @@
-﻿const PDFDocument = require('pdfkit');
+const PDFDocument = require('pdfkit');
 const fs = require('fs');
 const path = require('path');
 
@@ -83,90 +83,187 @@ const resolveDetails = (docType, incoming = {}) => {
     return { ...base, ...incoming };
 };
 
-const addHeader = (doc) => {
-    doc.fontSize(12).font('Helvetica-Bold').fillColor('#000000');
-    doc.text('ROYAUME DU MAROC', { align: 'center' });
-    doc.moveDown(0.1);
-    doc.fontSize(9).font('Helvetica');
-    doc.text('Ministère de l\'Enseignement Supérieur, de la Recherche Scientifique', { align: 'center' });
-    doc.text('et de l\'Innovation', { align: 'center' });
-    doc.moveDown(0.3);
-    doc.fontSize(10).font('Helvetica-Bold');
-    doc.text('Université Abdelmalek Essaâdi', { align: 'center' });
-    doc.text('École Nationale des Sciences Appliquées - Tétouan', { align: 'center' });
-
-    // Thick separator line
-    doc.moveDown(0.5);
-    const y = doc.y;
-    doc.moveTo(70, y).lineTo(doc.page.width - 70, y).strokeColor('#000000').lineWidth(1.5).stroke();
-    doc.moveDown(2);
+const addHeaderWithLogo = (doc) => {
+    const pageWidth = doc.page.width;
+    const margin = 50;
+    const headerTop = 50;
+    
+    // Colonne gauche (français)
+    doc.fontSize(9).font('Helvetica-Bold');
+    doc.text('ROYAUME DU MAROC', margin, headerTop, { width: 180, align: 'left' });
+    doc.fontSize(8).font('Helvetica');
+    doc.text('Université Abdelmalek Essaâdi', margin, headerTop + 15, { width: 180, align: 'left' });
+    doc.text('Ecole Nationale des Sciences', margin, headerTop + 28, { width: 180, align: 'left' });
+    doc.text('Appliquées', margin, headerTop + 41, { width: 180, align: 'left' });
+    doc.text('Tétouan', margin, headerTop + 54, { width: 180, align: 'left' });
+    doc.fontSize(7.5);
+    doc.text('Service des Affaires Etudiantes', margin, headerTop + 70, { width: 180, align: 'left' });
+    
+    // Logo au centre (placeholder - vous devrez ajouter votre propre logo)
+    // Si vous avez un fichier logo, utilisez: doc.image('path/to/logo.png', centerX, headerTop, { width: 80 });
+    const centerX = (pageWidth / 2) - 40;
+    doc.fontSize(8).font('Helvetica');
+    doc.text('[LOGO]', centerX, headerTop + 30, { width: 80, align: 'center' });
+    
+    
+    // Ligne de séparation
+    doc.moveDown(6);
+    const lineY = doc.y;
+    doc.moveTo(margin, lineY).lineTo(pageWidth - margin, lineY).lineWidth(1.5).strokeColor('#000000').stroke();
+    doc.moveDown(1.5);
 };
 
-const addFooterNote = (doc, text) => {};
-
+const addFooterWithAddress = (doc, payload) => {
+    const pageHeight = doc.page.height;
+    const pageWidth = doc.page.width;
+    const margin = 50;
+    const footerY = pageHeight - 100;
+    
+    // Ligne de séparation avant le footer
+    doc.moveTo(margin, footerY - 27).lineTo(pageWidth - margin, footerY - 20).lineWidth(0.5).strokeColor('#000000').stroke();
+    
+    // Adresse (gauche et arabe à droite)
+    doc.fontSize(7).font('Helvetica');
+    doc.text('Adresse:', margin, footerY, { continued: true });
+    doc.text(' MHannech II', { continued: false });
+    doc.text('         B.P. 2222 Tétouan', margin, footerY + 12);
+    doc.text('Tél: 0539688802 FAX : 0539994624', margin, footerY + 24);
+    
+    
+    // Note importante en bas
+    doc.fontSize(7).font('Helvetica-Oblique');
+    doc.text(
+        'Il appartient à l\'étudiant d\'en faire des photocopies certifiées conformes.',
+        margin,
+        footerY + 55,
+        { width: pageWidth - 2 * margin, align: 'center' }
+    );
+    doc.text(
+        'Le présent document n\'est délivré qu\'en un seul exemplaire.',
+        margin,
+        footerY + 67,
+        { width: pageWidth - 2 * margin, align: 'center' }
+    );
+};
 
 const buildSchoolCertificate = (doc, payload) => {
-    addHeader(doc);
+    addHeaderWithLogo(doc);
 
+    // Titre principal
+    doc.fontSize(14).font('Helvetica-Bold');
+    doc.text('ATTESTATION DE SCOLARITE', { align: 'center', underline: true });
     doc.moveDown(2);
-    doc.fontSize(16).font('Helvetica-Bold');
-    doc.text('ATTESTATION DE SCOLARITÉ', { align: 'center' });
 
-    doc.moveDown(3);
-    doc.fontSize(11).font('Helvetica');
+    // Texte d'introduction
+    doc.fontSize(10).font('Helvetica');
     doc.text(
-        'Le Directeur de l\'École Nationale des Sciences Appliquées de Tétouan atteste que l\'étudiant(e) :',
-        { align: 'justify', width: doc.page.width - 140 }
+        'Le Directeur de l\'Ecole Nationale des Sciences Appliquées de Tétouan atteste que l\'étudiant(e) :',
+        { align: 'left' }
     );
+    doc.moveDown(1.5);
 
-    doc.moveDown(2);
-
-    const infoX = 90;
-    const valueX = 260;
+    // Informations de l'étudiant
+    const leftMargin = 80;
     let currentY = doc.y;
 
-    const addLine = (label, value) => {
-        doc.font('Helvetica-Bold').text(label, infoX, currentY);
-        doc.font('Helvetica').text(value || '---', valueX, currentY);
-        currentY += 22;
-    };
+    doc.fontSize(10).font('Helvetica-Bold');
+    doc.text(formatName(payload.student), leftMargin, currentY);
+    currentY += 25;
 
-    addLine('Nom et Prénom', `: ${formatName(payload.student)}`);
-    addLine('Numéro Apogée', `: ${payload.details.apogee_number || payload.student.apogee_number}`);
-    addLine('CNE', `: ${payload.details.cne || payload.student.cne}`);
-    addLine('CIN', `: ${payload.details.cin || payload.student.cin}`);
+    // CIN
+    doc.font('Helvetica');
+    doc.text('Numéro de la carte d\'identité nationale :', leftMargin, currentY, { continued: true });
+    doc.font('Helvetica-Bold');
+    doc.text(`    ${payload.details.cin || payload.student.cin || '___________'}`);
+    currentY += 20;
 
+    // CNE
+    doc.font('Helvetica');
+    doc.text('Code national de l\'étudiante :', leftMargin, currentY, { continued: true });
+    doc.font('Helvetica-Bold');
+    doc.text(`    ${payload.details.cne || payload.student.cne || '___________'}`);
+    currentY += 20;
+
+    // Date et lieu de naissance
     const birthDate = (payload.details.birth_date || payload.student.birth_date)
         ? new Date(payload.details.birth_date || payload.student.birth_date).toLocaleDateString('fr-FR')
-        : '---';
-    const birthPlace = payload.details.birth_place || payload.student.birth_place || '---';
-    addLine('Né(e) le', `: ${birthDate} à ${birthPlace}`);
+        : '__/__/____';
+    const birthPlace = payload.details.birth_place || payload.student.birth_place || '_________';
+    
+    doc.font('Helvetica');
+    doc.text(`née le ${birthDate} à ${birthPlace.toUpperCase()} ( MAROC )`, leftMargin, currentY);
+    currentY += 25;
 
-    doc.y = currentY + 15;
-    doc.x = 70;
+    // Inscription
+    doc.font('Helvetica');
+    doc.text(
+        `Poursuit ses études à l' Ecole Nationale des Sciences Appliquées Tétouan pour l'année`,
+        leftMargin,
+        currentY
+    );
+    currentY += 15;
+    doc.text(`universitaire ${payload.details.academic_year || '2024/2025'}.`, leftMargin, currentY);
+    currentY += 25;
 
-    doc.font('Helvetica').text(
-        `Est régulièrement inscrit(e) à l'École Nationale des Sciences Appliquées de Tétouan pour l'année universitaire ${payload.details.academic_year || '2024/2025'} en :`,
-        { align: 'justify', width: doc.page.width - 140 }
+    // Diplôme
+    doc.font('Helvetica');
+    doc.text('Diplôme :', leftMargin, currentY, { continued: true });
+    doc.font('Helvetica-Bold');
+    const diploma = payload.details.program || payload.student.major || '___________';
+    doc.text(`   ${diploma}`);
+    currentY += 20;
+
+    // Filière
+    doc.font('Helvetica');
+    doc.text('Filière :', leftMargin, currentY, { continued: true });
+    doc.font('Helvetica-Bold');
+    const filiere = payload.details.program || payload.student.major || '___________';
+    doc.text(`     ${filiere}`);
+    currentY += 20;
+
+    // Année
+    doc.font('Helvetica');
+    doc.text('Année :', leftMargin, currentY, { continued: true });
+    doc.font('Helvetica-Bold');
+    const level = payload.details.level || payload.student.level || '___________';
+    doc.text(`     ${level}`);
+    currentY += 40;
+
+    // Date et lieu
+    doc.fontSize(9).font('Helvetica');
+    doc.text(
+        `Fait à TETOUAN, le ${payload.issuedAt}`,
+        doc.page.width - 250,
+        currentY,
+        { width: 200, align: 'left' }
+    );
+    currentY += 30;
+
+    // Signature avec cachet
+    doc.fontSize(9).font('Helvetica');
+    doc.text('Le Directeur', doc.page.width - 250, currentY, { width: 200, align: 'center' });
+    currentY += 15;
+    
+    // Espace pour cachet et signature
+    doc.fontSize(8).font('Helvetica-Oblique');
+    doc.text('[Cachet et Signature]', doc.page.width - 250, currentY, { width: 200, align: 'center' });
+    currentY += 30;
+    
+    // Numéro d'étudiant en bas à droite
+    doc.fontSize(8).font('Helvetica');
+    doc.text(
+        `N°étudiant :    ${payload.details.apogee_number || payload.student.apogee_number || '___________'}`,
+        doc.page.width - 250,
+        currentY,
+        { width: 200, align: 'left' }
     );
 
-    doc.moveDown(1.5);
-    doc.font('Helvetica-Bold').fontSize(12);
-    doc.text(`${payload.details.level || '---'} - ${payload.details.program || '---'}`, { align: 'center' });
-
-    doc.moveDown(4);
-    doc.fontSize(10).font('Helvetica');
-    doc.text(`Fait à Tétouan, le ${payload.issuedAt}`, { align: 'right' });
-
-    doc.moveDown(3);
-    doc.font('Helvetica-Bold');
-    doc.text('Le Directeur', { align: 'right' });
-
-    addFooterNote(doc, 'Note : Le présent document n\'est délivré qu\'en un seul exemplaire. Il appartient à l\'étudiant d\'en faire des photocopies certifiées conformes.');
+    // Footer avec adresse
+    addFooterWithAddress(doc, payload);
 };
 
 const buildSuccessCertificate = (doc, payload) => {
-    addHeader(doc);
+    addHeaderWithLogo(doc);
 
     doc.moveDown(2);
     doc.fontSize(16).font('Helvetica-Bold');
@@ -214,7 +311,7 @@ const buildSuccessCertificate = (doc, payload) => {
     doc.font('Helvetica-Bold');
     doc.text('Le Directeur', { align: 'right' });
 
-    addFooterNote(doc, 'Cette attestation est délivrée pour servir et valoir ce que de droit.');
+    addFooterWithAddress(doc, payload);
 };
 
 const buildTranscript = (doc, payload) => {
@@ -229,6 +326,19 @@ const buildTranscript = (doc, payload) => {
     const sessionCode = sessionLabel.toLowerCase().includes('2') ? 'S2' : 'S1';
     const sessionShort = `${sessionCode} ${shortYear}`;
     const sessionNumber = sessionCode === 'S2' ? '2' : '1';
+    const normalizedSession = String(sessionLabel).toLowerCase().replace(/\s+/g, '');
+    const isCombinedSession = normalizedSession.includes('1+2') || normalizedSession.includes('s1+s2');
+
+    const getModuleSessionShort = (module) => {
+        if (!isCombinedSession) return sessionShort;
+        const moduleSession = String(module?.session || '').toLowerCase();
+        const hasS1 = Boolean(module?.session1) || moduleSession.includes('1');
+        const hasS2 = Boolean(module?.session2) || moduleSession.includes('2');
+        if (hasS1 && !hasS2) return `S1 ${shortYear}`;
+        if (hasS2 && !hasS1) return `S2 ${shortYear}`;
+        if (hasS1 && hasS2) return `S1+S2 ${shortYear}`;
+        return sessionShort;
+    };
 
     // Header block
     doc.lineWidth(1).rect(left, 35, contentWidth, 42).stroke();
@@ -242,7 +352,7 @@ const buildTranscript = (doc, payload) => {
     // School line
     doc.font('Helvetica').fontSize(10);
     doc.text('Ecole Nationale des Sciences Appliquees Tetouan', left, 95);
-
+    doc.moveDown(2);
     // Title block
     doc.lineWidth(0.8).rect(left + 120, 105, contentWidth - 240, 20).stroke();
     doc.font('Helvetica-Bold').fontSize(11);
@@ -250,7 +360,7 @@ const buildTranscript = (doc, payload) => {
     doc.lineWidth(0.8).rect(left + 220, 130, contentWidth - 440, 16).stroke();
     doc.font('Helvetica-Bold').fontSize(10);
     doc.text(sessionLabel, left + 220, 132, { width: contentWidth - 440, align: 'center' });
-
+    doc.moveDown(2);
     // Student identity block
     let y = 155;
     const colA = left;
@@ -303,7 +413,7 @@ const buildTranscript = (doc, payload) => {
         doc.text(m.name || `Module ${i + 1}`, colModule, currentY + 4, { width: 250 });
         doc.text(`${grade.toFixed(2)} / 20`, colNote, currentY + 4);
         doc.text(grade >= 10 ? 'Valide' : 'Non valide', colResult, currentY + 4);
-        doc.text(sessionShort, colSession, currentY + 4);
+        doc.text(getModuleSessionShort(m), colSession, currentY + 4);
         currentY += rowHeight;
     });
 
@@ -312,7 +422,7 @@ const buildTranscript = (doc, payload) => {
     const average = modules.length > 0 ? (total / modules.length).toFixed(3) : '0.000';
     const isAdmitted = parseFloat(average) >= 10;
     doc.font('Helvetica-Bold').fontSize(9);
-    doc.text(`Resultat d'admission session ${sessionNumber} :`, left + 5, currentY);
+    doc.text(`Resultat d'admission ${sessionLabel} :`, left + 5, currentY);
     doc.text(`${average} / 20`, left + 260, currentY);
     doc.text(isAdmitted ? 'Admis' : 'Ajourne', left + 360, currentY);
 
@@ -372,11 +482,10 @@ const buildInternship = (doc, payload) => {
         width: doc.page.width - 2 * margin 
     });
     doc.moveDown(0.5);
-    doc.text('Ci-après, dénommé l\'Etablissement', margin, doc.y, { 
-        continued: false 
+    doc.text('Ci-après, dénommé ', margin, doc.y, { 
+        continued: true 
     });
     doc.font('Helvetica-Bold').text('l\'Etablissement', { continued: false });
-
     doc.moveDown(1.5);
 
     // ET
@@ -762,13 +871,6 @@ module.exports = {
     generateDocument,
     DOC_LABELS
 };
-
-
-
-
-
-
-
 
 
 
