@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { getRequests, updateRequestStatus } from '../../services/api';
-import { CheckIcon, XMarkIcon, DocumentMagnifyingGlassIcon, XCircleIcon, MagnifyingGlassIcon, FunnelIcon, DocumentTextIcon } from '@heroicons/react/24/outline';
+import { CheckIcon, XMarkIcon, DocumentMagnifyingGlassIcon, XCircleIcon, MagnifyingGlassIcon, FunnelIcon, DocumentTextIcon, EyeIcon, ArrowTopRightOnSquareIcon } from '@heroicons/react/24/outline';
 
 const DOC_TYPE_LABELS = {
     'school-certificate': 'Attestation de scolarité',
@@ -31,6 +31,8 @@ const RequestsList = () => {
     const [loading, setLoading] = useState(false);
 
     const serverBase = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+    // Pour les fichiers statiques, on enlève /api de l'URL
+    const fileBaseUrl = serverBase.replace(/\/api$/, '');
 
     useEffect(() => {
         fetchRequests();
@@ -324,6 +326,18 @@ const RequestsList = () => {
                                                     <DocumentMagnifyingGlassIcon className="h-4 w-4" />
                                                     Détails
                                                 </button>
+                                                {(req.generated_document_path || req.document_path) && (
+                                                    <a
+                                                        href={`${fileBaseUrl}${req.generated_document_path || req.document_path}`}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-xs font-medium transition-colors flex items-center gap-1"
+                                                        title="Voir le document"
+                                                    >
+                                                        <EyeIcon className="h-4 w-4" />
+                                                        Document
+                                                    </a>
+                                                )}
                                                 <button
                                                     onClick={() => { setSelectedRequest(req); setModalMode('accept'); }}
                                                     className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded-lg text-xs font-medium transition-colors flex items-center gap-1"

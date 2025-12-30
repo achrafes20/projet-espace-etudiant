@@ -21,6 +21,8 @@ const ComplaintsList = () => {
     const [loading, setLoading] = useState(false);
 
     const serverBase = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+    // Pour les fichiers statiques, on enlève /api de l'URL
+    const fileBaseUrl = serverBase.replace(/\/api$/, '');
 
     useEffect(() => {
         fetchComplaints();
@@ -252,7 +254,7 @@ const ComplaintsList = () => {
                             {(selectedComplaint.generated_document_path || selectedComplaint.document_path) && (
                                 <div className="flex justify-center">
                                     <a
-                                        href={`${serverBase}${selectedComplaint.document_path || selectedComplaint.generated_document_path}`}
+                                        href={`${fileBaseUrl}${selectedComplaint.document_path || selectedComplaint.generated_document_path}`}
                                         target="_blank"
                                         rel="noreferrer"
                                         className="inline-flex items-center gap-2 px-6 py-3 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg text-sm font-medium transition-colors"

@@ -58,7 +58,7 @@ const resolveDetails = (docType, incoming = {}) => {
     if (docType === 'internship') {
         return {
             ...base,
-            major: incoming.major,
+            major: incoming.major || incoming.filiere || incoming.program,
             company_name: incoming.company_name || incoming.company_legal_name,
             company_legal_name: incoming.company_legal_name,
             company_address: incoming.company_address,
@@ -330,71 +330,363 @@ const buildTranscript = (doc, payload) => {
 };
 
 const buildInternship = (doc, payload) => {
-    addHeader(doc);
-
-    doc.moveDown(2);
-    doc.fontSize(16).font('Helvetica-Bold');
-    doc.text('CONVENTION DE STAGE', { align: 'center' });
-    doc.moveDown(0.3);
-    doc.fontSize(9).font('Helvetica');
-    doc.text('(PFE / Technique / Ouvrier)', { align: 'center' });
-
-    doc.moveDown(2);
-
-    const details = payload.details;
-
+    const d = payload.details;
+    const s = payload.student;
+    const margin = 50;
+    
+    // En-tête avec tableau
     doc.fontSize(10).font('Helvetica-Bold');
-    doc.text('ENTRE :', 50);
-    doc.font('Helvetica').text(
-        'L\'École Nationale des Sciences Appliquées de Tétouan, représentée par son Directeur.',
-        { indent: 20, align: 'justify' }
-    );
-
-    doc.moveDown(1);
-    doc.font('Helvetica-Bold').text('ET L\'ORGANISME D\'ACCUEIL :', 50);
-    doc.font('Helvetica').text(
-        `${details.company_name || '---'}, représenté par ${details.company_representative_name || '---'} en qualité de ${details.company_representative_function || '---'}.`,
-        { indent: 20, align: 'justify' }
-    );
-    doc.text(`Adresse : ${details.company_address || '---'} | Tél : ${details.company_phone || '---'}`, { indent: 20 });
-
-    doc.moveDown(1);
-    doc.font('Helvetica-Bold').text('CONCERNANT LE STAGIAIRE :', 50);
-    doc.font('Helvetica');
-    doc.text(`Nom et Prénom : ${formatName(payload.student)}`, { indent: 20 });
-    doc.text(`CIN : ${details.cin || payload.student.cin}`, { indent: 20 });
-    doc.text(`Filière : ${details.major || '---'}`, { indent: 20 });
+    const headerY = 50;
+    doc.text('Université Abdelmalek Essaâdi', margin, headerY);
+    doc.text('Ecole Nationale des Sciences Appliquées', margin, headerY + 15);
+    doc.text('Tétouan', margin, headerY + 30);
+    
+    // Titre principal
+    doc.moveDown(4);
+    doc.fontSize(14).font('Helvetica-Bold');
+    doc.text('CONVENTION DE STAGE', { align: 'center' });
+    doc.moveDown(0.5);
+    doc.fontSize(9).font('Helvetica').fillColor('#666666');
+    doc.text('(2 exemplaires imprimés en recto-verso)', { align: 'center', underline: true });
+    doc.fillColor('#000000');
 
     doc.moveDown(2);
-    doc.font('Helvetica-Bold').text('OBJET DU STAGE', { bold: true });
-    doc.font('Helvetica').text(
-        `Le stage a pour objet la mise en pratique des connaissances théoriques. Sujet : ${details.internship_subject || '---'}`,
-        { align: 'justify' }
-    );
 
+    // ENTRE
+    doc.fontSize(11).font('Helvetica-Bold');
+    doc.text('ENTRE', { align: 'center' });
+    doc.moveDown(0.5);
+    
+    doc.fontSize(10).font('Helvetica');
+    doc.text('L\'Ecole Nationale des Sciences Appliquées, Université Abdelmalek Essaâdi - Tétouan', margin, doc.y, { 
+        width: doc.page.width - 2 * margin, 
+        align: 'left' 
+    });
+    doc.moveDown(0.5);
+    doc.text('B.P. 2222, Mhannech II, Tétouan , Maroc', margin);
+    doc.moveDown(0.3);
+    doc.text('Tél. +212 5 39 68 80 27 ; Fax. +212 39 99 46 24.', margin);
+    doc.text('Web: https://ensa-tetouan.ac.ma', margin, doc.y, { link: 'https://ensa-tetouan.ac.ma' });
+    doc.moveDown(0.5);
+    doc.text('Représenté par le Professeur Kamal REKLAOUI en qualité de Directeur.', margin, doc.y, { 
+        width: doc.page.width - 2 * margin 
+    });
+    doc.moveDown(0.5);
+    doc.text('Ci-après, dénommé l\'Etablissement', margin, doc.y, { 
+        continued: false 
+    });
+    doc.font('Helvetica-Bold').text('l\'Etablissement', { continued: false });
+
+    doc.moveDown(1.5);
+
+    // ET
+    doc.fontSize(11).font('Helvetica-Bold');
+    doc.text('ET', { align: 'center' });
+    doc.moveDown(0.5);
+    
+    doc.fontSize(10).font('Helvetica');
+    doc.text(`La Société : `, margin, doc.y, { continued: true });
+    doc.font('Helvetica-Bold').text(d.company_name || '_______________');
+    doc.moveDown(0.5);
+    
+    doc.font('Helvetica');
+    doc.text('Adresse :   ', margin, doc.y, { continued: true });
+    doc.font('Helvetica-Bold').text(d.company_address || '_______________');
+    doc.moveDown(0.5);
+    
+    doc.font('Helvetica');
+    doc.text('Tél : ', margin, doc.y, { continued: true });
+    doc.font('Helvetica-Bold').text((d.company_phone || '_______________') + '   ', { continued: true });
+    doc.font('Helvetica').text('Email: ', { continued: true });
+    doc.font('Helvetica-Bold').text(d.company_email || '_______________');
+    doc.moveDown(0.5);
+    
+    doc.font('Helvetica');
+    doc.text('Représentée par Monsieur ', margin, doc.y, { continued: true });
+    doc.font('Helvetica-Bold').text((d.company_representative_name || '_______________') + ' ', { continued: true });
+    doc.font('Helvetica').text('en qualité ', { continued: true });
+    doc.font('Helvetica-Bold').text(d.company_representative_function || '_______________');
+    doc.moveDown(0.5);
+    
+    doc.font('Helvetica');
+    doc.text('Ci-après dénommée ', margin, doc.y, { continued: true });
+    doc.font('Helvetica-Bold').text('L\'ENTREPRISE');
+
+    doc.moveDown(1.5);
+
+    // Article 1
+    doc.fontSize(10).font('Helvetica-Bold');
+    doc.text('Article 1 : Engagement', margin);
+    doc.moveDown(0.5);
+    
+    doc.font('Helvetica');
+    doc.font('Helvetica-Bold').text('L\'ENTREPRISE', margin, doc.y, { continued: true });
+    doc.font('Helvetica').text(' accepte de recevoir à titre de stagiaire ', { continued: true });
+    doc.font('Helvetica-Bold').text(formatName(s) + ' ', { continued: true });
+    doc.font('Helvetica').text('étudiant de la filière du Cycle Ingénieur ', { continued: true });
+    doc.font('Helvetica-Bold').text(`« ${d.major || s.major || '_______________'} » `, { continued: true });
+    doc.font('Helvetica').text('de l\'ENSA de Tétouan, Université Abdelmalek Essaâdi (Tétouan), pour une période allant du ', { continued: true });
+    
+    const startDate = d.start_date ? new Date(d.start_date).toISOString().split('T')[0] : '_______________';
+    const endDate = d.end_date ? new Date(d.end_date).toISOString().split('T')[0] : '_______________';
+    
+    doc.font('Helvetica-Bold').text(`${startDate} `, { continued: true });
+    doc.font('Helvetica').text('au ', { continued: true });
+    doc.font('Helvetica-Bold').text(endDate);
+    
     doc.moveDown(1);
-    doc.font('Helvetica-Bold').text('DURÉE DU STAGE');
-    const start = details.start_date ? new Date(details.start_date).toLocaleDateString('fr-FR') : '---';
-    const end = details.end_date ? new Date(details.end_date).toLocaleDateString('fr-FR') : '---';
-    doc.font('Helvetica').text(`Période du ${start} au ${end}.`);
+    doc.font('Helvetica-Bold');
+    doc.text('En aucun cas, cette convention ne pourra autoriser les étudiants à s\'absenter durant la période des contrôles ou des enseignements.', margin, doc.y, {
+        width: doc.page.width - 2 * margin,
+        align: 'left'
+    });
 
-    doc.moveDown(1);
-    doc.font('Helvetica-Bold').text('ENCADREMENT');
-    doc.font('Helvetica').text(`Encadrant Professionnel : ${details.supervisor_name || '---'}`);
-    doc.text(`Encadrant Académique : ${details.ensa_supervisor_name || '---'}`);
+    doc.moveDown(1.5);
 
-    doc.moveDown(4);
+    // Article 2
+    doc.fontSize(10).font('Helvetica-Bold');
+    doc.text('Article 2 : Objet', margin);
+    doc.moveDown(0.5);
+    
+    doc.font('Helvetica');
+    doc.text('Le stage aura pour objet essentiel d\'assurer l\'application pratique de l\'enseignement donné par ', margin, doc.y, { 
+        continued: true,
+        width: doc.page.width - 2 * margin 
+    });
+    doc.font('Helvetica-Bold').text('l\'Etablissement', { continued: true });
+    doc.font('Helvetica').text(', et ce, en organisant des visites sur les installations et en réalisant des études proposées par ', { continued: true });
+    doc.font('Helvetica-Bold').text('L\'ENTREPRISE', { continued: true });
+    doc.font('Helvetica').text('.');
 
-    // Signatures block
-    const sigY = doc.y;
-    doc.fontSize(9).font('Helvetica-Bold');
-    doc.text('Le Stagiaire', 70, sigY);
-    doc.text('L\'Organisme', 250, sigY);
-    doc.text('L\'École', 430, sigY);
+    doc.moveDown(1.5);
 
-    doc.moveDown(6);
+    // Article 3
+    doc.fontSize(10).font('Helvetica-Bold');
+    doc.text('Article 3 : Encadrement et suivi', margin);
+    doc.moveDown(0.5);
+    
+    doc.font('Helvetica');
+    doc.text('Pour accompagner le Stagiaire durant son stage, et ainsi instaurer une véritable collaboration L\'ENTREPRISE/Stagiaire/Etablissement, L\'ENTREPRISE désigne Mme/Mr ', margin, doc.y, {
+        width: doc.page.width - 2 * margin,
+        continued: true
+    });
+    doc.font('Helvetica-Bold').text((d.supervisor_name || '_______________') + ' ', { continued: true });
+    doc.font('Helvetica').text('encadrant(e) et parrain(e), pour superviser et assurer la qualité du travail fourni par le Stagiaire.');
+    
+    doc.moveDown(0.5);
+    doc.text('L\'Etablissement désigne ', margin, doc.y, { continued: true });
+    doc.font('Helvetica-Bold').text((d.ensa_supervisor_name || '_______________') + ' ', { continued: true });
+    doc.font('Helvetica').text('en tant que tuteur qui procurera une assistance pédagogique');
+
+    doc.moveDown(1.5);
+
+    // Article 4
+    doc.fontSize(10).font('Helvetica-Bold');
+    doc.text('Article 4 : Programme:', margin);
+    doc.moveDown(0.5);
+    
+    doc.font('Helvetica');
+    doc.text('Le thème du stage est: ', margin, doc.y, { continued: true });
+    doc.font('Helvetica-Bold').text(`« ${d.internship_subject || d.internship_title || '_______________'} »`);
+    
+    doc.moveDown(0.5);
+    doc.font('Helvetica');
+    doc.text('Ce programme a été défini conjointement par ', margin, doc.y, { 
+        width: doc.page.width - 2 * margin,
+        continued: true 
+    });
+    doc.font('Helvetica-Bold').text('l\'Etablissement', { continued: true });
+    doc.font('Helvetica').text(', ', { continued: true });
+    doc.font('Helvetica-Bold').text('L\'ENTREPRISE', { continued: true });
+    doc.font('Helvetica').text(' et le ', { continued: true });
+    doc.font('Helvetica-Bold').text('Stagiaire', { continued: true });
+    doc.font('Helvetica').text('.');
+    
+    doc.moveDown(0.5);
+    doc.text('Le contenu de ce programme doit permettre au Stagiaire une réflexion en relation avec les enseignements ou le projet de fin d\'études qui s\'inscrit dans le programme de formation de ', margin, doc.y, {
+        width: doc.page.width - 2 * margin,
+        continued: true
+    });
+    doc.font('Helvetica-Bold').text('l\'Etablissement', { continued: true });
+    doc.font('Helvetica').text('.');
+
+    doc.moveDown(1.5);
+
+    // Article 5
+    doc.fontSize(10).font('Helvetica-Bold');
+    doc.text('Article 5 : Indemnité de stage', margin);
+    doc.moveDown(0.5);
+    
+    doc.font('Helvetica');
+    doc.text('Au cours du stage, l\'étudiant ne pourra prétendre à aucun salaire de la part de ', margin, doc.y, {
+        width: doc.page.width - 2 * margin,
+        continued: true
+    });
+    doc.font('Helvetica-Bold').text('L\'ENTREPRISE', { continued: true });
+    doc.font('Helvetica').text('.');
+    
+    doc.moveDown(0.5);
+    doc.text('Cependant, si ', margin, doc.y, { continued: true });
+    doc.font('Helvetica-Bold').text('l\'ENTREPRISE', { continued: true });
+    doc.font('Helvetica').text(' et l\'étudiant le conviennent, ce dernier pourra recevoir une indemnité forfaitaire de la part de l\'ENTREPRISE des frais occasionnés par la mission confiée à l\'étudiant.', {
+        width: doc.page.width - 2 * margin
+    });
+
+    doc.moveDown(1.5);
+
+    // Article 6
+    doc.fontSize(10).font('Helvetica-Bold');
+    doc.text('Article 6 : Règlement', margin);
+    doc.moveDown(0.5);
+    
+    doc.font('Helvetica');
+    doc.text('Pendant la durée du stage, le Stagiaire reste placé sous la responsabilité de ', margin, doc.y, {
+        width: doc.page.width - 2 * margin,
+        continued: true
+    });
+    doc.font('Helvetica-Bold').text('l\'Etablissement', { continued: true });
+    doc.font('Helvetica').text('.');
+    
+    doc.moveDown(0.5);
+    doc.font('Helvetica-Bold');
+    doc.text('Cependant, l\'étudiant est tenu d\'informer l\'école dans un délai de 24h sur toute modification portant sur la convention déjà signée, sinon il en assumera toute sa responsabilité sur son non-respect de la convention signée par l\'école.', margin, doc.y, {
+        width: doc.page.width - 2 * margin
+    });
+    
+    doc.moveDown(0.5);
+    doc.font('Helvetica');
+    doc.text('Toutefois, le Stagiaire est soumis à la discipline et au règlement intérieur de ', margin, doc.y, {
+        continued: true
+    });
+    doc.font('Helvetica-Bold').text('L\'ENTREPRISE', { continued: true });
+    doc.font('Helvetica').text('.');
+    
+    doc.moveDown(0.5);
+    doc.text('En cas de manquement, ', margin, doc.y, { continued: true });
+    doc.font('Helvetica-Bold').text('L\'ENTREPRISE', { continued: true });
+    doc.font('Helvetica').text(' se réserve le droit de mettre fin au stage après en avoir convenu avec le Directeur de l\'Etablissement.', {
+        width: doc.page.width - 2 * margin
+    });
+
+    doc.moveDown(1.5);
+
+    // Article 7
+    doc.fontSize(10).font('Helvetica-Bold');
+    doc.text('Article 7 : Confidentialité', margin);
+    doc.moveDown(0.5);
+    
+    doc.font('Helvetica');
+    doc.text('Le Stagiaire et l\'ensemble des acteurs liés à son travail (l\'administration de ', margin, doc.y, {
+        width: doc.page.width - 2 * margin,
+        continued: true
+    });
+    doc.font('Helvetica-Bold').text('l\'Etablissement', { continued: true });
+    doc.font('Helvetica').text(', le parrain pédagogique ...) sont tenus au secret professionnel. Ils s\'engagent à ne pas diffuser les informations recueillies à des fins de publications, conférences, communications, sans raccord préalable de ', { continued: true });
+    doc.font('Helvetica-Bold').text('L\'ENTREPRISE', { continued: true });
+    doc.font('Helvetica').text('. Cette obligation demeure valable après l\'expiration du stage');
+
+    doc.moveDown(1.5);
+
+    // Article 8
+    doc.fontSize(10).font('Helvetica-Bold');
+    doc.text('Article 8 : Assurance accident de travail', margin);
+    doc.moveDown(0.5);
+    
+    doc.font('Helvetica-Bold');
+    doc.text('Le stagiaire', margin, doc.y, { continued: true });
+    doc.font('Helvetica').text(' devra obligatoirement souscrire une assurance couvrant la Responsabilité Civile et Accident de Travail, durant les stages et trajets effectués.');
+    
+    doc.moveDown(0.5);
+    doc.text('En cas d\'accident de travail survenant durant la période du stage, ', margin, doc.y, {
+        width: doc.page.width - 2 * margin,
+        continued: true
+    });
+    doc.font('Helvetica-Bold').text('L\'ENTREPRISE', { continued: true });
+    doc.font('Helvetica').text(' s\'engage à faire parvenir immédiatement à l\'Etablissement toutes les informations indispensables à la déclaration dudit accident.');
+
+    doc.moveDown(1.5);
+
+    // Article 9
+    doc.fontSize(10).font('Helvetica-Bold');
+    doc.text('Article 9: Evaluation de L\'ENTREPRISE', margin);
+    doc.moveDown(0.5);
+    
+    doc.font('Helvetica');
+    doc.text('Le stage accompli, le parrain établira un rapport d\'appréciations générales sur le travail effectué et le comportement du Stagiaire durant son séjour chez ', margin, doc.y, {
+        width: doc.page.width - 2 * margin,
+        continued: true
+    });
+    doc.font('Helvetica-Bold').text('L\'ENTREPRISE', { continued: true });
+    doc.font('Helvetica').text('.');
+    
+    doc.moveDown(0.5);
+    doc.font('Helvetica-Bold').text('L\'ENTREPRISE', margin, doc.y, { continued: true });
+    doc.font('Helvetica').text(' remettra au Stagiaire une attestation indiquant la nature et la durée des travaux effectués.');
+
+    doc.moveDown(1.5);
+
+    // Article 10
+    doc.fontSize(10).font('Helvetica-Bold');
+    doc.text('Article 10 : Rapport de stage', margin);
+    doc.moveDown(0.5);
+    
+    doc.font('Helvetica');
+    doc.text('A l\'issue de chaque stage, le Stagiaire rédigera un rapport de stage faisant état de ses travaux et de son vécu au sein de ', margin, doc.y, {
+        width: doc.page.width - 2 * margin,
+        continued: true
+    });
+    doc.font('Helvetica-Bold').text('L\'ENTREPRISE', { continued: true });
+    doc.font('Helvetica').text('. Ce rapport sera communiqué à ', { continued: true });
+    doc.font('Helvetica-Bold').text('L\'ENTREPRISE', { continued: true });
+    doc.font('Helvetica').text(' et restera strictement confidentiel.');
+
+    doc.moveDown(3);
+
+    // Date et lieu
+    const currentDateTime = new Date().toLocaleString('en-GB', { 
+        day: '2-digit', 
+        month: 'short', 
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false
+    });
+    
+    doc.font('Helvetica');
+    doc.text(`Fait à Tétouan en deux exemplaires, le ${currentDateTime}`, margin, doc.y, {
+        width: doc.page.width - 2 * margin,
+        align: 'center'
+    });
+
+    doc.moveDown(3);
+
+    // Tableau des signatures
+    const sigTableY = doc.y;
+    const colWidth = (doc.page.width - 2 * margin) / 2;
+    
     doc.fontSize(9).font('Helvetica');
-    doc.text(`Fait à Tétouan, le ${payload.issuedAt}`, 50);
+    
+    // Ligne 1
+    doc.text('Nom et signature du Stagiaire', margin, sigTableY, { 
+        width: colWidth, 
+        align: 'left' 
+    });
+    doc.text('Le Coordonnateur de la filière', margin + colWidth, sigTableY, { 
+        width: colWidth, 
+        align: 'left' 
+    });
+    
+    // Ligne 2 (avec espace pour signatures)
+    const sig2Y = sigTableY + 60;
+    doc.text('Signature et cachet de L\'Etablissement', margin, sig2Y, { 
+        width: colWidth, 
+        align: 'left' 
+    });
+    doc.text('Signature et cachet de L\'ENTREPRISE', margin + colWidth, sig2Y, { 
+        width: colWidth, 
+        align: 'left' 
+    });
 };
 
 
