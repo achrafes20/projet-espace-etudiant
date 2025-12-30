@@ -2,6 +2,17 @@ const nodemailer = require('nodemailer');
 const path = require('path');
 require('dotenv').config();
 
+const DOC_LABELS = {
+    'school-certificate': 'Attestation de scolarité',
+    'success-certificate': 'Attestation de réussite',
+    transcript: 'Relevé de notes',
+    internship: 'Convention de stage'
+};
+
+const translateDocumentType = (docType) => {
+    return DOC_LABELS[docType] || docType;
+};
+
 const createTransporter = () => {
     return nodemailer.createTransport({
         service: process.env.EMAIL_SERVICE || 'gmail',
@@ -22,6 +33,7 @@ const resolveAttachmentPath = (documentPath) => {
 
 exports.sendRequestConfirmation = async (email, name, reference, documentType) => {
     const transporter = createTransporter();
+    const documentTypeLabel = translateDocumentType(documentType);
 
     const mailOptions = {
         from: process.env.EMAIL_USER,
@@ -31,7 +43,7 @@ exports.sendRequestConfirmation = async (email, name, reference, documentType) =
             <div style="font-family: Arial, sans-serif; color: #333;">
                 <h2>Confirmation de demande</h2>
                 <p>Bonjour <strong>${name}</strong>,</p>
-                <p>Votre demande de <strong>${documentType}</strong> a été enregistrée.</p>
+                <p>Votre demande de <strong>${documentTypeLabel}</strong> a été enregistrée.</p>
                 <div style="background-color: #f4f4f4; padding: 15px; border-left: 4px solid #0056b3; margin: 20px 0;">
                     <p style="margin: 0; font-size: 14px; color: #666;">Numéro de référence :</p>
                     <p style="margin: 5px 0 0; font-size: 24px; font-weight: bold; color: #0056b3;">${reference}</p>
@@ -45,18 +57,19 @@ exports.sendRequestConfirmation = async (email, name, reference, documentType) =
     try {
         await transporter.sendMail(mailOptions);
     } catch (error) {
-        console.error('Error sending confirmation email:', error);
+        console.error('Erreur lors de l\'envoi de l\'email de confirmation:', error);
     }
 };
 
 exports.sendRequestUpdate = async (email, name, reference, documentType, status, reason, documentPath) => {
     const transporter = createTransporter();
+    const documentTypeLabel = translateDocumentType(documentType);
 
     let htmlContent = `
         <div style="font-family: Arial, sans-serif; color: #333;">
             <h2>Suivi de votre demande</h2>
             <p>Bonjour <strong>${name}</strong>,</p>
-            <p>Votre demande de <strong>${documentType}</strong> (Ref: ${reference}) a été mise à jour.</p>
+            <p>Votre demande de <strong>${documentTypeLabel}</strong> (Ref: ${reference}) a été mise à jour.</p>
             <p><strong>Statut: <span style="color: ${status === 'Accepté' ? 'green' : 'red'}">${status}</span></strong></p>
     `;
 
@@ -101,7 +114,7 @@ exports.sendRequestUpdate = async (email, name, reference, documentType, status,
     try {
         await transporter.sendMail(mailOptions);
     } catch (error) {
-        console.error('Error sending update email:', error);
+        console.error('Erreur lors de l\'envoi de l\'email de mise à jour:', error);
     }
 };
 
@@ -140,14 +153,14 @@ exports.sendComplaintResponse = async (email, name, complaintNumber, response, d
                 path: absolutePath
             }];
         } else {
-            console.warn(`Document path not found: ${documentPath}`);
+            console.warn(`Chemin du document introuvable: ${documentPath}`);
         }
     }
 
     try {
         await transporter.sendMail(mailOptions);
     } catch (error) {
-        console.error('Error sending complaint response email:', error);
+        console.error('Erreur lors de l\'envoi de l\'email de réponse à la réclamation:', error);
     }
 };
 
@@ -176,6 +189,6 @@ exports.sendComplaintConfirmation = async (email, name, complaintNumber, request
     try {
         await transporter.sendMail(mailOptions);
     } catch (error) {
-        console.error('Error sending complaint confirmation email:', error);
+        console.error('Erreur lors de l\'envoi de l\'email de confirmation de réclamation:', error);
     }
 };

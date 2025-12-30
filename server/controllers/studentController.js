@@ -49,7 +49,7 @@ exports.validateStudent = async (req, res) => {
             }
         }
         
-        res.status(401).json({ valid: false, message: 'Invalid credentials' });
+        res.status(401).json({ valid: false, message: 'Identifiants invalides' });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
@@ -60,7 +60,7 @@ exports.checkField = async (req, res) => {
     const allowedFields = ['email', 'apogee_number', 'cin', 'cne', 'reference'];
 
     if (!allowedFields.includes(field)) {
-        return res.status(400).json({ error: 'Invalid field' });
+        return res.status(400).json({ error: 'Champ invalide' });
     }
 
     try {
@@ -206,7 +206,7 @@ exports.createComplaint = async (req, res) => {
         );
 
         if (requests.length === 0) {
-            return res.status(404).json({ message: 'Request verification failed. Check reference and email.' });
+            return res.status(404).json({ message: 'Vérification de la demande échouée. Vérifiez la référence et l\'email.' });
         }
 
         const request = requests[0];
@@ -219,7 +219,7 @@ exports.createComplaint = async (req, res) => {
 
         await emailService.sendComplaintConfirmation(email, request.first_name, complaint_number, request_reference);
 
-        res.status(201).json({ success: true, message: 'Complaint submitted successfully. Reference sent via email.' });
+        res.status(201).json({ success: true, message: 'Réclamation soumise avec succès. La référence a été envoyée par email.' });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }

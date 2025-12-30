@@ -20,7 +20,7 @@ const upload = multer({
         if (file.mimetype === 'application/pdf' || file.mimetype === 'application/msword' || file.mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
             cb(null, true);
         } else {
-            cb(new Error('Only PDF and Word documents are allowed'), false);
+            cb(new Error('Seuls les documents PDF et Word sont autorisés'), false);
         }
     }
 });

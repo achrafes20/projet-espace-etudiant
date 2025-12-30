@@ -89,14 +89,14 @@ exports.login = async (req, res) => {
         const [admins] = await db.query('SELECT * FROM administrators WHERE email = ? AND active = TRUE', [email]);
 
         if (admins.length === 0) {
-            return res.status(401).json({ message: 'Invalid credentials' });
+            return res.status(401).json({ message: 'Identifiants invalides' });
         }
 
         const admin = admins[0];
         const isMatch = await bcrypt.compare(password, admin.password);
 
         if (!isMatch) {
-            return res.status(401).json({ message: 'Invalid credentials' });
+            return res.status(401).json({ message: 'Identifiants invalides' });
         }
 
         const token = jwt.sign({ id: admin.id, email: admin.email }, process.env.JWT_SECRET, { expiresIn: '1d' });
@@ -337,7 +337,7 @@ exports.exportHistory = async (req, res) => {
     const { status, type, search, dateFrom, dateTo, format } = req.query;
 
     if (!['excel', 'pdf'].includes(format)) {
-        return res.status(400).json({ error: 'Format must be excel or pdf' });
+        return res.status(400).json({ error: 'Le format doit être excel ou pdf' });
     }
 
     const { query, params } = buildRequestQuery({
@@ -490,7 +490,7 @@ exports.updateRequestStatus = async (req, res) => {
         const { email, first_name, reference, document_type } = request;
         await emailService.sendRequestUpdate(email, first_name, reference, document_type, status, refusal_reason, finalDocumentPath);
 
-        res.json({ success: true, message: 'Request updated', document_path: finalDocumentPath, generated_document_path: generatedDocumentPath });
+        res.json({ success: true, message: 'Demande mise à jour', document_path: finalDocumentPath, generated_document_path: generatedDocumentPath });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
@@ -635,7 +635,7 @@ exports.respondToComplaint = async (req, res) => {
             await emailService.sendComplaintResponse(email, first_name, complaint_number, response, documentPath);
         }
 
-        res.json({ success: true, message: 'Complaint responded successfully', document_path: documentPath });
+        res.json({ success: true, message: 'Réclamation traitée avec succès', document_path: documentPath });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
