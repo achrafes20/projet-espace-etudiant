@@ -20,9 +20,9 @@ const ComplaintsList = () => {
     const [responseText, setResponseText] = useState('');
     const [loading, setLoading] = useState(false);
 
-    const serverBase = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+    const serverBase = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? window.location.origin : 'http://localhost:5000');
     // Pour les fichiers statiques, on enlève /api de l'URL
-    const fileBaseUrl = serverBase.replace(/\/api$/, '');
+    const fileBaseUrl = serverBase.endsWith('/api') ? serverBase.slice(0, -4) : serverBase;
 
     useEffect(() => {
         fetchComplaints();
