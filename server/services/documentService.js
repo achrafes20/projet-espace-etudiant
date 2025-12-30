@@ -498,7 +498,6 @@ const buildTranscript = (doc, payload) => {
     currentY += 16;
     doc.text('Le Directeur de l\'Ecole Nationale des Sciences Appliquees de Tetouan', left + 90, currentY);
     currentY += 20;
-    doc.text('Le Directeur', left + 260, currentY);
 
     // Footer note
     addFooterNote(doc, 'Avis important : Il ne peut etre delivre qu\'un seul exemplaire du present releve de note. Aucun duplicata ne sera fourni.');
