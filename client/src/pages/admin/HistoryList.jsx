@@ -44,6 +44,19 @@ const formatDetailValue = (value) => {
     return value ?? '';
 };
 
+const renderModulesDetails = (modules) => {
+    if (!Array.isArray(modules) || modules.length === 0) return '-';
+    return (
+        <div className="mt-2 space-y-1">
+            {modules.map((m, idx) => (
+                <div key={idx} className="text-sm text-gray-900 bg-white px-3 py-1 rounded border border-gray-200">
+                    {m.name || `Module ${idx + 1}`}: <span className="font-semibold">{m.grade ?? '-'}</span>
+                </div>
+            ))}
+        </div>
+    );
+};
+
 const HistoryList = () => {
     const [requests, setRequests] = useState([]);
     const [activeTab, setActiveTab] = useState('all');
@@ -372,7 +385,11 @@ const HistoryList = () => {
                                     {detailEntries.map(([key, value]) => (
                                         <div key={key} className="p-3 border border-gray-100 rounded-lg bg-gray-50">
                                             <p className="text-xs uppercase text-gray-500 mb-1">{key}</p>
-                                            <p className="text-sm text-gray-800 break-words">{formatDetailValue(value) || '-'}</p>
+                                            {key === 'modules' ? (
+                                                renderModulesDetails(value)
+                                            ) : (
+                                                <p className="text-sm text-gray-800 break-words">{formatDetailValue(value) || '-'}</p>
+                                            )}
                                         </div>
                                     ))}
                                 </div>
