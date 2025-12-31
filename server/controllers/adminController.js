@@ -306,28 +306,80 @@ const exportHistoryToExcel = async (requests, res) => {
 };
 
 const exportHistoryToPdf = (requests, res) => {
-    const doc = new PDFDocument({ margin: 40, size: 'A4' });
+    const doc = new PDFDocument({ margin: 30, size: 'A4' });
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="historique-${new Date().toISOString().split('T')[0]}.pdf"`);
 
     doc.pipe(res);
 
-    doc.fontSize(18).text('Historique des demandes', { align: 'center' });
-    doc.moveDown();
-    doc.fontSize(10);
+    // Title
+    doc.fontSize(20).text('Historique des Demandes', { align: 'center' });
+    doc.moveDown(1.5);
+
+    // Table settings
+    const xPositions = [30, 110, 240, 380, 470]; // Columns: Ref, Student, Doc, Status, Date
+    const colWidths = [70, 120, 130, 80, 70];
+    let currentY = 100;
+
+    const drawHeaders = (y) => {
+        doc.fontSize(10).font('Helvetica-Bold').fillColor('black');
+
+        // Header Background
+        doc.save().rect(30, y - 5, 535, 20).fill('#f3f4f6').restore();
+
+        doc.text('Référence', xPositions[0], y);
+        doc.text('Étudiant', xPositions[1], y);
+        doc.text('Document', xPositions[2], y);
+        doc.text('Statut', xPositions[3], y);
+        doc.text('Date', xPositions[4], y);
+
+        doc.moveTo(30, y + 15).lineTo(565, y + 15).strokeColor('#d1d5db').stroke();
+        return y + 25;
+    };
+
+    currentY = drawHeaders(currentY);
+
+    doc.font('Helvetica').fontSize(9);
 
     requests.forEach((req, idx) => {
-        doc.fillColor('#000').font('Helvetica-Bold').text(`${idx + 1}. ${req.reference} - ${documentTypeLabel(req.document_type)}`, { continued: false });
-        doc.font('Helvetica').text(`Etudiant: ${req.first_name || ''} ${req.last_name || ''} (${req.apogee_number || 'N/A'})`);
-        doc.text(`Statut: ${req.status} | Soumission: ${formatDate(req.submission_date)} | Traitement: ${formatDate(req.processing_date) || 'N/A'}`);
-        if (req.refusal_reason || req.status === 'RefusÃÂ¸') {
-            doc.text(`Motif: ${req.refusal_reason || 'Non précisé'}`);
-        }
-        doc.moveDown(0.75);
-
-        if ((idx + 1) % 4 === 0) {
+        // Page break if near bottom
+        if (currentY + 25 > doc.page.height - 40) {
             doc.addPage();
+            currentY = 50;
+            currentY = drawHeaders(currentY);
+            doc.font('Helvetica').fontSize(9);
         }
+
+        const studentName = `${req.first_name || ''} ${req.last_name || ''}`;
+        const docType = documentTypeLabel(req.document_type);
+        const dateStr = formatDate(req.submission_date);
+
+        // Zebra striping for readability
+        if (idx % 2 === 0) {
+            doc.save().rect(30, currentY - 5, 535, 20).fill('#f9fafb').restore();
+        }
+
+        doc.fillColor('#111827');
+        doc.text(req.reference, xPositions[0], currentY, { width: colWidths[0], ellipsis: true });
+        doc.text(studentName, xPositions[1], currentY, { width: colWidths[1], ellipsis: true });
+        doc.text(docType, xPositions[2], currentY, { width: colWidths[2], ellipsis: true });
+
+        // Status coloring
+        let statusColor = '#374151'; // default gray
+        if (req.status && (req.status.includes('Accept') || req.status.includes('Trait'))) statusColor = '#059669'; // green
+        if (req.status && (req.status.includes('Refus') || req.status.includes('Rejet'))) statusColor = '#dc2626'; // red
+        if (req.status && (req.status.includes('attente') || req.status.includes('Pending'))) statusColor = '#d97706'; // orange
+
+        doc.fillColor(statusColor).font('Helvetica-Bold');
+        doc.text(req.status, xPositions[3], currentY, { width: colWidths[3] });
+
+        doc.font('Helvetica').fillColor('#111827');
+        doc.text(dateStr, xPositions[4], currentY, { width: colWidths[4] });
+
+        // Divider
+        doc.moveTo(30, currentY + 15).lineTo(565, currentY + 15).strokeColor('#e5e7eb').lineWidth(0.5).stroke();
+
+        currentY += 20;
     });
 
     doc.end();
